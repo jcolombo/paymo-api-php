@@ -26,7 +26,7 @@ class Paymo {
     * @return string
     */
     public function connect($apiKey){
-        return "Connect !";
+        return "Connect Now !";
     }
 
 }
