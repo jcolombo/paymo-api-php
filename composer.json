@@ -9,12 +9,14 @@
             "email": "jc-dev@360psg.com"
         }
     ],
+    "keywords": ["paymo", "paymo app", "paymo php"],
     "require": {
 		"php": ">=7.1"
     },
     "autoload": {
-        "psr-4": {
-            "PaymoApiPhp\\": "src/"
-        }
+        "psr-4": { "Jcolombo\\PaymoApiPhp\\": "src" }
+    },
+    "autoload-dev": {
+        "psr-4": { "Jcolombo\\PaymoApiPhp\\": "src" }
     }
 }

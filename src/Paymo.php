@@ -1,6 +1,6 @@
 <?php
 
-namespace PaymoApiPhp;
+namespace Jcolombo\PaymoApiPhp;
 
 /**
 *  A sample class
