@@ -1,0 +1,13 @@
+{
+    "name": "jcolombo/paymo-api-php",
+    "description": "PHP implementation of the Paymo App API",
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "jcolombo",
+            "email": "jcolombo@360psg.com"
+        }
+    ],
+    "require": {}
+}
