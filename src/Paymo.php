@@ -3,12 +3,11 @@
 namespace Jcolombo\PaymoApiPhp;
 
 /**
-*  A sample class
+*  Paymo
 *
-*  Use this section to define what this class is doing, the PHPDocumentator will use this
-*  to automatically generate an API documentation using this information.
+*  Base class for connecting to the Paymo App
 *
-*  @author yourname
+*  @author Joel Colombo
 */
 class Paymo {
 
@@ -26,7 +25,7 @@ class Paymo {
     * @return string
     */
     public function connect($apiKey){
-        return "Attempt New Connection to Paymo Now !!!";
+        return "Attempt New Connection to Paymo Now !";
     }
 
 }
