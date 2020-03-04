@@ -107,10 +107,12 @@ class Paymo {
         );
 
         $response = new RequestResponse();
-        $response -> success = true;
+        $response -> statusCode = $guzzleResponse->getStatusCode();
+        $response -> statusReason = $guzzleResponse->getReasonPhrase();
         $response -> body = json_decode($guzzleResponse->getBody()->getContents());
 
-        //var_dump($response); exit;
+        $response -> success = ($response->statusCode >=200 && $response->statusCode <= 299);
+        var_dump($response); exit;
 
         return $response;
 
@@ -142,6 +144,8 @@ class Paymo {
             } else {
                 throw new Exception("An invalid username/password array was sent to the connection");
             }
+        } else {
+            $apiKey = $apiKeyUser;
         }
         if (is_null($apiKey)) {
             if (count(self::$connections)<1) {
@@ -163,6 +167,7 @@ class Paymo {
             self::$connections[$apiKey] = new static($apiKey, $connectionUrl, $connectionName);
             self::$connections[$apiKey]->useLogging = !!$useLogging;
             if (PAYMO_API_RUN_CONNECTION_CHECK) {
+                // @todo Run connection check call to API to test credentials and API up-status, throw error on fail
                 // Run a simple call to the API to get a valid response
                 // Throw an Exception if it fails
                 //self::$connections[$apiKey]->executeRequest('account', 'head');
