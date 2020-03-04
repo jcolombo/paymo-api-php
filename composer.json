@@ -12,6 +12,7 @@
     "keywords": ["paymo", "paymo app", "paymo php"],
     "require": {
 		"php": ">=7.1",
+        "ext-json": "*",
         "guzzlehttp/guzzle": "~6.0"
     },
     "autoload": {
