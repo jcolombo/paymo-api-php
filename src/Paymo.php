@@ -126,7 +126,7 @@ class Paymo {
     /**
      * Static method to create or retrieve a connection
      *
-     * @param $apiKey String | null The API key for this connection
+     * @param $apiKey String | array | null The API key for this connection, An array with 2 values [username,password] can be passed for direct login (not recommended)
      * @param $useLogging Boolean | null to determine if this connection will write to the log
      * @param $connectionName String | null An optional friendly name for the connection (mostly for logging)
      * @param $connectionUrl String | null An alternative base URL for the Paymo API (if null, uses default)
@@ -135,7 +135,14 @@ class Paymo {
      *
      * @return Paymo
      */
-    static public function connect($apiKey=null, $useLogging=null, $connectionName=null, $connectionUrl=null) {
+    static public function connect($apiKeyUser=null, $useLogging=null, $connectionName=null, $connectionUrl=null) {
+        if (is_array($apiKeyUser)) {
+            if (count($apiKeyUser) === 2) {
+                $apiKey = "{$apiKeyUser[0]}::{$apiKeyUser[1]}";
+            } else {
+                throw new Exception("An invalid username/password array was sent to the connection");
+            }
+        }
         if (is_null($apiKey)) {
             if (count(self::$connections)<1) {
                 throw new Exception("'NULL API KEY : Cannot get connection that has not been established yet. Please insure at least one API KEY connection has been established first.'");
@@ -150,7 +157,7 @@ class Paymo {
             $connectionUrl = PAYMO_API_DEFAULT_CONNECTION_URL;
         }
         if (is_null($connectionName)) {
-            $connectionName = PAYMO_API_DEFAULT_CONNECTION_NAME;
+            $connectionName = PAYMO_API_DEFAULT_CONNECTION_NAME.'-'.rand(10000,99999);
         }
         if(!isset(self::$connections[$apiKey])) {
             self::$connections[$apiKey] = new static($apiKey, $connectionUrl, $connectionName);
