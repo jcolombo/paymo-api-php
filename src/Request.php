@@ -19,7 +19,7 @@ class Request
      * All includes are sorted so that the caching key will be generated correctly regardless of the
      * order the include parameters were passed to the request
      *
-     * @param array $include An array of string include entities and entity props
+     * @param string[] $include An array of string include entities and entity props
      * @return string | null The combined include prop or NULL if no includes were in the passed array
      */
     static function compileIncludeParameter($include) {
@@ -36,8 +36,8 @@ class Request
      * @param Paymo $connection A valid Paymo Connection object instance
      * @param string $objectKey The API path tacked on to connections base URL
      * @param integer $id The ID to be loaded from the API at the path sent in as $objectKey
-     * @param array $select An array of valid props to filter the response with before sending it back
-     * @param array $include An array of valid include entities and sub-entity props to return with base object
+     * @param string[] $select An array of valid props to filter the response with before sending it back
+     * @param string[] $include An array of valid include entities and sub-entity props to return with base object
      * @return bool | object Returns an object on success or a boolean FALSE on failure to load entity
      * @throws \GuzzleHttp\Exception\GuzzleException
      */

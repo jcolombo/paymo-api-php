@@ -78,8 +78,8 @@ class Paymo {
     /**
      * The connection execution method, called by the Request objects
      *
-     * @param $request RequestAbstraction An instance of the standardized object to insure all values exist for proper request
-     * @param $options array Set of options to configure request and response handling
+     * @param RequestAbstraction $request An instance of the standardized object to insure all values exist for proper request
+     * @param array $options Set of options to configure request and response handling
      *
      * @return RequestResponse
      *
@@ -139,10 +139,10 @@ class Paymo {
     /**
      * Static method to create or retrieve a connection
      *
-     * @param $apiKey String | array | null The API key for this connection, An array with 2 values [username,password] can be passed for direct login (not recommended)
-     * @param $useLogging Boolean | null to determine if this connection will write to the log
-     * @param $connectionName String | null An optional friendly name for the connection (mostly for logging)
-     * @param $connectionUrl String | null An alternative base URL for the Paymo API (if null, uses default)
+     * @param string|string[]|null $apiKeyUser The API key for this connection, An array with 2 values [username,password] can be passed for direct login (not recommended)
+     * @param bool|null $useLogging to determine if this connection will write to the log
+     * @param string|null $connectionName An optional friendly name for the connection (mostly for logging)
+     * @param string|null $connectionUrl An alternative base URL for the Paymo API (if null, uses default)
      *
      * @throws Exception If no connection was previously setup with an apiKey
      *
@@ -190,9 +190,9 @@ class Paymo {
     /**
      * Private constructor for new connection instances from the singleton connect calls
      *
-     * @param $apiKey String The API key for creating this connection instance
-     * @param $connectionName String The connection name
-     * @param $connectionUrl String The base URL for the Paymo API
+     * @param string $apiKey The API key for creating this connection instance
+     * @param string $connectionName The connection name
+     * @param string $connectionUrl The base URL for the Paymo API
      */
     private function __construct($apiKey, $connectionUrl, $connectionName)
     {

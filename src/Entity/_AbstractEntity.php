@@ -5,6 +5,7 @@ namespace Jcolombo\PaymoApiPhp\Entity;
 use Exception;
 use Jcolombo\PaymoApiPhp\Paymo;
 use Jcolombo\PaymoApiPhp\Request;
+use Jcolombo\PaymoApiPhp\Utility\RequestCondition;
 
 const PAYMO_ENTITY_MAP = [
     'project' => ['object'=>'Jcolombo\PaymoApiPhp\Entity\Project', 'collection'=>false],
@@ -163,9 +164,10 @@ abstract class _AbstractEntity
      * Execute an API call to populate this object with data based on a single ID for this entity type
      *
      * @param integer | null $id The ID to use to populate this object. If null, it uses the existing prop ID, if still no value... will throw an Exception
-     * @param array $fields An array of string props and/or include entities to get from the API call
+     * @param string[] $fields An array of string props and/or include entities to get from the API call
      * @return bool Returns true if populates successfully
      * @throws Exception
+     * @throws \GuzzleHttp\Exception\GuzzleException
      */
     public function fetch($id=null, $fields=[])
     {
@@ -178,7 +180,27 @@ abstract class _AbstractEntity
             $label = $this::label;
             throw new Exception("{$label} attempted to fetch new data while it had dirty fields and protection is enabled.");
         }
-        $select = []; $include = [];
+        list ($select, $include) = $this::cleanupForRequest($this, $fields);
+        $result = Request::fetch($this->connection, $this::apiPath, $id, $select, $include);
+        if ($result) {
+            $this->_hydrate($id, $result);
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Scrub the fields and where conditional arrays to validate content
+     *
+     * @param _AbstractEntity $obj An instance of the entity class being used to GET data
+     * @param string[] $fields An array of strings for props and includes to return on each base object
+     * @param RequestCondition[] $whereFilters An array of RequestConditions to send to the API when getting lists
+     * @return array Contains an item for $select, $include, and $where scrubbed for use by Request calls
+     * @throws Exception
+     */
+    private function cleanupForRequest($obj, $fields=[], $whereFilters=[]) {
+        // @todo Implement WHERE filter scrubbing
+        $select = []; $include = []; $where = [];
         foreach($fields as $k) {
             if (isset($this::propTypes[$k])) {
                 $select[] = $k;
@@ -186,13 +208,21 @@ abstract class _AbstractEntity
                 $include[] = $k;
             }
         }
-        $include = $this::scrubInclude($include, $this::apiEntity);
-        $result = Request::fetch($this->connection, $this::apiPath, $id, $select, $include);
-        if ($result) {
-            $this->_hydrate($id, $result);
-            return true;
-        }
-        return false;
+        $include = $obj::scrubInclude($include, $this::apiEntity);
+        return array($select, $include, $where);
+    }
+
+    public function list($fields=[],$where=[],$validate=true) {
+        // $where = [
+        //   'prop' => string (key)
+        //   'value' => any (validated against the operator)
+        //   'operator' => valid operator defaults:"="
+        //   'skipValidation' = boolean. if true, let any operator/value be used for this key
+        //  ]
+
+        // Call REQUEST (GET) with $fields and limit conditions set with WHERE
+        // Return new hydrated collection array
+        return [];
     }
 
     public function create()
@@ -240,23 +270,12 @@ abstract class _AbstractEntity
         return true; // on Success
     }
 
-    public function list($fields=[],$where=[]) {
-        // $where = [
-        //   'prop' => string (key)
-        //   'value' => any (validated against the operator)
-        //   'operator' => valid operator defaults:"="
-        //   'skipValidation' = boolean. if true, let any operator be used for any key
-        //  ]
 
-        // Call REQUEST (GET) with $fields and limit conditions set with WHERE
-        // Return new hydrated collection array
-        return [];
-    }
 
     /**
      * Return all values that exist in the unlisted collection
      *
-     * @return array
+     * @return mixed[]
      */
     public function unlisted() {
         return $this->unlisted;
@@ -268,7 +287,7 @@ abstract class _AbstractEntity
      * Passing a true parameter will check all defined keys (as null) even if they are not currently set
      *
      * @param bool $includeAll If true, will check the defined propType and return them as NULL if not set
-     * @return array
+     * @return mixed[]
      */
     public function props($includeAll=false) {
         $props = $this->props;
@@ -309,7 +328,7 @@ abstract class _AbstractEntity
     /**
      * Return a list of strings for the prop keys that dont match the last loaded or saved values
      *
-     * @return array Array of prop string keys
+     * @return string[] Array of prop string keys
      */
     public function getDirtyKeys() {
         $keys = [];
@@ -324,7 +343,7 @@ abstract class _AbstractEntity
     /**
      * Return an array of the current prop values that do not match the last loaded or saved value
      *
-     * @return array A multidimensional array with prop as keys and a 2 part assoc array for each key [original, current]
+     * @return array[] A multidimensional array with prop as keys and a 2 part assoc array for each key [original, current]
      */
     public function getDirtyValues() {
         $keys = $this->getDirtyKeys();
@@ -513,9 +532,9 @@ abstract class _AbstractEntity
      *
      * Will recursively traverse the include array and check each level and all sub-levels
      *
-     * @param array $include Array of strings to scrub for valid set of allowed props
+     * @param string[] $include Array of strings to scrub for valid set of allowed props
      * @param string $entityKey The root entity key to compare validation of the $include rules to
-     * @return array A scrubbed version of only valid include keys. Insures ID keys are added if missing.
+     * @return string[] A scrubbed version of only valid include keys. Insures ID keys are added if missing.
      * @throws Exception
      */
     static function scrubInclude($include, $entityKey) {
