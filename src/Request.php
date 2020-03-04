@@ -1,15 +1,24 @@
 <?php
 
-
 namespace Jcolombo\PaymoApiPhp;
 
-use Jcolombo\PaymoApiPhp\Paymo;
 use Jcolombo\PaymoApiPhp\Utility\RequestAbstraction;
 
 
+/**
+ * Static class for generating proper request objects to be sent in to connection instances for executing
+ *
+ * @package Jcolombo\PaymoApiPhp
+ */
 class Request
 {
 
+    /**
+     * Combine any "include" parameters into a single comma joined string value for the query string
+     *
+     * @param array $include An array of string include entities and entity props
+     * @return string | null The combined include prop or NULL if no includes were in the passed array
+     */
     static function compileIncludeParameter($include) {
         if (!$include || !is_array($include) || count($include) < 1) {
             return null;
@@ -17,13 +26,20 @@ class Request
         return join(',', $include);
     }
 
+    /**
+     * Compile and execute a single entity fetch request from the API
+     *
+     * @param Paymo $connection A valid Paymo Connection object instance
+     * @param string $objectKey The API path tacked on to connections base URL
+     * @param integer $id The ID to be loaded from the API at the path sent in as $objectKey
+     * @param array $select An array of valid props to filter the response with before sending it back
+     * @param array $include An array of valid include entities and sub-entity props to return with base object
+     * @return bool | object Returns an object on success or a boolean FALSE on failure to load entity
+     * @throws \GuzzleHttp\Exception\GuzzleException
+     */
     static function fetch(Paymo $connection, $objectKey, $id, $select, $include) {
-        if (!is_array($select)) {
-            $select = !is_null($select) ? [$select] : [];
-        }
-        if (!is_array($include)) {
-            $include = !is_null($include) ? [$include] : [];
-        }
+        if (!is_array($select)) { $select = !is_null($select) ? [$select] : []; }
+        if (!is_array($include)) { $include = !is_null($include) ? [$include] : []; }
         $includedEntities = [];
         foreach($include as $i) {
             $incEntity = explode('.', $i)[0];
@@ -38,12 +54,6 @@ class Request
         $request -> resourceUrl = $objectKey."/{$id}";
         $request -> includeEntities = Request::compileIncludeParameter($include);
 
-        //var_dump($select);
-        //var_dump($include);
-        //exit;
-
-        // Populate RequestAbstraction object to normalize for execution
-
         $response = $connection -> execute($request);
         if (
             $response->success
@@ -53,8 +63,6 @@ class Request
         ) {
             $selectAll = count($select) === 0;
             $singleEntity = $response->body->$objectKey[0];
-            //echo "RESPONSE BODY...\n";
-            //var_dump($singleEntity);
             if (!$selectAll) {
                 foreach($singleEntity as $k => $v) {
                     if (!($k==='id' || in_array($k, $validProps))) {
@@ -62,10 +70,8 @@ class Request
                     }
                 }
             }
-            //var_dump($singleEntity); exit;
             return $singleEntity;
         }
-
         return false;
     }
 

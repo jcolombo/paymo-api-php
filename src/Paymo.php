@@ -7,18 +7,40 @@ use GuzzleHttp\Client as PaymoGuzzleClient;
 use Jcolombo\PaymoApiPhp\Utility\RequestAbstraction;
 use Jcolombo\PaymoApiPhp\Utility\RequestResponse;
 
+/**
+ * A writable directory path for cache storage. Will auto-create a subfolder called "paymo-cache"
+ * If left NULL, caching is disabled and not used even if enabled in the connection
+ */
 define('PAYMO_API_CACHE_PATH', null);
+/**
+ * A writable directory path for writing log files. Will auto-create a subfolder called "paymo-logs"
+ * If left NULL, logging is disabled and not used even if enabled in the connection
+ */
 define('PAYMO_API_LOG_PATH', null);
+/**
+ * The base URL to connect to the API. Be sure to end the URL with a "/" slash
+ */
 define('PAYMO_API_DEFAULT_CONNECTION_URL', 'https://app.paymoapp.com/api/');
+/**
+ * The default name for a connection which is mainly used in logging and some output errors / etc
+ * Each connection with different apiKeys can be given a unique name for clarity during connection setup
+ */
 define('PAYMO_API_DEFAULT_CONNECTION_NAME', 'PaymoConnection');
+/**
+ * When true, will run a single API call at the point the connection is initially created to test key/connection
+ */
 define('PAYMO_API_RUN_CONNECTION_CHECK', false);
+/**
+ * When true, some additional development checks, validation, debugging output, etc will be enabled
+ * This should be FALSE in production to avoid any accidental key exposure or lag/slowdown
+ */
 define('PAYMO_DEVELOPMENT_MODE', true);
 
 
 /**
 *  Paymo
 *
-*  Base class for connecting to the Paymo App
+*  Base class for connecting to the Paymo App API and managing the related objects/data
 *
 *  @author Joel Colombo
 */

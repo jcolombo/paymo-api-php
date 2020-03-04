@@ -33,6 +33,15 @@ abstract class _AbstractEntity
     protected $loaded   = [];
     protected $included = [];
 
+    /**
+     * The default Entity constructor
+     *
+     * Requires a Paymo connection instance or attempts to find/create one.
+     * When in development mode, will validate the object class has all required defined constants
+     *
+     * @param Paymo | string | null $paymo Either an API Key, Paymo Connection, or null to get first connection available
+     * @throws Exception
+     */
     public function __construct(Paymo $paymo = null)
     {
         try {
@@ -65,8 +74,13 @@ abstract class _AbstractEntity
         return $this;
     }
 
-    // Chain Methods
-
+    /**
+     * Manual call in place of the direct magic method setter, allows for bulk property setting as array
+     *
+     * @param string | array $key Either a prop key or an associative array of prop key=>value combinations
+     * @param null $value If $key is an array, this is ignored. Otherwise its used to set the value of $key prop
+     * @return _AbstractEntity Returns the object itself for optional object chaining
+     */
     public function set($key, $value=null)
     {
         if (is_string($key)) {
@@ -81,6 +95,12 @@ abstract class _AbstractEntity
         return $this;
     }
 
+    /**
+     * Resets the object to empty. Keeps any settings but clears the data from the props,
+     * unlisted, loaded, and included collections.
+     *
+     * @return _AbstractEntity Returns the object itself for optional object chaining
+     */
     public function clear()
     {
         $this->props = [];
@@ -90,9 +110,14 @@ abstract class _AbstractEntity
         return $this;
     }
 
-    /*
-     * Reset the loaded props to match the currently set props and clear the dirty flags.
-     * WARNING: This will wipe out the current loaded values so props cannot be reverted to prior values
+    /**
+     * Overwrite the loaded values with the current values, thereby resetting the dirty state on all props
+     *
+     * WARNING: Washing the object loses the last loaded or saved values and assumes the current values are
+     * clean and saved via some other means. Entities are always auto-washed after loading and hydration is
+     * complete
+     *
+     * @return _AbstractEntity Returns the object itself for optional object chaining
      */
     public function wash()
     {
@@ -100,24 +125,48 @@ abstract class _AbstractEntity
         return $this;
     }
 
-    // Add method to create children of valid includes
+
     public function relate($key, $object, $index=null) {
         // Find the object type for $key if its an array include use the associative index
         return $this;
     }
 
+    /**
+     * If enabled, will prevent API fetch calls from overwriting any current prop values if they are dirty
+     *
+     * By default, API loads will overwrite any data in this object even if its dirty and unsaved
+     *
+     * @param bool $protect Set to true and any attempt to overwrite dirty props will throw an error
+     * @return _AbstractEntity Returns the object itself for optional object chaining
+     */
     public function protectDirtyOverwrites($protect=true) {
         $this->overwriteDirtyWithRequests = !$protect;
         return $this;
     }
 
+    /**
+     * Call this with a TRUE value to always load from API (ignoring cache if it exists)
+     *
+     * This will still STORE the cache results if Caching is enabled on the connection
+     * Setting this back to false on the entity will re-enable caching if its ON in the connection
+     * By default all entities will try to use cache if connection cache is set to true
+     *
+     * @param bool $ignore The setting for this objects cache use override
+     * @return _AbstractEntity Returns the object itself for optional object chaining
+     */
     public function ignoreCache($ignore=true) {
         $this->useCacheIfAvailable = !$ignore;
         return $this;
     }
 
-    // REQUEST calls
-
+    /**
+     * Execute an API call to populate this object with data based on a single ID for this entity type
+     *
+     * @param integer | null $id The ID to use to populate this object. If null, it uses the existing prop ID, if still no value... will throw an Exception
+     * @param array $fields An array of string props and/or include entities to get from the API call
+     * @return bool Returns true if populates successfully
+     * @throws Exception
+     */
     public function fetch($id=null, $fields=[])
     {
         if (is_null($id) && isset($this->props['id'])) { $id = $this->props['id']; }
@@ -137,9 +186,7 @@ abstract class _AbstractEntity
                 $include[] = $k;
             }
         }
-        //var_dump($include);
         $include = $this::scrubInclude($include, $this::apiEntity);
-        //var_dump($include);
         $result = Request::fetch($this->connection, $this::apiPath, $id, $select, $include);
         if ($result) {
             $this->_hydrate($id, $result);
@@ -206,24 +253,64 @@ abstract class _AbstractEntity
         return [];
     }
 
-    
-    // Utilities
-
+    /**
+     * Return all values that exist in the unlisted collection
+     *
+     * @return array
+     */
     public function unlisted() {
         return $this->unlisted;
     }
 
+    /**
+     * Return all the current values of the defined object props as an associative array
+     *
+     * Passing a true parameter will check all defined keys (as null) even if they are not currently set
+     *
+     * @param bool $includeAll If true, will check the defined propType and return them as NULL if not set
+     * @return array
+     */
     public function props($includeAll=false) {
-        // If !includeAll, add the keys from the propTypes constant as NULL
-        return $this->props;
+        $props = $this->props;
+        if ($includeAll) {
+            $diff = array_diff_key($this::propTypes, $props);
+            foreach($diff as $k) {
+                if (!isset($props[$k])) { $props[$k] = null; }
+            }
+        }
+        return $props;
     }
 
+    /**
+     * Check if there is at least one dirty key that doesnt match the last loaded or saved value
+     *
+     * @param bool $checkRelations If true, will look at and check all "included" entities recursively
+     * @return bool
+     */
     public function isDirty($checkRelations=false) {
         $dirtySelf = count($this->getDirtyKeys()) > 0;
-        // If $checkRelations, also run the check on all children and childrens children,  true=ALL, number 1+ depth of relations
+        if ($checkRelations) {
+            $dirtyInclude = false;
+            foreach($this->included as $k => $v) {
+                if (is_object($v)) {
+                    $dirtyInclude = $v->isDirty(true);
+                } elseif (is_array($v)) {
+                    foreach($v as $d) {
+                        $dirtyInclude = $d->isDirty(true);
+                        if ($dirtyInclude) { return true; }
+                    }
+                }
+                if ($dirtyInclude) { return true; }
+            }
+        }
         return $dirtySelf;
     }
 
+    /**
+     * Return a list of strings for the prop keys that dont match the last loaded or saved values
+     *
+     * @return array Array of prop string keys
+     */
     public function getDirtyKeys() {
         $keys = [];
         foreach($this->loaded as $k => $v) {
@@ -234,6 +321,11 @@ abstract class _AbstractEntity
         return $keys;
     }
 
+    /**
+     * Return an array of the current prop values that do not match the last loaded or saved value
+     *
+     * @return array A multidimensional array with prop as keys and a 2 part assoc array for each key [original, current]
+     */
     public function getDirtyValues() {
         $keys = $this->getDirtyKeys();
         $values = [];
@@ -246,8 +338,15 @@ abstract class _AbstractEntity
         return $values;
     }
 
-    // Magic Methods
-
+    /**
+     * Magic setter method
+     *
+     * If the setter cannot find the key in the valid props, it will add the value to the "unlisted" array
+     *
+     * @param string $name Object property to attempt magic setting
+     * @param mixed $value The value to attempt to set
+     * @return void
+     */
     public function __set($name, $value)
     {
         if (key_exists($name, $this::propTypes)) {
@@ -260,6 +359,14 @@ abstract class _AbstractEntity
         // allow setting of a child included value
     }
 
+    /**
+     * Magic getter method
+     *
+     * Will check the class props, unlisted and included object properties
+     *
+     * @param string $name Object property getter key
+     * @return mixed | null
+     */
     public function __get($name)
     {
         if (key_exists($name, $this::propTypes)) {
@@ -269,12 +376,21 @@ abstract class _AbstractEntity
         } elseif(key_exists($name, $this->included)) {
             return $this->included[$name];
         }
-        // Check $this->included; return value OR [] if const included is "true" or null of its false
         return null;
     }
 
     // Not Intended for Actual Public Calling
 
+    /**
+     * Internal method to populate this object with the results from a paymo API call
+     *
+     * This method is only exposed publicly to allow other hydration calls to propagate the process
+     * It is not intended to be called directly (unless passing in the raw object results from a call elsewhere)
+     *
+     * @param integer $objectId The ID of this object being populated
+     * @param object $responseObject The standard object returned from the API call
+     * @throws Exception
+     */
     public function _hydrate($objectId, $responseObject) {
         if (is_object($responseObject)) {
             $this->clear();
@@ -292,6 +408,14 @@ abstract class _AbstractEntity
         }
     }
 
+
+    /**
+     * Supporting method to populate "include" hydration when child objects or lists are included in the response
+     *
+     * @param string $includeKey string The valid include key from the includeTypes constant to be populated
+     * @param object | array $object The single include object or an array of objects depending on the key type
+     * @throws Exception If an entity class definition cannot be found for the provided key
+     */
     private function _hydrateInclude($includeKey, $object) {
         $entityObject = $this::getEntityClass($includeKey, 'all');
         $isCollection = !!$entityObject['collection'];
@@ -313,6 +437,15 @@ abstract class _AbstractEntity
 
     // Static Methods
 
+    /**
+     * Lookup an entity settings and class name from a defined key
+     *
+     * @param string $key The reference key for an entity to be looked up
+     * @param string $return May be 'all', 'object' or 'collection' based on what is needed in return if found
+     * @param bool $allowNull If true, will return null if the class object cannot be found for the passed key
+     * @return object|string|bool|null
+     * @throws Exception
+     */
     static function getEntityClass($key, $return='object', $allowNull=false) {
         if (strpos($key, '\\') !== false) { return $key; }
         $mapKey = null;
@@ -335,22 +468,56 @@ abstract class _AbstractEntity
         return null;
     }
 
+    /**
+     * Check if a specific entity has a valid property type allowed
+     *
+     * @param string $entityKey The entity key to use in look up
+     * @param string $includeKey The prop key that is being checked for allowance
+     * @return bool
+     * @throws Exception
+     */
     static function isProp($entityKey, $includeKey) {
         $entityClass = self::getEntityClass($entityKey);
         return isset($entityClass::propTypes[$includeKey]);
     }
 
+    /**
+     * Check if a specific entity has a valid include entity or collection allowed
+     *
+     * @param string $entityKey The entity key to use in look up
+     * @param string $includeKey The include key that is being checked for allowance
+     * @return bool
+     * @throws Exception
+     */
     static function isIncludable($entityKey, $includeKey) {
         $entityClass = self::getEntityClass($entityKey);
         return isset($entityClass::includeTypes[$includeKey]);
     }
 
+    /**
+     * Determine if a key is either a prop or an include type on a specific entity
+     *
+     * @param string $entityKey The entity key to use in look up
+     * @param string $propOrInclude The key that is being checked for allowance as either a prop or an include
+     * @return bool
+     * @throws Exception
+     */
     static function isSelectable($entityKey, $propOrInclude) {
         $entityClass = self::getEntityClass($entityKey);
         return self::isProp($entityClass, $propOrInclude)
             || self::isIncludable($entityClass, $propOrInclude);
     }
 
+    /**
+     * Clean up an array of include items to validate they exist and are allowed.
+     *
+     * Will recursively traverse the include array and check each level and all sub-levels
+     *
+     * @param array $include Array of strings to scrub for valid set of allowed props
+     * @param string $entityKey The root entity key to compare validation of the $include rules to
+     * @return array A scrubbed version of only valid include keys. Insures ID keys are added if missing.
+     * @throws Exception
+     */
     static function scrubInclude($include, $entityKey) {
         $realInclude = [];
         foreach($include as $index => $i) {

@@ -6,5 +6,4 @@ class RequestResponse
 {
     public $success = false;
     public $body = null;
-
 }
