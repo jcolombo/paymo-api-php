@@ -16,6 +16,9 @@ class Request
     /**
      * Combine any "include" parameters into a single comma joined string value for the query string
      *
+     * All includes are sorted so that the caching key will be generated correctly regardless of the
+     * order the include parameters were passed to the request
+     *
      * @param array $include An array of string include entities and entity props
      * @return string | null The combined include prop or NULL if no includes were in the passed array
      */
@@ -23,6 +26,7 @@ class Request
         if (!$include || !is_array($include) || count($include) < 1) {
             return null;
         }
+        sort($include);
         return join(',', $include);
     }
 
@@ -40,6 +44,22 @@ class Request
     static function fetch(Paymo $connection, $objectKey, $id, $select, $include) {
         if (!is_array($select)) { $select = !is_null($select) ? [$select] : []; }
         if (!is_array($include)) { $include = !is_null($include) ? [$include] : []; }
+
+        $request = new RequestAbstraction();
+        $request -> method = 'GET';
+        $request -> resourceUrl = $objectKey."/{$id}";
+        $request -> includeEntities = Request::compileIncludeParameter($include);
+        $response = $connection -> execute($request);
+
+        if ($response->validBody($objectKey, 1)) {
+            return self::scrubBody($response->body->$objectKey[0], $select, $include);
+        }
+        return false;
+    }
+    
+    static function scrubBody($objects, $select, $include) {
+        $isList = is_array($objects);
+        if ($isList) { $objList = $objects; } else { $objList = [$objects]; }
         $includedEntities = [];
         foreach($include as $i) {
             $incEntity = explode('.', $i)[0];
@@ -48,31 +68,22 @@ class Request
             }
         }
         $validProps = array_merge($select, $includedEntities);
-
-        $request = new RequestAbstraction();
-        $request -> method = 'GET';
-        $request -> resourceUrl = $objectKey."/{$id}";
-        $request -> includeEntities = Request::compileIncludeParameter($include);
-
-        $response = $connection -> execute($request);
-        if (
-            $response->success
-            && $response->body
-            && is_array($response->body->$objectKey)
-            && count($response->body->$objectKey) > 0
-        ) {
-            $selectAll = count($select) === 0;
-            $singleEntity = $response->body->$objectKey[0];
-            if (!$selectAll) {
-                foreach($singleEntity as $k => $v) {
+        $selectAll = count($select) === 0;
+        if (!$selectAll) {
+            foreach($objList as $index => $e) {
+                foreach($e as $k => $v) {
                     if (!($k==='id' || in_array($k, $validProps))) {
-                        unset($singleEntity->$k);
+                        unset($objList[$index]->$k);
                     }
                 }
-            }
-            return $singleEntity;
-        }
-        return false;
+            }            
+        }   
+        return $isList ? $objList : $objList[0];
+    }
+
+    static function list(Paymo $connection, $objectKey, $select, $include, $where) {
+
+
     }
 
 

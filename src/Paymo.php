@@ -91,8 +91,17 @@ class Paymo {
             'base_uri' => $this->connectionUrl,
             'timeout'  => 3.0,
         ]);
-        $props = []; $query = [];
-        $props['auth'] = [$this->apiKey, 'apiKey'];
+        $headers=[]; $props = []; $query = [];
+
+        // Define Headers to send to Paymo
+        $headers[] = ['Accept'=>'application/json'];
+        $props['headers'] = $headers;
+
+        // Define Auth property (apiKey or user/password)
+        $aP = explode('::', $this->apiKey, 2);
+        $props['auth'] = [$aP[0], isset($aP[1])?$aP[1]:'apiKeyUsed'];
+
+        // Compile the query string options
         if (!is_null($request->includeEntities)) {
             $query['include'] = $request->includeEntities;
         }
@@ -100,19 +109,21 @@ class Paymo {
 
         //var_dump($props); exit;
 
+        // Run the GUZZLE request to the live API
         $guzzleResponse = $client->request(
             $request->method,
             $request->resourceUrl,
             $props
         );
 
+        // Construct normalized response for returning to the caller for processing (REQUEST object)
         $response = new RequestResponse();
-        $response -> statusCode = $guzzleResponse->getStatusCode();
-        $response -> statusReason = $guzzleResponse->getReasonPhrase();
+        $response -> responseCode = $guzzleResponse->getStatusCode();
+        $response -> responseReason = $guzzleResponse->getReasonPhrase();
         $response -> body = json_decode($guzzleResponse->getBody()->getContents());
+        $response -> success = ($response->responseCode >=200 && $response->responseCode <= 299);
 
-        $response -> success = ($response->statusCode >=200 && $response->statusCode <= 299);
-        var_dump($response); exit;
+        //var_dump($response); exit;
 
         return $response;
 
