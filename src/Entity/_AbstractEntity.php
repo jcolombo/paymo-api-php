@@ -443,11 +443,13 @@ abstract class _AbstractEntity
         if ($isCollection) {
             $result = [];
             foreach($object as $o) {
+                /** @var _AbstractEntity $tmp */
                 $tmp = new $className($this->connection);
                 $tmp -> _hydrate($o->id, $o);
                 $result[] = $tmp;
             }
         } else {
+            /** @var _AbstractEntity $result */
             $result = new $className($this->connection);
             $result -> _hydrate($object->id, $object);
         }
@@ -574,7 +576,7 @@ abstract class _AbstractEntity
                             }
                         }
                     } else {
-                        $deepIncludes = self::scrubInclude($parts[1], [$parts[2]]);
+                        $deepIncludes = self::scrubInclude($parts[1], $parts[2]);
                         foreach($deepIncludes as $d) {
                             $tmp = "{$parts[0]}.{$parts[1]}.{$d}";
                             if (!in_array($tmp, $realInclude)) {

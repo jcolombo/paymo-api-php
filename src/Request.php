@@ -2,6 +2,7 @@
 
 namespace Jcolombo\PaymoApiPhp;
 
+use GuzzleHttp\Exception\GuzzleException;
 use Jcolombo\PaymoApiPhp\Utility\RequestAbstraction;
 
 
@@ -39,7 +40,7 @@ class Request
      * @param string[] $select An array of valid props to filter the response with before sending it back
      * @param string[] $include An array of valid include entities and sub-entity props to return with base object
      * @return bool | object Returns an object on success or a boolean FALSE on failure to load entity
-     * @throws \GuzzleHttp\Exception\GuzzleException
+     * @throws GuzzleException
      */
     static function fetch(Paymo $connection, $objectKey, $id, $select, $include) {
         if (!is_array($select)) { $select = !is_null($select) ? [$select] : []; }
