@@ -8,34 +8,21 @@ use Jcolombo\PaymoApiPhp\Configuration;
 use Jcolombo\PaymoApiPhp\Entity\Collection\EntityCollection;
 use Jcolombo\PaymoApiPhp\Paymo;
 use Jcolombo\PaymoApiPhp\Request;
-use Jcolombo\PaymoApiPhp\Utility\RequestCondition;
 
 abstract class AbstractResource extends AbstractEntity
 {
 
     /**
      * Any child classes must define the list of constants in this array
-     *
-     * @todo Should be replaced with a better inheritance or interface model of some sort. Being lazy for now.
      */
     public const REQUIRED_CONSTANTS = [
         'LABEL', 'API_PATH', 'API_ENTITY', 'REQUIRED_CREATE', 'READONLY', 'INCLUDE_TYPES', 'PROP_TYPES', 'WHERE_OPERATIONS'
     ];
 
-    /**
-     * The valid possible operators usable in WHERE clauses when selecting lists of entities
-     */
-    public const VALID_OPERATORS = ['=', '!=', '<', '<=', '>', '>=', 'like', 'not like', 'in', 'not_in'];
-    // IN & NOT IN require an array value to check.
-
-    protected $connection = null;
-    protected $overwriteDirtyWithRequests = true;
-    protected $useCacheIfAvailable = true;
     protected $props = [];
     protected $unlisted = [];
     protected $loaded = [];
     protected $included = [];
-    private $hydrationMode = false;
 
     /**
      * The default Entity constructor
@@ -71,53 +58,8 @@ abstract class AbstractResource extends AbstractEntity
                                                                                                                    $missingConstants)."'");
             }
         }
+
         return $this;
-    }
-
-    /**
-     * Determine if a key is either a prop or an include type on a specific entity
-     *
-     * @param string $entityKey     The entity key to use in look up
-     * @param string $propOrInclude The key that is being checked for allowance as either a prop or an include
-     *
-     * @throws Exception
-     * @return bool
-     */
-    public static function isSelectable($entityKey, $propOrInclude)
-    {
-        $entityResource = EntityMap::resource($entityKey);
-        return !!$entityResource && (self::isProp($entityKey, $propOrInclude)
-            || self::isIncludable($entityKey, $propOrInclude));
-    }
-
-    /**
-     * Check if a specific entity has a valid property type allowed
-     *
-     * @param string $entityKey  The entity key to use in look up
-     * @param string $includeKey The prop key that is being checked for allowance
-     *
-     * @throws Exception
-     * @return bool
-     */
-    public static function isProp($entityKey, $includeKey)
-    {
-        $entityResource = EntityMap::resource($entityKey);
-        return !!$entityResource && isset($entityResource::PROP_TYPES[$includeKey]);
-    }
-
-    /**
-     * Check if a specific entity has a valid include entity or collection allowed
-     *
-     * @param string $entityKey  The entity key to use in look up
-     * @param string $includeKey The include key that is being checked for allowance
-     *
-     * @throws Exception
-     * @return bool
-     */
-    public static function isIncludable($entityKey, $includeKey)
-    {
-        $entityResource = EntityMap::resource($entityKey);
-        return !!$entityResource && isset($entityResource::INCLUDE_TYPES[$includeKey]);
     }
 
     /**
@@ -127,6 +69,7 @@ abstract class AbstractResource extends AbstractEntity
      * @param null           $value If $key is an array, this is ignored. Otherwise its used to set the value of $key
      *                              prop
      *
+     * @throws Exception
      * @return AbstractResource Returns the object itself for optional object chaining
      */
     public function set($key, $value = null)
@@ -140,6 +83,7 @@ abstract class AbstractResource extends AbstractEntity
                 }
             }
         }
+
         return $this;
     }
 
@@ -154,6 +98,7 @@ abstract class AbstractResource extends AbstractEntity
     public function wash()
     {
         $this->loaded = $this->props;
+
         return $this;
     }
 
@@ -174,6 +119,7 @@ abstract class AbstractResource extends AbstractEntity
     public function protectDirtyOverwrites($protect = true)
     {
         $this->overwriteDirtyWithRequests = !$protect;
+
         return $this;
     }
 
@@ -190,6 +136,7 @@ abstract class AbstractResource extends AbstractEntity
     public function ignoreCache($ignore = true)
     {
         $this->useCacheIfAvailable = !$ignore;
+
         return $this;
     }
 
@@ -217,12 +164,14 @@ abstract class AbstractResource extends AbstractEntity
             $label = $this::LABEL;
             throw new Exception("{$label} attempted to fetch new data while it had dirty fields and protection is enabled.");
         }
-        [$select, $include] = $this::cleanupForRequest($this, $fields);
+        [$select, $include] = $this::cleanupForRequest($this::API_ENTITY, $fields);
         $result = Request::fetch($this->connection, $this::API_PATH, $id, $select, $include);
         if ($result) {
             $this->_hydrate($id, $result);
+
             return true;
         }
+
         return false;
     }
 
@@ -254,6 +203,7 @@ abstract class AbstractResource extends AbstractEntity
                 }
             }
         }
+
         return $dirtySelf;
     }
 
@@ -270,96 +220,8 @@ abstract class AbstractResource extends AbstractEntity
                 $keys[] = $k;
             }
         }
+
         return $keys;
-    }
-
-    /**
-     * Scrub the fields and where conditional arrays to validate content
-     *
-     * @param AbstractResource     $obj          An instance of the entity class being used to GET data
-     * @param string[]           $fields       An array of strings for props and includes to return on each base object
-     * @param RequestCondition[] $whereFilters An array of RequestConditions to send to the API when getting lists
-     *
-     * @throws Exception
-     * @return array Contains an item for $select, $include, and $where scrubbed for use by Request calls
-     */
-    private function cleanupForRequest($obj, $fields = [], $whereFilters = [])
-    {
-        // @todo Implement WHERE filter scrubbing
-        $select = [];
-        $include = [];
-        $where = [];
-        foreach ($fields as $k) {
-            if (isset($this::PROP_TYPES[$k])) {
-                $select[] = $k;
-            } else {
-                $include[] = $k;
-            }
-        }
-        $include = $obj::scrubInclude($include, $this::API_ENTITY);
-        return [$select, $include, $where];
-    }
-
-    /**
-     * Clean up an array of include items to validate they exist and are allowed.
-     * Will recursively traverse the include array and check each level and all sub-levels
-     *
-     * @param string[] $include   Array of strings to scrub for valid set of allowed props
-     * @param string   $entityKey The root entity key to compare validation of the $include rules to
-     *
-     * @throws Exception
-     * @return string[] A scrubbed version of only valid include keys. Insures ID keys are added if missing.
-     */
-    public static function scrubInclude($include, $entityKey)
-    {
-        $realInclude = [];
-        foreach ($include as $index => $i) {
-            $parts = explode('.', $i, 3);
-            $partCount = count($parts);
-            if ($partCount === 1) {
-                if (self::isIncludable($entityKey, $parts[0]) && !in_array($parts[0], $realInclude)) {
-                    $realInclude[] = $parts[0];
-                }
-            } elseif ($partCount === 2) {
-                if (self::isIncludable($entityKey, $parts[0])) {
-                    $isProp = self::isProp($parts[0], $parts[1]);
-                    $isInclude = !$isProp && self::isIncludable($parts[0], $parts[1]);
-                    if ($isProp || $isInclude) {
-                        if (!in_array($i, $realInclude)) {
-                            $realInclude[] = $i;
-                        }
-                        if ($isProp && !in_array($parts[0].'.id', $realInclude)) {
-                            $realInclude[] = $parts[0].'.id';
-                        }
-                    }
-                }
-            } else {
-                if (self::isIncludable($entityKey, $parts[0]) && self::isIncludable($parts[0], $parts[1])) {
-                    $goDeeper = strpos($parts[2], '.');
-                    if (!$goDeeper) {
-                        $isProp = self::isProp($parts[1], $parts[2]);
-                        $isInclude = !$isProp && self::isIncludable($parts[1], $parts[2]);
-                        if ($isProp || $isInclude) {
-                            if (!in_array($i, $realInclude)) {
-                                $realInclude[] = $i;
-                            }
-                            if ($isProp && !in_array("{$parts[0]}.{$parts[1]}.id", $realInclude)) {
-                                $realInclude[] = "{$parts[0]}.{$parts[1]}.id";
-                            }
-                        }
-                    } else {
-                        $deepIncludes = self::scrubInclude($parts[1], $parts[2]);
-                        foreach ($deepIncludes as $d) {
-                            $tmp = "{$parts[0]}.{$parts[1]}.{$d}";
-                            if (!in_array($tmp, $realInclude)) {
-                                $realInclude[] = $tmp;
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        return $realInclude;
     }
 
     /**
@@ -379,7 +241,7 @@ abstract class AbstractResource extends AbstractEntity
             $this->hydrationMode = true;
             $this->props['id'] = $objectId;
             foreach ($responseObject as $k => $v) {
-                if (!isset($this::PROP_TYPES[$k]) && isset($this::INCLUDE_TYPES[$k])) {
+                if ($this::isIncludable($this::API_ENTITY, $k)) {
                     $this->_hydrateInclude($k, $v);
                 } else {
                     $this->__set($k, $v);
@@ -402,20 +264,21 @@ abstract class AbstractResource extends AbstractEntity
         $this->unlisted = [];
         $this->loaded = [];
         $this->included = [];
+
         return $this;
     }
 
     /**
      * Supporting method to populate "include" hydration when child objects or lists are included in the response
      *
-     * @param string         $includeKey string The valid include key from the INCLUDE_TYPES constant to be populated
-     * @param object | array $object     The single include object or an array of objects depending on the key type
+     * @param string         $entityKey string The valid include key from the INCLUDE_TYPES constant to be populated
+     * @param object | array $object    The single include object or an array of objects depending on the key type
      *
      * @throws Exception If an entity class definition cannot be found for the provided key
      */
-    private function _hydrateInclude($includeKey, $object)
+    private function _hydrateInclude($entityKey, $object)
     {
-        $entityObject = EntityMap::entity($includeKey);
+        $entityObject = EntityMap::entity($entityKey);
         $isCollection = !!$entityObject && !!$entityObject->collection;
         $className = $entityObject->resource;
         $result = null;
@@ -432,7 +295,7 @@ abstract class AbstractResource extends AbstractEntity
             $result = new $className($this->connection);
             $result->_hydrate($object->id, $object);
         }
-        $this->included[$includeKey] = $result;
+        $this->included[$entityKey] = $result;
     }
 
     public function list($fields = [], $where = [], $validate = true)
@@ -467,8 +330,6 @@ abstract class AbstractResource extends AbstractEntity
         return true; // on Success
     }
 
-    // Not Intended for Actual Public Calling
-
     public function update($updateRelations = false)
     {
         $update = $this->props;
@@ -495,10 +356,9 @@ abstract class AbstractResource extends AbstractEntity
         }
         // Delete project with REQUEST (DELETE)
         $this->clear();
+
         return true; // on Success
     }
-
-    // Static Methods
 
     /**
      * Return all values that exist in the unlisted collection
@@ -529,6 +389,7 @@ abstract class AbstractResource extends AbstractEntity
                 }
             }
         }
+
         return $props;
     }
 
@@ -548,6 +409,7 @@ abstract class AbstractResource extends AbstractEntity
                 'current' => isset($this->props[$k]) ? $this->props[$k] : null
             ];
         }
+
         return $values;
     }
 
@@ -568,6 +430,7 @@ abstract class AbstractResource extends AbstractEntity
         } elseif (key_exists($name, $this->included)) {
             return $this->included[$name];
         }
+
         return null;
     }
 
@@ -578,11 +441,12 @@ abstract class AbstractResource extends AbstractEntity
      * @param string $name  Object property to attempt magic setting
      * @param mixed  $value The value to attempt to set
      *
+     * @throws Exception
      * @return void
      */
     public function __set($name, $value)
     {
-        if (key_exists($name, $this::PROP_TYPES)) {
+        if ($this::isProp($this::API_ENTITY, $name)) {
             if ($this->hydrationMode || !in_array($name, $this::READONLY)) {
                 $this->props[$name] = $value;
             }
@@ -591,6 +455,5 @@ abstract class AbstractResource extends AbstractEntity
         }
         // allow setting of a child included value
     }
-
 
 }

@@ -35,7 +35,6 @@ class EntityMap
             } else {
                 throw new Exception("Overloading an entity [{$mapKey}] requires a valid class name. Given: {$resourceClass}");
             }
-
         }
         if ($resource) {
             Configuration::set(self::CONFIG_PATH.$mapKey.'.resource', $resource);
@@ -69,12 +68,14 @@ class EntityMap
                 $object = new stdClass();
                 $object->resource = self::resource($key);
                 $object->collection = self::collection($key);
+
                 return $object;
             }
         }
         if ($strict) {
             throw new Exception("[$key] does not have a configured entity defined");
         }
+
         return null;
     }
 
@@ -89,6 +90,7 @@ class EntityMap
                 return $parts[1];
             }
         }
+
         return $key;
     }
 
@@ -98,6 +100,7 @@ class EntityMap
         if (!is_string($key)) {
             return false;
         }
+
         return Configuration::has(self::CONFIG_PATH.$key);
     }
 
@@ -107,6 +110,7 @@ class EntityMap
         if ($strict && (!is_string($key) || !Configuration::has(self::CONFIG_PATH.$key.'.resource'))) {
             throw new Exception("[$key] does not have a configured resource class defined");
         }
+
         return Configuration::get(self::CONFIG_PATH.$key.'.resource');
     }
 
@@ -123,8 +127,8 @@ class EntityMap
         if ($strict && !$cClass) {
             throw new Exception("[$key] does not have a configured collection class defined");
         }
+
         return $cClass;
     }
-
 
 }

@@ -12,5 +12,4 @@ use Jcolombo\PaymoApiPhp\Entity\AbstractCollection;
 class EntityCollection extends AbstractCollection
 {
 
-
 }

@@ -5,7 +5,6 @@ namespace Jcolombo\PaymoApiPhp;
 use GuzzleHttp\Exception\GuzzleException;
 use Jcolombo\PaymoApiPhp\Utility\RequestAbstraction;
 
-
 /**
  * Static class for generating proper request objects to be sent in to connection instances for executing
  *
@@ -44,6 +43,7 @@ class Request
         if ($response->validBody($objectKey, 1)) {
             return self::scrubBody($response->body->$objectKey[0], $select, $include);
         }
+
         return false;
     }
 
@@ -62,6 +62,7 @@ class Request
             return null;
         }
         sort($include);
+
         return join(',', $include);
     }
 
@@ -98,6 +99,7 @@ class Request
                 }
             }
         }
+
         return $isList ? $objList : $objList[0];
     }
 
@@ -110,9 +112,6 @@ class Request
      */
     public static function list(Paymo $connection, $objectKey, $select, $include, $where)
     {
-
-
     }
-
 
 }

@@ -8,13 +8,11 @@ use GuzzleHttp\Exception\GuzzleException;
 use Jcolombo\PaymoApiPhp\Utility\RequestAbstraction;
 use Jcolombo\PaymoApiPhp\Utility\RequestResponse;
 
-
 /**
  * When true, some additional development checks, validation, debugging output, etc will be enabled
  * This should be FALSE in production to avoid any accidental key exposure or lag/slowdown
  */
 define('PAYMO_DEVELOPMENT_MODE', true);
-
 
 /**
  *  Paymo
@@ -120,6 +118,7 @@ class Paymo
                 //self::$connections[$apiKey]->executeRequest('account', 'head');
             }
         }
+
         return self::$connections[$apiKey];
     }
 
@@ -180,7 +179,6 @@ class Paymo
         $response->body = json_decode($guzzleResponse->getBody()->getContents());
         $response->success = ($response->responseCode >= 200 && $response->responseCode <= 299);
 
-
         //var_dump($response); exit;
 
         return $response;
@@ -193,6 +191,5 @@ class Paymo
         //$body = json_decode($response->getBody()->getContents());
         //var_dump($body);
     }
-
 
 }
