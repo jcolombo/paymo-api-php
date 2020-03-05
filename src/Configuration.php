@@ -23,6 +23,10 @@ class Configuration
         return self::load()->config->has($key);
     }
 
+    public static function set($key, $val) {
+        return self::load()->config->set($key, $val);
+    }
+
     public static function load($path=null) {
         if (is_null(self::$instance)) {
             self::$instance = new static();

@@ -12,7 +12,7 @@ use Jcolombo\PaymoApiPhp\Utility\RequestCondition;
 
 abstract class AbstractResource extends AbstractEntity
 {
-    public const FAKE_CONSTANT = 'My Fake Value';
+
     /**
      * Any child classes must define the list of constants in this array
      *
@@ -85,54 +85,9 @@ abstract class AbstractResource extends AbstractEntity
      */
     public static function isSelectable($entityKey, $propOrInclude)
     {
-        $entityClass = self::getEntityClass($entityKey);
-        return self::isProp($entityClass, $propOrInclude)
-            || self::isIncludable($entityClass, $propOrInclude);
-    }
-
-    /**
-     * Lookup an entity settings and class name from a defined key
-     *
-     * @param string $key       The reference key for an entity to be looked up
-     * @param string $return    May be 'all', 'entity' or 'collection' based on what is needed in return if found
-     * @param bool   $allowNull If true, will return null if the class object cannot be found for the passed key
-     *
-     * @throws Exception
-     * @return object|string|bool|null
-     */
-    public static function getEntityClass($key, $return = 'entity', $allowNull = false)
-    {
-        if (strpos($key, '\\') !== false) {
-            return $key;
-        }
-        $mapKey = null;
-
-        if (EntityMap::map()->exists($key)) {
-            $mapKey = $key;
-        } elseif (strpos($key, ':')) {
-            $parts = explode(':', $key, 2);
-            if (EntityMap::map()->exists($parts[1])) {
-                $mapKey = $parts[1];
-            }
-        }
-        if ($mapKey) {
-            switch ($return) {
-                case('entity'):
-                    return EntityMap::map()->getEntity($mapKey);
-                    break;
-                case('collection'):
-                    return EntityMap::map()->getCollection($mapKey);
-                    break;
-                case('all'):
-                default:
-                    return EntityMap::map()->getConfiguration($mapKey);
-                    break;
-            }
-        }
-        if (!$allowNull) {
-            throw new Exception("Attempting to look up undefined entity [$key] from map");
-        }
-        return null;
+        $entityResource = EntityMap::resource($entityKey);
+        return !!$entityResource && (self::isProp($entityKey, $propOrInclude)
+            || self::isIncludable($entityKey, $propOrInclude));
     }
 
     /**
@@ -146,8 +101,8 @@ abstract class AbstractResource extends AbstractEntity
      */
     public static function isProp($entityKey, $includeKey)
     {
-        $entityClass = self::getEntityClass($entityKey);
-        return isset($entityClass::PROP_TYPES[$includeKey]);
+        $entityResource = EntityMap::resource($entityKey);
+        return !!$entityResource && isset($entityResource::PROP_TYPES[$includeKey]);
     }
 
     /**
@@ -161,8 +116,8 @@ abstract class AbstractResource extends AbstractEntity
      */
     public static function isIncludable($entityKey, $includeKey)
     {
-        $entityClass = self::getEntityClass($entityKey);
-        return isset($entityClass::INCLUDE_TYPES[$includeKey]);
+        $entityResource = EntityMap::resource($entityKey);
+        return !!$entityResource && isset($entityResource::INCLUDE_TYPES[$includeKey]);
     }
 
     /**
@@ -460,9 +415,9 @@ abstract class AbstractResource extends AbstractEntity
      */
     private function _hydrateInclude($includeKey, $object)
     {
-        $entityObject = self::getEntityClass($includeKey, 'all');
-        $isCollection = !!$entityObject['collection'];
-        $className = $entityObject['entity'];
+        $entityObject = EntityMap::entity($includeKey);
+        $isCollection = !!$entityObject && !!$entityObject->collection;
+        $className = $entityObject->resource;
         $result = null;
         if ($isCollection) {
             $result = new EntityCollection();

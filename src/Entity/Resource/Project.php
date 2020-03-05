@@ -95,8 +95,4 @@ class Project extends AbstractResource
         'managers' => ['=', 'in', 'not in'],
         'billable' => ['='],
     ];
-
-    public function devTest() {
-        //var_dump('Fake Constant: '.$this::FAKE_CONSTANT);
-    }
 }

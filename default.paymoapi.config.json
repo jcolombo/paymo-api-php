@@ -12,5 +12,31 @@
     "cache": false,
     "logging": false
   },
-  "devMode": false
+  "devMode": false,
+  "classMap": {
+    "defaultCollection": "Jcolombo\\PaymoApiPhp\\Entity\\Collection\\EntityCollection",
+    "entity": {
+      "project": {
+        "resource": "Jcolombo\\PaymoApiPhp\\Entity\\Resource\\Project"
+      },
+      "projects": {
+        "resource": "Jcolombo\\PaymoApiPhp\\Entity\\Resource\\Project",
+        "collection": true
+      },
+      "client": {
+        "resource": "Jcolombo\\PaymoApiPhp\\Entity\\Resource\\Client"
+      },
+      "clients": {
+        "resource": "Jcolombo\\PaymoApiPhp\\Entity\\Resource\\Client",
+        "collection": true
+      },
+      "projectstatus": {
+        "resource": "Jcolombo\\PaymoApiPhp\\Entity\\Resource\\ProjectStatus"
+      },
+      "projectstatuses": {
+        "resource": "Jcolombo\\PaymoApiPhp\\Entity\\Resource\\ProjectStatus",
+        "collection": true
+      }
+    }
+  }
 }
