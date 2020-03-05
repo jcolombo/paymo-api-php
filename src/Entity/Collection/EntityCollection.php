@@ -5,33 +5,40 @@ namespace Jcolombo\PaymoApiPhp\Entity\Collection;
 use Iterator;
 use Jcolombo\PaymoApiPhp\Entity\AbstractEntity;
 
-class EntityCollection implements Iterator {
+class EntityCollection implements Iterator
+{
 
     private $index = 0;
     private $data = [];
 
-    public function __construct(AbstractEntity $collection) {
+    public function __construct(AbstractEntity $collection)
+    {
         $this->index = 0;
         $this->data = $collection;
     }
 
-    public function rewind() {
+    public function rewind()
+    {
         $this->index = 0;
     }
 
-    public function current() {
+    public function current()
+    {
         return $this->data[$this->index];
     }
 
-    public function key() {
+    public function key()
+    {
         return $this->index;
     }
 
-    public function next() {
+    public function next()
+    {
         ++$this->index;
     }
 
-    public function valid() {
+    public function valid()
+    {
         return isset($this->data[$this->index]);
     }
 }

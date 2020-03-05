@@ -4,6 +4,7 @@ namespace Jcolombo\PaymoApiPhp;
 
 use Exception;
 use GuzzleHttp\Client as PaymoGuzzleClient;
+use GuzzleHttp\Exception\GuzzleException;
 use Jcolombo\PaymoApiPhp\Utility\RequestAbstraction;
 use Jcolombo\PaymoApiPhp\Utility\RequestResponse;
 
@@ -38,19 +39,30 @@ define('PAYMO_DEVELOPMENT_MODE', true);
 
 
 /**
-*  Paymo
-*
-*  Base class for connecting to the Paymo App API and managing the related objects/data
-*
-*  @author Joel Colombo
-*/
-class Paymo {
+ *  Paymo
+ *  Base class for connecting to the Paymo App API and managing the related objects/data
+ *
+ * @author Joel Colombo
+ */
+class Paymo
+{
 
     /**
      * @var array Singleton collection of established API connections (one per apiKey)
      */
-    private static $connections = array();
-
+    private static $connections = [];
+    /**
+     * @var bool
+     */
+    public $useCache = false;
+    /**
+     * @var bool
+     */
+    public $useLogging = false;
+    /**
+     * @var String|null
+     */
+    public $connectionName = null;
     /**
      * @var String|null
      */
@@ -61,94 +73,35 @@ class Paymo {
     protected $connectionUrl = null;
 
     /**
-     * @var bool
-     */
-    public $useCache = false;
-
-    /**
-     * @var bool
-     */
-    public $useLogging = false;
-
-    /**
-     * @var String|null
-     */
-    public $connectionName = null;
-
-    /**
-     * The connection execution method, called by the Request objects
+     * Private constructor for new connection instances from the singleton connect calls
      *
-     * @param RequestAbstraction $request An instance of the standardized object to insure all values exist for proper request
-     * @param array $options Set of options to configure request and response handling
-     *
-     * @return RequestResponse
-     *
-     * @throws \GuzzleHttp\Exception\GuzzleException
-     *
+     * @param string $apiKey         The API key for creating this connection instance
+     * @param string $connectionName The connection name
+     * @param string $connectionUrl  The base URL for the Paymo API
      */
-    public function execute(RequestAbstraction $request, $options=[]) {
-        $client = new PaymoGuzzleClient([
-            'base_uri' => $this->connectionUrl,
-            'timeout'  => 3.0,
-        ]);
-        $headers=[]; $props = []; $query = [];
-
-        // Define Headers to send to Paymo
-        $headers[] = ['Accept'=>'application/json'];
-        $props['headers'] = $headers;
-
-        // Define Auth property (apiKey or user/password)
-        $aP = explode('::', $this->apiKey, 2);
-        $props['auth'] = [$aP[0], isset($aP[1])?$aP[1]:'apiKeyUsed'];
-
-        // Compile the query string options
-        if (!is_null($request->includeEntities)) {
-            $query['include'] = $request->includeEntities;
-        }
-        if (count($query) >0) { $props['query'] = $query; }
-
-        //var_dump($props); exit;
-
-        // Run the GUZZLE request to the live API
-        $guzzleResponse = $client->request(
-            $request->method,
-            $request->resourceUrl,
-            $props
-        );
-
-        // Construct normalized response for returning to the caller for processing (REQUEST object)
-        $response = new RequestResponse();
-        $response -> responseCode = $guzzleResponse->getStatusCode();
-        $response -> responseReason = $guzzleResponse->getReasonPhrase();
-        $response -> body = json_decode($guzzleResponse->getBody()->getContents());
-        $response -> success = ($response->responseCode >=200 && $response->responseCode <= 299);
-
-        //var_dump($response); exit;
-
-        return $response;
-
-//        foreach ($response->getHeaders() as $name => $values) {
-//            echo $name . ': ' . implode(', ', $values) . "\r\n";
-//        }
-//        var_dump($response->getStatusCode(), $response->getReasonPhrase(), $response->getBody());
-
-        //$body = json_decode($response->getBody()->getContents());
-        //var_dump($body);
+    private function __construct($apiKey, $connectionUrl, $connectionName)
+    {
+        $this->apiKey = $apiKey;
+        $this->connectionName = $connectionName;
+        $this->connectionUrl = $connectionUrl;
+        //$bar = "*****************************************************************************************************\n";
+        //Log::getLog()->log($this->logging, "NEW CONNECTION TO PAYMO {$this->connectionName} : {$connectionUrl}", "\n".$bar, $bar);
     }
 
     /**
      * Static method to create or retrieve a connection
      *
-     * @param string|string[]|null $apiKeyUser The API key for this connection, An array with 2 values [username,password] can be passed for direct login (not recommended)
-     * @param bool|null $useLogging to determine if this connection will write to the log
-     * @param string|null $connectionName An optional friendly name for the connection (mostly for logging)
-     * @param string|null $connectionUrl An alternative base URL for the Paymo API (if null, uses default)
+     * @param string|string[]|null $apiKeyUser     The API key for this connection, An array with 2 values
+     *                                             [username,password] can be passed for direct login (not recommended)
+     * @param bool|null            $useLogging     to determine if this connection will write to the log
+     * @param string|null          $connectionName An optional friendly name for the connection (mostly for logging)
+     * @param string|null          $connectionUrl  An alternative base URL for the Paymo API (if null, uses default)
      *
      * @throws Exception If no connection was previously setup with an apiKey
-     *
      * @return Paymo
      */
-    static public function connect($apiKeyUser=null, $useLogging=null, $connectionName=null, $connectionUrl=null) {
+    static public function connect($apiKeyUser = null, $useLogging = null, $connectionName = null, $connectionUrl = null
+    ) {
         if (is_array($apiKeyUser)) {
             if (count($apiKeyUser) === 2) {
                 $apiKey = "{$apiKeyUser[0]}::{$apiKeyUser[1]}";
@@ -159,22 +112,22 @@ class Paymo {
             $apiKey = $apiKeyUser;
         }
         if (is_null($apiKey)) {
-            if (count(self::$connections)<1) {
+            if (count(self::$connections) < 1) {
                 throw new Exception("'NULL API KEY : Cannot get connection that has not been established yet. Please insure at least one API KEY connection has been established first.'");
             }
             // If key was not sent, default to using the first connection that exists
             $apiKey = array_shift(array_keys(self::$connections));
         }
-        if(!isset(self::$connections) || !is_array(self::$connections)) {
-            self::$connections = array();
+        if (!isset(self::$connections) || !is_array(self::$connections)) {
+            self::$connections = [];
         }
         if (is_null($connectionUrl)) {
             $connectionUrl = PAYMO_API_DEFAULT_CONNECTION_URL;
         }
         if (is_null($connectionName)) {
-            $connectionName = PAYMO_API_DEFAULT_CONNECTION_NAME.'-'.rand(10000,99999);
+            $connectionName = PAYMO_API_DEFAULT_CONNECTION_NAME.'-'.rand(10000, 99999);
         }
-        if(!isset(self::$connections[$apiKey])) {
+        if (!isset(self::$connections[$apiKey])) {
             self::$connections[$apiKey] = new static($apiKey, $connectionUrl, $connectionName);
             self::$connections[$apiKey]->useLogging = !!$useLogging;
             if (PAYMO_API_RUN_CONNECTION_CHECK) {
@@ -188,21 +141,69 @@ class Paymo {
     }
 
     /**
-     * Private constructor for new connection instances from the singleton connect calls
+     * The connection execution method, called by the Request objects
      *
-     * @param string $apiKey The API key for creating this connection instance
-     * @param string $connectionName The connection name
-     * @param string $connectionUrl The base URL for the Paymo API
+     * @param RequestAbstraction $request An instance of the standardized object to insure all values exist for proper
+     *                                    request
+     * @param array              $options Set of options to configure request and response handling
+     *
+     * @throws GuzzleException
+     * @return RequestResponse
      */
-    private function __construct($apiKey, $connectionUrl, $connectionName)
+    public function execute(RequestAbstraction $request, $options = [])
     {
-        $this->apiKey = $apiKey;
-        $this->connectionName = $connectionName;
-        $this->connectionUrl = $connectionUrl;
-        //$bar = "*****************************************************************************************************\n";
-        //Log::getLog()->log($this->logging, "NEW CONNECTION TO PAYMO {$this->connectionName} : {$connectionUrl}", "\n".$bar, $bar);
-    }
+        $client = new PaymoGuzzleClient([
+                                            'base_uri' => $this->connectionUrl,
+                                            'timeout' => 3.0,
+                                        ]);
+        $headers = [];
+        $props = [];
+        $query = [];
 
+        // Define Headers to send to Paymo
+        $headers[] = ['Accept' => 'application/json'];
+        $props['headers'] = $headers;
+
+        // Define Auth property (apiKey or user/password)
+        $aP = explode('::', $this->apiKey, 2);
+        $props['auth'] = [$aP[0], isset($aP[1]) ? $aP[1] : 'apiKeyUsed'];
+
+        // Compile the query string options
+        if (!is_null($request->includeEntities)) {
+            $query['include'] = $request->includeEntities;
+        }
+        if (count($query) > 0) {
+            $props['query'] = $query;
+        }
+
+        //var_dump($props); exit;
+
+        // Run the GUZZLE request to the live API
+        $guzzleResponse = $client->request(
+            $request->method,
+            $request->resourceUrl,
+            $props
+        );
+
+        // Construct normalized response for returning to the caller for processing (REQUEST object)
+        $response = new RequestResponse();
+        $response->responseCode = $guzzleResponse->getStatusCode();
+        $response->responseReason = $guzzleResponse->getReasonPhrase();
+        $response->body = json_decode($guzzleResponse->getBody()->getContents());
+        $response->success = ($response->responseCode >= 200 && $response->responseCode <= 299);
+
+        //var_dump($response); exit;
+
+        return $response;
+
+//        foreach ($response->getHeaders() as $name => $values) {
+//            echo $name . ': ' . implode(', ', $values) . "\r\n";
+//        }
+//        var_dump($response->getStatusCode(), $response->getReasonPhrase(), $response->getBody());
+
+        //$body = json_decode($response->getBody()->getContents());
+        //var_dump($body);
+    }
 
 
 }

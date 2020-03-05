@@ -6,6 +6,6 @@ class RequestCondition
 {
     public $prop;
     public $value;
-    public $operator='=';
-    public $validate=true;
+    public $operator = '=';
+    public $validate = true;
 }
