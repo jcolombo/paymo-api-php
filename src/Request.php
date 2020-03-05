@@ -19,14 +19,14 @@ class Request
      *
      * @param Paymo    $connection A valid Paymo Connection object instance
      * @param string   $objectKey  The API path tacked on to connections base URL
-     * @param integer  $id         The ID to be loaded from the API at the path sent in as $objectKey
+     * @param int      $id         The ID to be loaded from the API at the path sent in as $objectKey
      * @param string[] $select     An array of valid props to filter the response with before sending it back
      * @param string[] $include    An array of valid include entities and sub-entity props to return with base object
      *
      * @throws GuzzleException
      * @return bool | object Returns an object on success or a boolean FALSE on failure to load entity
      */
-    static function fetch(Paymo $connection, $objectKey, $id, $select, $include)
+    public static function fetch(Paymo $connection, $objectKey, $id, $select, $include)
     {
         if (!is_array($select)) {
             $select = !is_null($select) ? [$select] : [];
@@ -56,7 +56,7 @@ class Request
      *
      * @return string | null The combined include prop or NULL if no includes were in the passed array
      */
-    static function compileIncludeParameter($include)
+    public static function compileIncludeParameter($include)
     {
         if (!$include || !is_array($include) || count($include) < 1) {
             return null;
@@ -65,7 +65,14 @@ class Request
         return join(',', $include);
     }
 
-    static function scrubBody($objects, $select, $include)
+    /**
+     * @param $objects
+     * @param $select
+     * @param $include
+     *
+     * @return array|mixed
+     */
+    public static function scrubBody($objects, $select, $include)
     {
         $isList = is_array($objects);
         if ($isList) {
@@ -94,7 +101,14 @@ class Request
         return $isList ? $objList : $objList[0];
     }
 
-    static function list(Paymo $connection, $objectKey, $select, $include, $where)
+    /**
+     * @param Paymo $connection
+     * @param       $objectKey
+     * @param       $select
+     * @param       $include
+     * @param       $where
+     */
+    public static function list(Paymo $connection, $objectKey, $select, $include, $where)
     {
 
 

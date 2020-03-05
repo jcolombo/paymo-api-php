@@ -2,11 +2,28 @@
 
 namespace Jcolombo\PaymoApiPhp\Utility;
 
+/**
+ * Class RequestResponse
+ *
+ * @package Jcolombo\PaymoApiPhp\Utility
+ */
 class RequestResponse
 {
+    /**
+     * @var bool
+     */
     public $success = false;
+    /**
+     * @var null
+     */
     public $body = null;
+    /**
+     * @var null
+     */
     public $responseCode = null;
+    /**
+     * @var null
+     */
     public $responseReason = null;
 
     /**

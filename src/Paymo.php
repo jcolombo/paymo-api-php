@@ -100,7 +100,7 @@ class Paymo
      * @throws Exception If no connection was previously setup with an apiKey
      * @return Paymo
      */
-    static public function connect($apiKeyUser = null, $useLogging = null, $connectionName = null, $connectionUrl = null
+    public static function connect($apiKeyUser = null, $useLogging = null, $connectionName = null, $connectionUrl = null
     ) {
         if (is_array($apiKeyUser)) {
             if (count($apiKeyUser) === 2) {

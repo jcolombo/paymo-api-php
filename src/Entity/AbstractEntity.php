@@ -4,6 +4,7 @@ namespace Jcolombo\PaymoApiPhp\Entity;
 
 use Exception;
 use GuzzleHttp\Exception\GuzzleException;
+use Jcolombo\PaymoApiPhp\Entity\Collection\EntityCollection;
 use Jcolombo\PaymoApiPhp\Paymo;
 use Jcolombo\PaymoApiPhp\Request;
 use Jcolombo\PaymoApiPhp\Utility\RequestCondition;
@@ -19,11 +20,19 @@ const PAYMO_ENTITY_MAP = [
 
 abstract class AbstractEntity
 {
-    const _requiredConfiguration = [
-        'label', 'apiPath', 'apiEntity', 'required', 'readonly', 'includeTypes', 'propTypes', 'where'
+    /**
+     * Any child classes must define the list of constants in this array
+     *
+     * @todo Should be replaced with a better inheritance or interface model of some sort. Being lazy for now.
+     */
+    public const REQUIRED_CONSTANTS = [
+        'LABEL', 'API_PATH', 'API_ENTITY', 'REQUIRED_CREATE', 'READONLY', 'INCLUDE_TYPES', 'PROP_TYPES', 'WHERE_OPERATIONS'
     ];
 
-    const _validOperators = ['=', '!=', '<', '<=', '>', '>=', 'like', 'not like', 'in', 'not_in'];
+    /**
+     * The valid possible operators usable in WHERE clauses when selecting lists of entities
+     */
+    public const VALID_OPERATORS = ['=', '!=', '<', '<=', '>', '>=', 'like', 'not like', 'in', 'not_in'];
     // IN & NOT IN require an array value to check.
 
     protected $connection = null;
@@ -50,9 +59,9 @@ abstract class AbstractEntity
         try {
             if (is_null($paymo)) {
                 $this->connection = Paymo::connect();
-            } else if (is_string($paymo)) {
+            } elseif (is_string($paymo)) {
                 $this->connection = Paymo::connect($paymo);
-            } else if (is_object($paymo)) {
+            } elseif (is_object($paymo)) {
                 $this->connection = $paymo;
             } else {
                 throw new Exception("No Connection");
@@ -64,7 +73,7 @@ abstract class AbstractEntity
         }
         if (defined('PAYMO_DEVELOPMENT_MODE') && PAYMO_DEVELOPMENT_MODE) {
             $missingConstants = [];
-            foreach (self::_requiredConfiguration as $k) {
+            foreach (self::REQUIRED_CONSTANTS as $k) {
                 $classname = get_class($this);
                 if (!constant($classname.'::'.$k)) {
                     $missingConstants[] = $k;
@@ -87,7 +96,7 @@ abstract class AbstractEntity
      * @throws Exception
      * @return bool
      */
-    static function isSelectable($entityKey, $propOrInclude)
+    public static function isSelectable($entityKey, $propOrInclude)
     {
         $entityClass = self::getEntityClass($entityKey);
         return self::isProp($entityClass, $propOrInclude)
@@ -104,7 +113,7 @@ abstract class AbstractEntity
      * @throws Exception
      * @return object|string|bool|null
      */
-    static function getEntityClass($key, $return = 'object', $allowNull = false)
+    public static function getEntityClass($key, $return = 'object', $allowNull = false)
     {
         if (strpos($key, '\\') !== false) {
             return $key;
@@ -112,7 +121,7 @@ abstract class AbstractEntity
         $mapKey = null;
         if (isset(PAYMO_ENTITY_MAP[$key])) {
             $mapKey = $key;
-        } else if (strpos($key, ':')) {
+        } elseif (strpos($key, ':')) {
             $parts = explode(':', $key, 2);
             if (isset(PAYMO_ENTITY_MAP[$parts[1]])) {
                 $mapKey = $parts[1];
@@ -147,10 +156,10 @@ abstract class AbstractEntity
      * @throws Exception
      * @return bool
      */
-    static function isProp($entityKey, $includeKey)
+    public static function isProp($entityKey, $includeKey)
     {
         $entityClass = self::getEntityClass($entityKey);
-        return isset($entityClass::propTypes[$includeKey]);
+        return isset($entityClass::PROP_TYPES[$includeKey]);
     }
 
     /**
@@ -162,10 +171,10 @@ abstract class AbstractEntity
      * @throws Exception
      * @return bool
      */
-    static function isIncludable($entityKey, $includeKey)
+    public static function isIncludable($entityKey, $includeKey)
     {
         $entityClass = self::getEntityClass($entityKey);
-        return isset($entityClass::includeTypes[$includeKey]);
+        return isset($entityClass::INCLUDE_TYPES[$includeKey]);
     }
 
     /**
@@ -181,7 +190,7 @@ abstract class AbstractEntity
     {
         if (is_string($key)) {
             $this->__set($key, $value);
-        } else if (is_array($key)) {
+        } elseif (is_array($key)) {
             foreach ($key as $k => $v) {
                 if (is_string($k)) {
                     $this->set($k, $v);
@@ -244,9 +253,9 @@ abstract class AbstractEntity
     /**
      * Execute an API call to populate this object with data based on a single ID for this entity type
      *
-     * @param integer | null $id     The ID to use to populate this object. If null, it uses the existing prop ID, if
+     * @param int | null $id         The ID to use to populate this object. If null, it uses the existing prop ID, if
      *                               still no value... will throw an Exception
-     * @param string[]       $fields An array of string props and/or include entities to get from the API call
+     * @param string[]   $fields     An array of string props and/or include entities to get from the API call
      *
      * @throws Exception
      * @throws GuzzleException
@@ -257,16 +266,16 @@ abstract class AbstractEntity
         if (is_null($id) && isset($this->props['id'])) {
             $id = $this->props['id'];
         }
-        $label = $this::label;
+        $label = $this::LABEL;
         if (!$id || (int) $id < 1) {
             throw new Exception("Attempted to fetch a {$label} without an id being passed");
         }
         if (!$this->overwriteDirtyWithRequests && $this->isDirty()) {
-            $label = $this::label;
+            $label = $this::LABEL;
             throw new Exception("{$label} attempted to fetch new data while it had dirty fields and protection is enabled.");
         }
         [$select, $include] = $this::cleanupForRequest($this, $fields);
-        $result = Request::fetch($this->connection, $this::apiPath, $id, $select, $include);
+        $result = Request::fetch($this->connection, $this::API_PATH, $id, $select, $include);
         if ($result) {
             $this->_hydrate($id, $result);
             return true;
@@ -289,7 +298,7 @@ abstract class AbstractEntity
             foreach ($this->included as $k => $v) {
                 if (is_object($v)) {
                     $dirtyInclude = $v->isDirty(true);
-                } else if (is_array($v)) {
+                } elseif (is_array($v)) {
                     foreach ($v as $d) {
                         $dirtyInclude = $d->isDirty(true);
                         if ($dirtyInclude) {
@@ -338,13 +347,13 @@ abstract class AbstractEntity
         $include = [];
         $where = [];
         foreach ($fields as $k) {
-            if (isset($this::propTypes[$k])) {
+            if (isset($this::PROP_TYPES[$k])) {
                 $select[] = $k;
             } else {
                 $include[] = $k;
             }
         }
-        $include = $obj::scrubInclude($include, $this::apiEntity);
+        $include = $obj::scrubInclude($include, $this::API_ENTITY);
         return [$select, $include, $where];
     }
 
@@ -358,7 +367,7 @@ abstract class AbstractEntity
      * @throws Exception
      * @return string[] A scrubbed version of only valid include keys. Insures ID keys are added if missing.
      */
-    static function scrubInclude($include, $entityKey)
+    public static function scrubInclude($include, $entityKey)
     {
         $realInclude = [];
         foreach ($include as $index => $i) {
@@ -368,7 +377,7 @@ abstract class AbstractEntity
                 if (self::isIncludable($entityKey, $parts[0]) && !in_array($parts[0], $realInclude)) {
                     $realInclude[] = $parts[0];
                 }
-            } else if ($partCount === 2) {
+            } elseif ($partCount === 2) {
                 if (self::isIncludable($entityKey, $parts[0])) {
                     $isProp = self::isProp($parts[0], $parts[1]);
                     $isInclude = !$isProp && self::isIncludable($parts[0], $parts[1]);
@@ -415,8 +424,8 @@ abstract class AbstractEntity
      * This method is only exposed publicly to allow other hydration calls to propagate the process
      * It is not intended to be called directly (unless passing in the raw object results from a call elsewhere)
      *
-     * @param integer $objectId       The ID of this object being populated
-     * @param object  $responseObject The standard object returned from the API call
+     * @param int    $objectId       The ID of this object being populated
+     * @param object $responseObject The standard object returned from the API call
      *
      * @throws Exception
      */
@@ -427,7 +436,7 @@ abstract class AbstractEntity
             $this->hydrationMode = true;
             $this->props['id'] = $objectId;
             foreach ($responseObject as $k => $v) {
-                if (!isset($this::propTypes[$k]) && isset($this::includeTypes[$k])) {
+                if (!isset($this::PROP_TYPES[$k]) && isset($this::INCLUDE_TYPES[$k])) {
                     $this->_hydrateInclude($k, $v);
                 } else {
                     $this->__set($k, $v);
@@ -456,7 +465,7 @@ abstract class AbstractEntity
     /**
      * Supporting method to populate "include" hydration when child objects or lists are included in the response
      *
-     * @param string         $includeKey string The valid include key from the includeTypes constant to be populated
+     * @param string         $includeKey string The valid include key from the INCLUDE_TYPES constant to be populated
      * @param object | array $object     The single include object or an array of objects depending on the key type
      *
      * @throws Exception If an entity class definition cannot be found for the provided key
@@ -468,7 +477,7 @@ abstract class AbstractEntity
         $className = $entityObject['object'];
         $result = null;
         if ($isCollection) {
-            $result = [];
+            $result = new EntityCollection();
             foreach ($object as $o) {
                 /** @var AbstractEntity $tmp */
                 $tmp = new $className($this->connection);
@@ -499,15 +508,15 @@ abstract class AbstractEntity
 
     public function create()
     {
-        foreach ($this::required as $k) {
+        foreach ($this::REQUIRED_CREATE as $k) {
             if (!isset($this->props[$k])) {
-                $label = $this::label;
+                $label = $this::LABEL;
                 throw new Exception("Paymo: Creating a '{$label}' requires a value for '{$k}'");
             }
         }
         $createWith = $this->props;
         // Loop through read only props and strip them from $createWith;
-        // Add warning if any readonly props were set and create is attempted (flag to ignore this)
+        // Add warning if any READONLY props were set and create is attempted (flag to ignore this)
         // Create with REQUEST (POST)
         // Create any children that are possible
         // Hydrate this object
@@ -520,7 +529,7 @@ abstract class AbstractEntity
     public function update($updateRelations = false)
     {
         $update = $this->props;
-        foreach ($this::readonly as $k) {
+        foreach ($this::READONLY as $k) {
             unset($update[$k]);
         }
         // Compare fields in $update with $this->loaded and only post the dirty items
@@ -538,7 +547,7 @@ abstract class AbstractEntity
             $id = $this->props['id'];
         }
         if (!$id || (int) $id < 1) {
-            $label = $this::label;
+            $label = $this::LABEL;
             throw new Exception("Attempted to delete a {$label} without an id being passed");
         }
         // Delete project with REQUEST (DELETE)
@@ -570,7 +579,7 @@ abstract class AbstractEntity
     {
         $props = $this->props;
         if ($includeAll) {
-            $diff = array_diff_key($this::propTypes, $props);
+            $diff = array_diff_key($this::PROP_TYPES, $props);
             foreach ($diff as $k) {
                 if (!isset($props[$k])) {
                     $props[$k] = null;
@@ -609,11 +618,11 @@ abstract class AbstractEntity
      */
     public function __get($name)
     {
-        if (key_exists($name, $this::propTypes)) {
+        if (key_exists($name, $this::PROP_TYPES)) {
             return isset($this->props[$name]) ? $this->props[$name] : null;
-        } else if (key_exists($name, $this->unlisted)) {
+        } elseif (key_exists($name, $this->unlisted)) {
             return $this->unlisted[$name];
-        } else if (key_exists($name, $this->included)) {
+        } elseif (key_exists($name, $this->included)) {
             return $this->included[$name];
         }
         return null;
@@ -630,8 +639,8 @@ abstract class AbstractEntity
      */
     public function __set($name, $value)
     {
-        if (key_exists($name, $this::propTypes)) {
-            if ($this->hydrationMode || !in_array($name, $this::readonly)) {
+        if (key_exists($name, $this::PROP_TYPES)) {
+            if ($this->hydrationMode || !in_array($name, $this::READONLY)) {
                 $this->props[$name] = $value;
             }
         } else {
