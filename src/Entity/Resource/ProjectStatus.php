@@ -1,8 +1,10 @@
 <?php
 
-namespace Jcolombo\PaymoApiPhp\Entity;
+namespace Jcolombo\PaymoApiPhp\Entity\Resource;
 
-class ProjectStatus extends _AbstractEntity
+use Jcolombo\PaymoApiPhp\Entity\AbstractEntity;
+
+class ProjectStatus extends AbstractEntity
 {
     const label     = 'Project Status';
     const apiEntity = 'projectstatus';

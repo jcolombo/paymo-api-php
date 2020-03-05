@@ -8,15 +8,15 @@ use Jcolombo\PaymoApiPhp\Request;
 use Jcolombo\PaymoApiPhp\Utility\RequestCondition;
 
 const PAYMO_ENTITY_MAP = [
-    'project' => ['object'=>'Jcolombo\PaymoApiPhp\Entity\Project', 'collection'=>false],
-    'projects' => ['object'=>'Jcolombo\PaymoApiPhp\Entity\Project', 'collection'=>true],
-    'client' => ['object'=>'Jcolombo\PaymoApiPhp\Entity\Client', 'collection'=>false],
-    'clients' => ['object'=>'Jcolombo\PaymoApiPhp\Entity\Client', 'collection'=>true],
-    'projectstatus' => ['object'=>'Jcolombo\PaymoApiPhp\Entity\ProjectStatus', 'collection'=>false],
-    'projectstatuses' => ['object'=>'Jcolombo\PaymoApiPhp\Entity\ProjectStatus', 'collection'=>true],
+    'project' => ['object'=>'Jcolombo\PaymoApiPhp\Entity\Resource\Project', 'collection'=>false],
+    'projects' => ['object'=>'Jcolombo\PaymoApiPhp\Entity\Resource\Project', 'collection'=>true],
+    'client' => ['object'=>'Jcolombo\PaymoApiPhp\Entity\Resource\Client', 'collection'=>false],
+    'clients' => ['object'=>'Jcolombo\PaymoApiPhp\Entity\Resource\Client', 'collection'=>true],
+    'projectstatus' => ['object'=>'Jcolombo\PaymoApiPhp\Entity\Resource\ProjectStatus', 'collection'=>false],
+    'projectstatuses' => ['object'=>'Jcolombo\PaymoApiPhp\Entity\Resource\ProjectStatus', 'collection'=>true],
 ];
 
-abstract class _AbstractEntity
+abstract class AbstractEntity
 {
     const _requiredConfiguration = [
         'label', 'apiPath', 'apiEntity', 'required', 'readonly', 'includeTypes', 'propTypes', 'where'
@@ -80,7 +80,7 @@ abstract class _AbstractEntity
      *
      * @param string | array $key Either a prop key or an associative array of prop key=>value combinations
      * @param null $value If $key is an array, this is ignored. Otherwise its used to set the value of $key prop
-     * @return _AbstractEntity Returns the object itself for optional object chaining
+     * @return AbstractEntity Returns the object itself for optional object chaining
      */
     public function set($key, $value=null)
     {
@@ -100,7 +100,7 @@ abstract class _AbstractEntity
      * Resets the object to empty. Keeps any settings but clears the data from the props,
      * unlisted, loaded, and included collections.
      *
-     * @return _AbstractEntity Returns the object itself for optional object chaining
+     * @return AbstractEntity Returns the object itself for optional object chaining
      */
     public function clear()
     {
@@ -118,7 +118,7 @@ abstract class _AbstractEntity
      * clean and saved via some other means. Entities are always auto-washed after loading and hydration is
      * complete
      *
-     * @return _AbstractEntity Returns the object itself for optional object chaining
+     * @return AbstractEntity Returns the object itself for optional object chaining
      */
     public function wash()
     {
@@ -138,7 +138,7 @@ abstract class _AbstractEntity
      * By default, API loads will overwrite any data in this object even if its dirty and unsaved
      *
      * @param bool $protect Set to true and any attempt to overwrite dirty props will throw an error
-     * @return _AbstractEntity Returns the object itself for optional object chaining
+     * @return AbstractEntity Returns the object itself for optional object chaining
      */
     public function protectDirtyOverwrites($protect=true) {
         $this->overwriteDirtyWithRequests = !$protect;
@@ -153,7 +153,7 @@ abstract class _AbstractEntity
      * By default all entities will try to use cache if connection cache is set to true
      *
      * @param bool $ignore The setting for this objects cache use override
-     * @return _AbstractEntity Returns the object itself for optional object chaining
+     * @return AbstractEntity Returns the object itself for optional object chaining
      */
     public function ignoreCache($ignore=true) {
         $this->useCacheIfAvailable = !$ignore;
@@ -192,7 +192,7 @@ abstract class _AbstractEntity
     /**
      * Scrub the fields and where conditional arrays to validate content
      *
-     * @param _AbstractEntity $obj An instance of the entity class being used to GET data
+     * @param AbstractEntity $obj An instance of the entity class being used to GET data
      * @param string[] $fields An array of strings for props and includes to return on each base object
      * @param RequestCondition[] $whereFilters An array of RequestConditions to send to the API when getting lists
      * @return array Contains an item for $select, $include, and $where scrubbed for use by Request calls
@@ -443,13 +443,13 @@ abstract class _AbstractEntity
         if ($isCollection) {
             $result = [];
             foreach($object as $o) {
-                /** @var _AbstractEntity $tmp */
+                /** @var AbstractEntity $tmp */
                 $tmp = new $className($this->connection);
                 $tmp -> _hydrate($o->id, $o);
                 $result[] = $tmp;
             }
         } else {
-            /** @var _AbstractEntity $result */
+            /** @var AbstractEntity $result */
             $result = new $className($this->connection);
             $result -> _hydrate($object->id, $object);
         }

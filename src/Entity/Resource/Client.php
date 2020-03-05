@@ -1,8 +1,10 @@
 <?php
 
-namespace Jcolombo\PaymoApiPhp\Entity;
+namespace Jcolombo\PaymoApiPhp\Entity\Resource;
 
-class Client extends _AbstractEntity
+use Jcolombo\PaymoApiPhp\Entity\AbstractEntity;
+
+class Client extends AbstractEntity
 {
     const label     = 'Client';
     const apiEntity = 'client';
