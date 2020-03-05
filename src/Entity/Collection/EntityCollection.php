@@ -5,7 +5,7 @@ namespace Jcolombo\PaymoApiPhp\Entity\Collection;
 use ArrayAccess;
 use Exception;
 use Iterator;
-use Jcolombo\PaymoApiPhp\Entity\AbstractEntity;
+use Jcolombo\PaymoApiPhp\Entity\AbstractResource;
 
 /**
  * Class EntityCollection
@@ -20,14 +20,14 @@ class EntityCollection implements Iterator, ArrayAccess
      */
     private $index = 0;
     /**
-     * @var AbstractEntity[]
+     * @var AbstractResource[]
      */
     private $data = [];
 
     /**
      * EntityCollection constructor.
      *
-     * @param AbstractEntity[] $collection A standard array comprised of just Entity objects
+     * @param AbstractResource[] $collection A standard array comprised of just Entity objects
      */
     public function __construct($collection = [])
     {
@@ -115,7 +115,7 @@ class EntityCollection implements Iterator, ArrayAccess
     }
 
     /**
-     * @return AbstractEntity[]
+     * @return AbstractResource[]
      */
     public function raw()
     {

@@ -8,29 +8,7 @@ use GuzzleHttp\Exception\GuzzleException;
 use Jcolombo\PaymoApiPhp\Utility\RequestAbstraction;
 use Jcolombo\PaymoApiPhp\Utility\RequestResponse;
 
-/**
- * A writable directory path for cache storage. Will auto-create a subfolder called "paymo-cache"
- * If left NULL, caching is disabled and not used even if enabled in the connection
- */
-define('PAYMO_API_CACHE_PATH', null);
-/**
- * A writable directory path for writing log files. Will auto-create a subfolder called "paymo-logs"
- * If left NULL, logging is disabled and not used even if enabled in the connection
- */
-define('PAYMO_API_LOG_PATH', null);
-/**
- * The base URL to connect to the API. Be sure to end the URL with a "/" slash
- */
-define('PAYMO_API_DEFAULT_CONNECTION_URL', 'https://app.paymoapp.com/api/');
-/**
- * The default name for a connection which is mainly used in logging and some output errors / etc
- * Each connection with different apiKeys can be given a unique name for clarity during connection setup
- */
-define('PAYMO_API_DEFAULT_CONNECTION_NAME', 'PaymoConnection');
-/**
- * When true, will run a single API call at the point the connection is initially created to test key/connection
- */
-define('PAYMO_API_RUN_CONNECTION_CHECK', false);
+
 /**
  * When true, some additional development checks, validation, debugging output, etc will be enabled
  * This should be FALSE in production to avoid any accidental key exposure or lag/slowdown
@@ -78,9 +56,14 @@ class Paymo
      * @param string $apiKey         The API key for creating this connection instance
      * @param string $connectionName The connection name
      * @param string $connectionUrl  The base URL for the Paymo API
+     *
+     * @throws Exception
      */
     private function __construct($apiKey, $connectionUrl, $connectionName)
     {
+        if (!$connectionUrl) {
+            throw new Exception("No Paymo API connection.url is set in the configuration file");
+        }
         $this->apiKey = $apiKey;
         $this->connectionName = $connectionName;
         $this->connectionUrl = $connectionUrl;
@@ -122,15 +105,15 @@ class Paymo
             self::$connections = [];
         }
         if (is_null($connectionUrl)) {
-            $connectionUrl = PAYMO_API_DEFAULT_CONNECTION_URL;
+            $connectionUrl = Configuration::get('connection.url');
         }
         if (is_null($connectionName)) {
-            $connectionName = PAYMO_API_DEFAULT_CONNECTION_NAME.'-'.rand(100000, 999999);
+            $connectionName = Configuration::get('connection.name').'-'.rand(100000, 999999);
         }
         if (!isset(self::$connections[$apiKey])) {
             self::$connections[$apiKey] = new static($apiKey, $connectionUrl, $connectionName);
             self::$connections[$apiKey]->useLogging = !!$useLogging;
-            if (PAYMO_API_RUN_CONNECTION_CHECK) {
+            if (Configuration::get('connection.verify')) {
                 // @todo Run connection check call to API to test credentials and API up-status, throw error on fail
                 // Run a simple call to the API to get a valid response
                 // Throw an Exception if it fails

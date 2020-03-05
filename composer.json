@@ -13,7 +13,8 @@
     "require": {
 		"php": ">=7.2",
         "ext-json": "*",
-        "guzzlehttp/guzzle": "~6.0"
+        "guzzlehttp/guzzle": "~6.0",
+        "hassankhan/config": "~2.1"
     },
     "autoload": {
         "psr-4": { "Jcolombo\\PaymoApiPhp\\": "src" }

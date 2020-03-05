@@ -2,14 +2,14 @@
 
 namespace Jcolombo\PaymoApiPhp\Entity\Resource;
 
-use Jcolombo\PaymoApiPhp\Entity\AbstractEntity;
+use Jcolombo\PaymoApiPhp\Entity\AbstractResource;
 
 /**
  * Class ProjectStatus
  *
  * @package Jcolombo\PaymoApiPhp\Entity\Resource
  */
-class ProjectStatus extends AbstractEntity
+class ProjectStatus extends AbstractResource
 {
 
     /**

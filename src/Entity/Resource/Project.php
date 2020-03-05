@@ -2,14 +2,14 @@
 
 namespace Jcolombo\PaymoApiPhp\Entity\Resource;
 
-use Jcolombo\PaymoApiPhp\Entity\AbstractEntity;
+use Jcolombo\PaymoApiPhp\Entity\AbstractResource;
 
 /**
  * Class Project
  *
  * @package Jcolombo\PaymoApiPhp\Entity\Resource
  */
-class Project extends AbstractEntity
+class Project extends AbstractResource
 {
 
     /**
@@ -95,4 +95,8 @@ class Project extends AbstractEntity
         'managers' => ['=', 'in', 'not in'],
         'billable' => ['='],
     ];
+
+    public function devTest() {
+        //var_dump('Fake Constant: '.$this::FAKE_CONSTANT);
+    }
 }

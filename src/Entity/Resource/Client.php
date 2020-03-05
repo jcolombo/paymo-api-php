@@ -2,14 +2,14 @@
 
 namespace Jcolombo\PaymoApiPhp\Entity\Resource;
 
-use Jcolombo\PaymoApiPhp\Entity\AbstractEntity;
+use Jcolombo\PaymoApiPhp\Entity\AbstractResource;
 
 /**
  * Class Client
  *
  * @package Jcolombo\PaymoApiPhp\Entity\Resource
  */
-class Client extends AbstractEntity
+class Client extends AbstractResource
 {
     /**
      * The user friendly name for error displays, messages, alerts, and logging

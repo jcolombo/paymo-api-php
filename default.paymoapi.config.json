@@ -1,0 +1,16 @@
+{
+  "connection": {
+    "url": "https://app.paymoapp.com/api/",
+    "defaultName": "PaymoApiConnection",
+    "verify": false
+  },
+  "path": {
+    "cache": null,
+    "logs": null
+  },
+  "enabled": {
+    "cache": false,
+    "logging": false
+  },
+  "devMode": false
+}
