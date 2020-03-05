@@ -13,18 +13,26 @@ class RequestResponse
      * @var bool
      */
     public $success = false;
+
     /**
      * @var null
      */
     public $body = null;
+
     /**
      * @var null
      */
     public $responseCode = null;
+
     /**
      * @var null
      */
     public $responseReason = null;
+
+    /**
+     * @var null
+     */
+    public $responseTime = null;
 
     /**
      * Validates the BODY from the API response to make sure it contains a property of a specific key and minimum

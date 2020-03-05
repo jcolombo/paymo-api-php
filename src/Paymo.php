@@ -125,7 +125,7 @@ class Paymo
             $connectionUrl = PAYMO_API_DEFAULT_CONNECTION_URL;
         }
         if (is_null($connectionName)) {
-            $connectionName = PAYMO_API_DEFAULT_CONNECTION_NAME.'-'.rand(10000, 99999);
+            $connectionName = PAYMO_API_DEFAULT_CONNECTION_NAME.'-'.rand(100000, 999999);
         }
         if (!isset(self::$connections[$apiKey])) {
             self::$connections[$apiKey] = new static($apiKey, $connectionUrl, $connectionName);
@@ -154,7 +154,7 @@ class Paymo
     {
         $client = new PaymoGuzzleClient([
                                             'base_uri' => $this->connectionUrl,
-                                            'timeout' => 3.0,
+                                            'timeout' => 5.0,
                                         ]);
         $headers = [];
         $props = [];
@@ -179,18 +179,24 @@ class Paymo
         //var_dump($props); exit;
 
         // Run the GUZZLE request to the live API
+        $request_start = microtime(true);
         $guzzleResponse = $client->request(
             $request->method,
             $request->resourceUrl,
             $props
         );
+        $request_end = microtime(true);
+        $request_time = $request_end - $request_start;
+        //var_dump($request_time); exit;
 
         // Construct normalized response for returning to the caller for processing (REQUEST object)
         $response = new RequestResponse();
         $response->responseCode = $guzzleResponse->getStatusCode();
         $response->responseReason = $guzzleResponse->getReasonPhrase();
+        $response->responseTime = $request_time;
         $response->body = json_decode($guzzleResponse->getBody()->getContents());
         $response->success = ($response->responseCode >= 200 && $response->responseCode <= 299);
+
 
         //var_dump($response); exit;
 
