@@ -9,15 +9,6 @@ use Jcolombo\PaymoApiPhp\Paymo;
 use Jcolombo\PaymoApiPhp\Request;
 use Jcolombo\PaymoApiPhp\Utility\RequestCondition;
 
-const PAYMO_ENTITY_MAP = [
-    'project' => ['object' => 'Jcolombo\PaymoApiPhp\Entity\Resource\Project', 'collection' => false],
-    'projects' => ['object' => 'Jcolombo\PaymoApiPhp\Entity\Resource\Project', 'collection' => true],
-    'client' => ['object' => 'Jcolombo\PaymoApiPhp\Entity\Resource\Client', 'collection' => false],
-    'clients' => ['object' => 'Jcolombo\PaymoApiPhp\Entity\Resource\Client', 'collection' => true],
-    'projectstatus' => ['object' => 'Jcolombo\PaymoApiPhp\Entity\Resource\ProjectStatus', 'collection' => false],
-    'projectstatuses' => ['object' => 'Jcolombo\PaymoApiPhp\Entity\Resource\ProjectStatus', 'collection' => true],
-];
-
 abstract class AbstractEntity
 {
     /**
@@ -38,11 +29,11 @@ abstract class AbstractEntity
     protected $connection = null;
     protected $overwriteDirtyWithRequests = true;
     protected $useCacheIfAvailable = true;
-    protected $hydrationMode = false;
     protected $props = [];
     protected $unlisted = [];
     protected $loaded = [];
     protected $included = [];
+    private $hydrationMode = false;
 
     /**
      * The default Entity constructor
@@ -107,37 +98,38 @@ abstract class AbstractEntity
      * Lookup an entity settings and class name from a defined key
      *
      * @param string $key       The reference key for an entity to be looked up
-     * @param string $return    May be 'all', 'object' or 'collection' based on what is needed in return if found
+     * @param string $return    May be 'all', 'entity' or 'collection' based on what is needed in return if found
      * @param bool   $allowNull If true, will return null if the class object cannot be found for the passed key
      *
      * @throws Exception
      * @return object|string|bool|null
      */
-    public static function getEntityClass($key, $return = 'object', $allowNull = false)
+    public static function getEntityClass($key, $return = 'entity', $allowNull = false)
     {
         if (strpos($key, '\\') !== false) {
             return $key;
         }
         $mapKey = null;
-        if (isset(PAYMO_ENTITY_MAP[$key])) {
+
+        if (EntityMap::map()->exists($key)) {
             $mapKey = $key;
         } elseif (strpos($key, ':')) {
             $parts = explode(':', $key, 2);
-            if (isset(PAYMO_ENTITY_MAP[$parts[1]])) {
+            if (EntityMap::map()->exists($parts[1])) {
                 $mapKey = $parts[1];
             }
         }
         if ($mapKey) {
             switch ($return) {
-                case('object'):
-                    return PAYMO_ENTITY_MAP[$mapKey]['object'];
+                case('entity'):
+                    return EntityMap::map()->getEntity($mapKey);
                     break;
                 case('collection'):
-                    return PAYMO_ENTITY_MAP[$mapKey]['collection'];
+                    return EntityMap::map()->getCollection($mapKey);
                     break;
                 case('all'):
                 default:
-                    return PAYMO_ENTITY_MAP[$mapKey];
+                    return EntityMap::map()->getConfiguration($mapKey);
                     break;
             }
         }
@@ -474,7 +466,7 @@ abstract class AbstractEntity
     {
         $entityObject = $this::getEntityClass($includeKey, 'all');
         $isCollection = !!$entityObject['collection'];
-        $className = $entityObject['object'];
+        $className = $entityObject['entity'];
         $result = null;
         if ($isCollection) {
             $result = new EntityCollection();
