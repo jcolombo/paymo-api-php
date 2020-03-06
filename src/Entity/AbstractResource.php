@@ -6,7 +6,7 @@
  *
  * MIT License
  * Copyright (c) 2020 - Joel Colombo <jc-dev@360psg.com>
- * Last Updated : 3/6/20, 3:37 PM
+ * Last Updated : 3/6/20, 5:40 PM
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -83,7 +83,36 @@ abstract class AbstractResource extends AbstractEntity
                                                                                                                    $missingConstants)."'");
             }
         }
+
         return $this;
+    }
+
+    /**
+     * Static method to build a collection object for selecting and holding a list of this particular resource type
+     * This can be chained from directly to easily load a list in one line.
+     * Ex: Project::list()->fetch()  Would return a list of ALL projects with ALL its data that this API connection has
+     * access to.
+     *
+     * @param array | Paymo | string | null $paymo Either an API Key, Paymo Connection, config settings array (from
+     *                                             another entitied getConfiguration call), or null to get first
+     *                                             connection available
+     *
+     * @throws Exception
+     * @return EntityCollection An empty EntityCollection instantiated based on the entityMap configuration for this
+     *                          key
+     */
+    public static function list($paymo = null)
+    {
+        $entityKey = static::API_ENTITY;
+        $cClass = EntityMap::collection($entityKey);
+        if (!$cClass) {
+            throw new Exception("Attempting to create a list for {self::API_ENTITY} without a configured entity map for the collection class defined");
+        }
+        $mappedKeys = EntityMap::mapKeys($entityKey);
+        $entityKey = $mappedKeys->collection ?? $entityKey;
+        $collection = new EntityCollection($entityKey, $paymo);
+
+        return $collection;
     }
 
     /**
@@ -173,7 +202,7 @@ abstract class AbstractResource extends AbstractEntity
      *
      * @throws Exception
      * @throws GuzzleException
-     * @return bool Returns true if populates successfully
+     * @return AbstractResource Returns the instance of itself for chaining method potential
      */
     public function fetch($id = null, $fields = [])
     {
@@ -192,11 +221,8 @@ abstract class AbstractResource extends AbstractEntity
         $result = Request::fetch($this->connection, $this::API_PATH, $id, $select, $include);
         if ($result) {
             $this->_hydrate($id, $result);
-
-            return true;
         }
-
-        return false;
+        return $this;
     }
 
     /**
@@ -303,7 +329,7 @@ abstract class AbstractResource extends AbstractEntity
     private function _hydrateInclude($entityKey, $object)
     {
         $entityObject = EntityMap::entity($entityKey);
-        $isCollection = !!$entityObject && $entityObject->type=='collection' && !!$entityObject->collection;
+        $isCollection = !!$entityObject && $entityObject->type == 'collection' && !!$entityObject->collection;
         $className = $entityObject->resource;
         $result = null;
         if ($isCollection) {
@@ -320,20 +346,6 @@ abstract class AbstractResource extends AbstractEntity
             $result->_hydrate($object->id, $object);
         }
         $this->included[$entityKey] = $result;
-    }
-
-    public function list($fields = [], $where = [], $validate = true)
-    {
-        // $where = [
-        //   'prop' => string (key)
-        //   'value' => any (validated against the operator)
-        //   'operator' => valid operator defaults:"="
-        //   'skipValidation' = boolean. if true, let any operator/value be used for this key
-        //  ]
-
-        // Call REQUEST (GET) with $fields and limit conditions set with WHERE
-        // Return new hydrated collection array
-        return [];
     }
 
     public function create()

@@ -6,7 +6,7 @@
  *
  * MIT License
  * Copyright (c) 2020 - Joel Colombo <jc-dev@360psg.com>
- * Last Updated : 3/6/20, 3:37 PM
+ * Last Updated : 3/6/20, 5:40 PM
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -63,6 +63,24 @@ abstract class AbstractCollection extends AbstractEntity implements Iterator, Ar
         $this->entityKey = $entityKey;
         $this->index = 0;
         $this->data = [];
+    }
+
+    public function fetch($fields = [], $where = [], $validate = true) {
+
+        echo "FETCH LIST HERE";
+        var_dump($this);
+
+        // $where = [
+        //   'prop' => string (key)
+        //   'value' => any (validated against the operator)
+        //   'operator' => valid operator defaults:"="
+        //   'skipValidation' = boolean. if true, let any operator/value be used for this key
+        //  ]
+
+        // Call REQUEST (GET) with $fields and limit conditions set with WHERE
+        // Return new hydrated collection array
+        //return [];
+        return $this;
     }
 
     /**

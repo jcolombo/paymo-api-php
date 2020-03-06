@@ -6,7 +6,7 @@
  *
  * MIT License
  * Copyright (c) 2020 - Joel Colombo <jc-dev@360psg.com>
- * Last Updated : 3/6/20, 3:37 PM
+ * Last Updated : 3/6/20, 5:40 PM
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -117,9 +117,7 @@ class EntityMap
             if (Configuration::has(self::CONFIG_PATH.$key)) {
                 $object = new stdClass();
                 $object->type = Configuration::get(self::CONFIG_PATH.$key.'.type');
-                $object->mappedKeys = new stdClass();
-                $object->mappedKeys->resource = Configuration::get(self::CONFIG_PATH.$key.'.resourceKey');
-                $object->mappedKeys->collection = Configuration::get(self::CONFIG_PATH.$key.'.collectionKey');
+                $object->mappedKeys = self::mapKeys($key);
                 $object->resource = self::resource($object->mappedKeys->resource ?? $key);
                 $object->collection = self::collection($object->mappedKeys->collection ?? $key);
 
@@ -131,6 +129,29 @@ class EntityMap
         }
 
         return null;
+    }
+
+    /**
+     * Look up the entity to see if it refers to a different entity for its resource and/or collection classes
+     * If it does, it returns then as string names of the referenced keys. If not, they are null
+     *
+     * @param string $key The entity key to be looked up
+     *
+     * @return stdClass Returns a generic object with a ->resource and ->collection property (each is a string or null)
+     */
+    public static function mapKeys($key) {
+        $map = new stdClass();
+        $map -> resource = null;
+        $map -> collection = null;
+        $key = self::extractKey($key);
+        if (is_string($key)) {
+            if (Configuration::has(self::CONFIG_PATH.$key)) {
+                $map = new stdClass();
+                $map->resource = Configuration::get(self::CONFIG_PATH.$key.'.resourceKey');
+                $map->collection = Configuration::get(self::CONFIG_PATH.$key.'.collectionKey');
+            }
+        }
+        return $map;
     }
 
     /**

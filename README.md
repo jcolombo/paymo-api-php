@@ -73,6 +73,6 @@ $project -> fetch(12345);
 $project -> fetch(12345, ['client']);
 
 // Load a list of all projects the API key can see
-$projects = Project::list();
+$projects = Project::list()->fetch();
 
 ```
