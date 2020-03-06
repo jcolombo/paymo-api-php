@@ -6,7 +6,7 @@
  *
  * MIT License
  * Copyright (c) 2020 - Joel Colombo <jc-dev@360psg.com>
- * Last Updated : 3/6/20, 12:11 PM
+ * Last Updated : 3/6/20, 3:37 PM
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -40,12 +40,24 @@ use stdClass;
  */
 class EntityMap
 {
+    /**
+     * The root path in the configuration file where the list of entities can be located
+     * Used to simplify the code in each this classes methods
+     */
     public const CONFIG_PATH = 'classMap.entity.';
 
     /**
-     * @param string           $mapKey
-     * @param null|string      $resourceClass
-     * @param bool|string|null $collectionClass
+     * Programmatic way to overload the classes used for the entities (resources and collections)
+     * The changes are only modified for the duration of the script, they are not replaced permanently
+     * To make permanent changes the map. Create a custom configuration file for the connection to map new classes to
+     * entities
+     *
+     * @param string           $mapKey          The map key to reassign custom classes to.
+     * @param null|string      $resourceClass   The fully namespaced class name that should replace the default
+     *                                          resource object
+     * @param bool|string|null $collectionClass The fully namespaced class name that should replace the default
+     *                                          collection object. If set to TRUE will use the global default
+     *                                          collection entity
      *
      * @throws Exception
      */
@@ -87,14 +99,29 @@ class EntityMap
         }
     }
 
+    /**
+     * Return the formatted entity configuration for a specific key (project, client, clients, etc)
+     *
+     * @param string $key    The entity key to be looked up
+     * @param bool   $strict If set to true, throws an exception if the entity does not have a defined block in the
+     *                       configuration. If not strict (default), simply returns null to be tested against by the
+     *                       caller
+     *
+     * @throws Exception
+     * @return stdClass|null
+     */
     public static function entity($key, $strict = false)
     {
         $key = self::extractKey($key);
         if (is_string($key)) {
             if (Configuration::has(self::CONFIG_PATH.$key)) {
                 $object = new stdClass();
-                $object->resource = self::resource($key);
-                $object->collection = self::collection($key);
+                $object->type = Configuration::get(self::CONFIG_PATH.$key.'.type');
+                $object->mappedKeys = new stdClass();
+                $object->mappedKeys->resource = Configuration::get(self::CONFIG_PATH.$key.'.resourceKey');
+                $object->mappedKeys->collection = Configuration::get(self::CONFIG_PATH.$key.'.collectionKey');
+                $object->resource = self::resource($object->mappedKeys->resource ?? $key);
+                $object->collection = self::collection($object->mappedKeys->collection ?? $key);
 
                 return $object;
             }
@@ -106,6 +133,15 @@ class EntityMap
         return null;
     }
 
+    /**
+     * Strips out any ":" prefixes before an entity name, some aspects of the program store entities with a prefix
+     * Primarily used when testing against property types that define things like "projects"=>"collection:projects"
+     * or "client"=>"resource:client", etc.
+     *
+     * @param string $key The key to break down into its entity name
+     *
+     * @return string|null Returns the barebones entity key
+     */
     public static function extractKey($key)
     {
         if (!is_string($key)) {
@@ -121,6 +157,13 @@ class EntityMap
         return $key;
     }
 
+    /**
+     * Check of the configuration has an entry for the $key entity
+     *
+     * @param string $key The key of the entity to check on
+     *
+     * @return bool If it exists or not in the configuration
+     */
     public static function exists($key)
     {
         $key = self::extractKey($key);
@@ -131,9 +174,26 @@ class EntityMap
         return Configuration::has(self::CONFIG_PATH.$key);
     }
 
+    /**
+     * Get the resource class for the $key entity
+     *
+     * @param string $key    The entity key to be looked up
+     * @param bool   $strict If set to true, throws an exception if the entity does not have a defined block in the
+     *                       configuration. If not strict (default), simply returns null to be tested against by the
+     *                       caller
+     *
+     * @throws Exception
+     * @return string|null Returns the class name of the entity "resource" (single entity). Null if there is no
+     *                     resource defined
+     */
     public static function resource($key, $strict = false)
     {
         $key = self::extractKey($key);
+        $resourceKey = Configuration::get(self::CONFIG_PATH.$key.'.resourceKey');
+        $resource = Configuration::has(self::CONFIG_PATH.$key.'.resource');
+        if (!$resource && $resourceKey) {
+            $key = $resourceKey;
+        }
         if ($strict && (!is_string($key) || !Configuration::has(self::CONFIG_PATH.$key.'.resource'))) {
             throw new Exception("[$key] does not have a configured resource class defined");
         }
@@ -141,6 +201,19 @@ class EntityMap
         return Configuration::get(self::CONFIG_PATH.$key.'.resource');
     }
 
+    /**
+     * Get the collection class for the $key entity
+     * If the collection configuration is set to a boolean true, the global default collection class is returned
+     *
+     * @param string $key    The entity key to be looked up
+     * @param bool   $strict If set to true, throws an exception if the entity does not have a defined block in the
+     *                       configuration. If not strict (default), simply returns null to be tested against by the
+     *                       caller
+     *
+     * @throws Exception
+     * @return string|null Returns the class name of the entity "collection" (single entity). Null if there is no
+     *                     collection defined
+     */
     public static function collection($key, $strict = false)
     {
         $key = self::extractKey($key);
@@ -150,6 +223,10 @@ class EntityMap
             if ($cClass === true) {
                 $cClass = Configuration::get('classMap.defaultCollection');
             }
+        }
+        $collectionKey = Configuration::get(self::CONFIG_PATH.$key.'.collectionKey');
+        if (!$cClass && $collectionKey) {
+            $cClass = self::collection($collectionKey);
         }
         if ($strict && !$cClass) {
             throw new Exception("[$key] does not have a configured collection class defined");

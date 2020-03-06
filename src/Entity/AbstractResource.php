@@ -6,7 +6,7 @@
  *
  * MIT License
  * Copyright (c) 2020 - Joel Colombo <jc-dev@360psg.com>
- * Last Updated : 3/6/20, 12:11 PM
+ * Last Updated : 3/6/20, 3:37 PM
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -36,6 +36,11 @@ use Jcolombo\PaymoApiPhp\Entity\Collection\EntityCollection;
 use Jcolombo\PaymoApiPhp\Paymo;
 use Jcolombo\PaymoApiPhp\Request;
 
+/**
+ * Class AbstractResource
+ *
+ * @package Jcolombo\PaymoApiPhp\Entity
+ */
 abstract class AbstractResource extends AbstractEntity
 {
 
@@ -52,26 +57,19 @@ abstract class AbstractResource extends AbstractEntity
     protected $included = [];
 
     /**
-     * The default Entity constructor
+     * The default Resource constructor
      * Requires a Paymo connection instance or attempts to find/create one.
      * When in development mode, will validate the object class has all required defined constants
      *
-     * @param Paymo | string | null $paymo Either an API Key, Paymo Connection, or null to get first connection
-     *                                     available
+     * @param array | Paymo | string | null $paymo Either an API Key, Paymo Connection, config settings array (from
+     *                                             another entitied getConfiguration call), or null to get first
+     *                                             connection available
      *
      * @throws Exception
      */
-    public function __construct(Paymo $paymo = null)
+    public function __construct($paymo = null)
     {
-        if (is_null($paymo)) {
-            $this->connection = Paymo::connect();
-        } elseif (is_string($paymo)) {
-            $this->connection = Paymo::connect($paymo);
-        } elseif (is_object($paymo)) {
-            $this->connection = $paymo;
-        } else {
-            throw new Exception("No Connection Provided, Be sure you have connected with a Paymo::connect() call before using the API entities");
-        }
+        parent::__construct($paymo);
         if (Configuration::get('devMode')) {
             $missingConstants = [];
             foreach (self::REQUIRED_CONSTANTS as $k) {
@@ -85,7 +83,6 @@ abstract class AbstractResource extends AbstractEntity
                                                                                                                    $missingConstants)."'");
             }
         }
-
         return $this;
     }
 
@@ -306,20 +303,20 @@ abstract class AbstractResource extends AbstractEntity
     private function _hydrateInclude($entityKey, $object)
     {
         $entityObject = EntityMap::entity($entityKey);
-        $isCollection = !!$entityObject && !!$entityObject->collection;
+        $isCollection = !!$entityObject && $entityObject->type=='collection' && !!$entityObject->collection;
         $className = $entityObject->resource;
         $result = null;
         if ($isCollection) {
-            $result = new EntityCollection();
+            $result = new EntityCollection($entityKey, $this->getConfiguration());
             foreach ($object as $o) {
                 /** @var AbstractResource $tmp */
-                $tmp = new $className($this->connection);
+                $tmp = new $className($this->getConfiguration());
                 $tmp->_hydrate($o->id, $o);
-                $result[] = $tmp;
+                $result[$o->id] = $tmp;
             }
         } else {
             /** @var AbstractResource $result */
-            $result = new $className($this->connection);
+            $result = new $className($this->getConfiguration());
             $result->_hydrate($object->id, $object);
         }
         $this->included[$entityKey] = $result;

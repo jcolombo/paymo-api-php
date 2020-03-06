@@ -6,7 +6,7 @@
  *
  * MIT License
  * Copyright (c) 2020 - Joel Colombo <jc-dev@360psg.com>
- * Last Updated : 3/6/20, 12:11 PM
+ * Last Updated : 3/6/20, 3:37 PM
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -32,6 +32,7 @@ namespace Jcolombo\PaymoApiPhp\Entity;
 use ArrayAccess;
 use Exception;
 use Iterator;
+use Jcolombo\PaymoApiPhp\Paymo;
 
 abstract class AbstractCollection extends AbstractEntity implements Iterator, ArrayAccess
 {
@@ -44,15 +45,24 @@ abstract class AbstractCollection extends AbstractEntity implements Iterator, Ar
      */
     private $data = [];
 
+    protected $entityKey = null;
+
     /**
      * EntityCollection constructor.
      *
-     * @param AbstractResource[] $collection A standard array comprised of just Entity objects
+     * @param   string   $entityKey The entity key from the entityMap to indicate what type of resources are contained
+     * @param array | Paymo | string | null $paymo Either an API Key, Paymo Connection, config settings array (from
+     *                                             another entitied getConfiguration call), or null to get first
+     *                                             connection available
+     *
+     * @throws Exception
      */
-    public function __construct($collection = [])
+    public function __construct($entityKey, $paymo=null)
     {
+        parent::__construct($paymo);
+        $this->entityKey = $entityKey;
         $this->index = 0;
-        $this->data = $collection;
+        $this->data = [];
     }
 
     /**

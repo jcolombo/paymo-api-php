@@ -6,7 +6,7 @@
  *
  * MIT License
  * Copyright (c) 2020 - Joel Colombo <jc-dev@360psg.com>
- * Last Updated : 3/6/20, 12:11 PM
+ * Last Updated : 3/6/20, 3:37 PM
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -30,6 +30,7 @@
 namespace Jcolombo\PaymoApiPhp\Entity;
 
 use Exception;
+use Jcolombo\PaymoApiPhp\Paymo;
 use Jcolombo\PaymoApiPhp\Utility\RequestCondition;
 
 abstract class AbstractEntity
@@ -40,9 +41,68 @@ abstract class AbstractEntity
     public const VALID_OPERATORS = ['=', '!=', '<', '<=', '>', '>=', 'like', 'not like', 'in', 'not_in'];
 
     protected $hydrationMode = false;
+
     protected $connection = null;
     protected $overwriteDirtyWithRequests = true;
     protected $useCacheIfAvailable = true;
+
+    /**
+     * The default Entity constructor
+     * Requires a Paymo connection instance or attempts to find/create one.
+     *
+     * @param array | Paymo | string | null $paymo Either an API Key, Paymo Connection, config settings array (from
+     *                                             another entitied getConfiguration call), or null to get first
+     *                                             connection available
+     *
+     * @throws Exception
+     */
+    public function __construct($paymo = null)
+    {
+        $connection = $paymo;
+        // If its a configuration array param with at least a connection property... set the configuration manually
+        // A configuration array MUST pass at minimum a connection property (it can be a string, null, or Paymo object)
+        if (is_array($paymo) && isset($paymo['connection'])) {
+            $connection = $paymo['connection'];
+            $this->setConfiguration($paymo);
+        }
+        // Test the connection is a valid value
+        if (is_null($connection)) {
+            $this->connection = Paymo::connect();
+        } elseif (is_string($connection)) {
+            $this->connection = Paymo::connect($connection);
+        } elseif (is_object($connection)) {
+            $this->connection = $connection;
+        } else {
+            throw new Exception("No Connection Provided, Be sure you have connected with a Paymo::connect() call before using the API entities");
+        }
+
+        return $this;
+    }
+
+    /**
+     * This method is used by other AbstractEntities to clone the settings for inheritance when dynamically creating new
+     * objects from hydration methods.
+     *
+     * @param array $configurationArray Set of protected properties to be forced into specific values
+     *
+     * @throws Exception
+     */
+    public function setConfiguration($configurationArray)
+    {
+        if (!is_array($configurationArray)) {
+            throw new Exception("Cloning configuration requires a single associative array or object passed to it");
+        }
+        if (isset($configurationArray['connection']) && is_a($configurationArray['connection'],
+                                                             'Jcolombo\PaymoApiPhp\Paymo')) {
+            $this->connection = $configurationArray['connection'];
+        }
+        if (isset($configurationArray['overwriteDirtyWithRequests'])) {
+            $this->overwriteDirtyWithRequests = $configurationArray['overwriteDirtyWithRequests'];
+        }
+        if (isset($configurationArray['useCacheIfAvailable'])) {
+            $this->useCacheIfAvailable = $configurationArray['useCacheIfAvailable'];
+        }
+    }
 
     /**
      * Determine if a key is either a prop or an include type on a specific entity
@@ -182,6 +242,20 @@ abstract class AbstractEntity
         }
 
         return $realInclude;
+    }
+
+    /**
+     * Get all the entities settings as an associative array that can be used to clone them into a new entity
+     *
+     * @return array All the intended clone contents from this entity
+     */
+    public function getConfiguration()
+    {
+        return [
+            'connection' => $this->connection,
+            'overwriteDirtyWithRequests' => $this->overwriteDirtyWithRequests,
+            'useCacheIfAvailable' => $this->useCacheIfAvailable
+        ];
     }
 
 }

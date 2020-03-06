@@ -17,24 +17,31 @@
     "defaultCollection": "Jcolombo\\PaymoApiPhp\\Entity\\Collection\\EntityCollection",
     "entity": {
       "project": {
-        "resource": "Jcolombo\\PaymoApiPhp\\Entity\\Resource\\Project"
+        "type": "resource",
+        "resource": "Jcolombo\\PaymoApiPhp\\Entity\\Resource\\Project",
+        "collectionKey": "projects"
       },
       "projects": {
-        "resource": "Jcolombo\\PaymoApiPhp\\Entity\\Resource\\Project",
+        "type": "collection",
+        "resourceKey": "project",
         "collection": true
       },
       "client": {
+        "type": "resource",
         "resource": "Jcolombo\\PaymoApiPhp\\Entity\\Resource\\Client"
       },
       "clients": {
-        "resource": "Jcolombo\\PaymoApiPhp\\Entity\\Resource\\Client",
+        "type": "collection",
+        "resourceKey": "client",
         "collection": true
       },
       "projectstatus": {
+        "type": "resource",
         "resource": "Jcolombo\\PaymoApiPhp\\Entity\\Resource\\ProjectStatus"
       },
       "projectstatuses": {
-        "resource": "Jcolombo\\PaymoApiPhp\\Entity\\Resource\\ProjectStatus",
+        "type": "collection",
+        "resourceKey": "projectstatus",
         "collection": true
       }
     }

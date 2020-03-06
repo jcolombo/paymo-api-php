@@ -6,7 +6,7 @@
  *
  * MIT License
  * Copyright (c) 2020 - Joel Colombo <jc-dev@360psg.com>
- * Last Updated : 3/6/20, 12:11 PM
+ * Last Updated : 3/6/20, 3:37 PM
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -138,7 +138,7 @@ class Paymo
             $connectionUrl = Configuration::get('connection.url');
         }
         if (is_null($connectionName)) {
-            $connectionName = Configuration::get('connection.name').'-'.rand(100000, 999999);
+            $connectionName = Configuration::get('connection.defaultName').'-'.rand(100000, 999999).'-'.microtime(true);
         }
         if (!isset(self::$connections[$apiKey])) {
             self::$connections[$apiKey] = new static($apiKey, $connectionUrl, $connectionName);
