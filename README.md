@@ -11,9 +11,13 @@ A Robust PHP implementation of the Paymo App API
 ![](https://img.shields.io/github/stars/jcolombo/paymo-api-php)
 
 
-PaymoApp is a powerful project management platform with an API that allows programmers to completely operate their account through a RESTful set of endpoints. This package creates a programmer friendly toolkit to simplify all interactions with the application.
+PaymoApp (www.paymoapp.com) is a powerful project management platform with
+an API that allows programmers to completely operate their account through
+a RESTful set of endpoints. This independently developed package creates a programmer friendly toolkit
+to simplify all interactions with the application and is not associated with
+the Paymo company or brand.
 
-The published REST api documentation can be found here:
+The officially published REST api documentation can be found here:
 
 https://github.com/paymoapp/api
 
@@ -33,6 +37,12 @@ https://github.com/paymoapp/api
 - Ability to extend and overload package objects with your own extensions
 - Local file caching to avoid unneeded repeat calls to the API (helping avoid rate limits)
 - Deep logging tools for debugging during integration and development
+
+## Requirements
+
+- An active PaymoApp account (www.paymoapp.com)
+- PHP 7.1 or higher
+- Composer (for easy install) or the ability to install from this source
 
 ## Installation
 
