@@ -6,7 +6,7 @@
  *
  * MIT License
  * Copyright (c) 2020 - Joel Colombo <jc-dev@360psg.com>
- * Last Updated : 3/6/20, 5:40 PM
+ * Last Updated : 3/6/20, 11:45 PM
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -106,13 +106,12 @@ abstract class AbstractResource extends AbstractEntity
         $entityKey = static::API_ENTITY;
         $cClass = EntityMap::collection($entityKey);
         if (!$cClass) {
-            throw new Exception("Attempting to create a list for {self::API_ENTITY} without a configured entity map for the collection class defined");
+            throw new Exception("Attempting to create a list for {$entityKey} without a configured entity map for the collection class defined");
         }
         $mappedKeys = EntityMap::mapKeys($entityKey);
         $entityKey = $mappedKeys->collection ?? $entityKey;
-        $collection = new EntityCollection($entityKey, $paymo);
 
-        return $collection;
+        return new EntityCollection($entityKey, $paymo);
     }
 
     /**
@@ -217,10 +216,19 @@ abstract class AbstractResource extends AbstractEntity
             $label = $this::LABEL;
             throw new Exception("{$label} attempted to fetch new data while it had dirty fields and protection is enabled.");
         }
+        $s = microtime(true);
         [$select, $include] = $this::cleanupForRequest($this::API_ENTITY, $fields);
-        $result = Request::fetch($this->connection, $this::API_PATH, $id, $select, $include);
-        if ($result) {
-            $this->_hydrate($id, $result);
+        //var_dump($select, $include); exit;
+        $e = microtime(true);
+        $scrub = $e-$s;
+
+        $response = Request::fetch($this->connection, $this::API_PATH, $id,
+                                   ['select'=>$select, 'include'=>$include]);
+//        echo "SCRUB TIME: {$scrub}\n";
+//        echo "REQUEST TIME: {$response->responseTime}\n";
+//        var_dump($response->responseTime);
+        if ($response->result) {
+            $this->_hydrate($id, $response->result);
         }
         return $this;
     }

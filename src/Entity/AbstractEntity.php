@@ -6,7 +6,7 @@
  *
  * MIT License
  * Copyright (c) 2020 - Joel Colombo <jc-dev@360psg.com>
- * Last Updated : 3/6/20, 3:37 PM
+ * Last Updated : 3/6/20, 11:45 PM
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -30,6 +30,7 @@
 namespace Jcolombo\PaymoApiPhp\Entity;
 
 use Exception;
+use Jcolombo\PaymoApiPhp\Cache\ScrubCache;
 use Jcolombo\PaymoApiPhp\Paymo;
 use Jcolombo\PaymoApiPhp\Utility\RequestCondition;
 
@@ -176,6 +177,7 @@ abstract class AbstractEntity
                 $include[] = $k;
             }
         }
+        if (count($select) > 0 && !in_array('id', $select)) { $select[] = 'id'; }
         $include = self::scrubInclude($include, $entityKey);
 
         return [$select, $include, $where];
@@ -193,6 +195,9 @@ abstract class AbstractEntity
      */
     public static function scrubInclude($include, $entityKey)
     {
+        $include = array_unique($include);
+        $cached = ScrubCache::cache()->get($entityKey, $include);
+        if (!is_null($cached)) { return $cached; }
         $realInclude = [];
         foreach ($include as $index => $i) {
             $parts = explode('.', $i, 3);
@@ -237,11 +242,24 @@ abstract class AbstractEntity
                             }
                         }
                     }
+                    $tmp = "{$parts[0]}.id";
+                    if (!in_array($tmp, $parts[0]) && !in_array($tmp, $realInclude)) {
+                        $realInclude[] = $tmp;
+                    }
+
                 }
             }
         }
-
-        return $realInclude;
+        $flipped = array_flip($realInclude);
+        foreach ($realInclude as $i) {
+            $tmp = substr($i, count($i)-4, 3)==='.id' ? substr($i, 0, count($i)-4) : null;
+            if (!is_null($tmp) && isset($flipped[$tmp])) {
+                unset($flipped[$i]);
+            }
+        }
+        $cleaned = array_flip($flipped);
+        ScrubCache::cache()->push($entityKey, $include, $cleaned);
+        return $cleaned;
     }
 
     /**

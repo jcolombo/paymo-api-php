@@ -6,7 +6,7 @@
  *
  * MIT License
  * Copyright (c) 2020 - Joel Colombo <jc-dev@360psg.com>
- * Last Updated : 3/6/20, 12:11 PM
+ * Last Updated : 3/6/20, 11:45 PM
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -31,6 +31,7 @@ namespace Jcolombo\PaymoApiPhp;
 
 use GuzzleHttp\Exception\GuzzleException;
 use Jcolombo\PaymoApiPhp\Utility\RequestAbstraction;
+use Jcolombo\PaymoApiPhp\Utility\RequestResponse;
 
 /**
  * Static class for generating proper request objects to be sent in to connection instances for executing
@@ -43,35 +44,41 @@ class Request
     /**
      * Compile and execute a single entity fetch request from the API
      *
-     * @param Paymo    $connection A valid Paymo Connection object instance
-     * @param string   $objectKey  The API path tacked on to connections base URL
-     * @param int      $id         The ID to be loaded from the API at the path sent in as $objectKey
-     * @param string[] $select     An array of valid props to filter the response with before sending it back
-     * @param string[] $include    An array of valid include entities and sub-entity props to return with base object
+     * @param Paymo  $connection A valid Paymo Connection object instance
+     * @param string $objectKey  The API path tacked on to connections base URL
+     * @param int    $id         The ID to be loaded from the API at the path sent in as $objectKey
+     * @param array  $options    The set of options for this request
+     *                           [select] = string[] : The list of properties to select for this request
+     *                           [include] = string[] : The list of related entities and their respective properties to
+     *                           request
+     *                           [scrub] = bool : Manually process the result through the clean up utility to strip any
+     *                           excess response properties (in case API response added more than was requested)
      *
      * @throws GuzzleException
-     * @return bool | object Returns an object on success or a boolean FALSE on failure to load entity
+     * @return RequestResponse Returns an object on success or a boolean FALSE on failure to load entity
      */
-    public static function fetch(Paymo $connection, $objectKey, $id, $select, $include)
+    public static function fetch(Paymo $connection, $objectKey, $id, $options)
     {
+        $scrub = !!$options['scrub'];
+        $select = $options['select'] ?? [];
+        $include = $options['include'] ?? [];
         if (!is_array($select)) {
             $select = !is_null($select) ? [$select] : [];
         }
         if (!is_array($include)) {
             $include = !is_null($include) ? [$include] : [];
         }
-
         $request = new RequestAbstraction();
         $request->method = 'GET';
         $request->resourceUrl = $objectKey."/{$id}";
-        $request->includeEntities = Request::compileIncludeParameter($include);
+        $request->includeEntities = Request::compileIncludeParameter(array_merge($select, $include));
         $response = $connection->execute($request);
-
-        if ($response->validBody($objectKey, 1)) {
-            return self::scrubBody($response->body->$objectKey[0], $select, $include);
+        if ($response->body && $response->validBody($objectKey, 1)) {
+            $response->result = $scrub ? self::scrubBody($response->body->$objectKey[0], $select,
+                                                         $include) : $response->body->$objectKey[0];
         }
 
-        return false;
+        return $response;
     }
 
     /**
@@ -88,7 +95,7 @@ class Request
         if (!$include || !is_array($include) || count($include) < 1) {
             return null;
         }
-        sort($include);
+        sort(array_unique($include));
 
         return join(',', $include);
     }

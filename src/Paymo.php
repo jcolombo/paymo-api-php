@@ -6,7 +6,7 @@
  *
  * MIT License
  * Copyright (c) 2020 - Joel Colombo <jc-dev@360psg.com>
- * Last Updated : 3/6/20, 3:37 PM
+ * Last Updated : 3/6/20, 11:45 PM
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -205,10 +205,12 @@ class Paymo
 
         // Construct normalized response for returning to the caller for processing (REQUEST object)
         $response = new RequestResponse();
+        $response->request = $request;
         $response->responseCode = $guzzleResponse->getStatusCode();
         $response->responseReason = $guzzleResponse->getReasonPhrase();
         $response->responseTime = $request_time;
         $response->body = json_decode($guzzleResponse->getBody()->getContents());
+        $response->result = null;
         $response->success = ($response->responseCode >= 200 && $response->responseCode <= 299);
 
         //var_dump($response); exit;

@@ -6,7 +6,7 @@
  *
  * MIT License
  * Copyright (c) 2020 - Joel Colombo <jc-dev@360psg.com>
- * Last Updated : 3/6/20, 12:11 PM
+ * Last Updated : 3/6/20, 11:45 PM
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -28,6 +28,8 @@
  */
 
 namespace Jcolombo\PaymoApiPhp\Utility;
+
+use Jcolombo\PaymoApiPhp\Entity\AbstractResource;
 
 /**
  * Class RequestResponse
@@ -60,6 +62,17 @@ class RequestResponse
      * @var null
      */
     public $responseTime = null;
+
+    /**
+     * @var RequestAbstraction | null
+     */
+    public $request = null;
+
+    /**
+     * The cleaned up processed result to be used by the caller on success
+     * @var null | array | object
+     */
+    public $result = null;
 
     /**
      * Validates the BODY from the API response to make sure it contains a property of a specific key and minimum

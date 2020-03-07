@@ -27,28 +27,38 @@
  * SOFTWARE.
  */
 
-namespace Jcolombo\PaymoApiPhp\Utility;
+namespace Jcolombo\PaymoApiPhp\Cache;
 
-/**
- * Class RequestAbstraction
- *
- * @package Jcolombo\PaymoApiPhp\Utility
- */
-class RequestAbstraction
+class ScrubCache
 {
+    static $instance = null;
 
-    /**
-     * @var string
-     */
-    public $method = 'GET';
+    protected $scrubs = [];
 
-    /**
-     * @var null
-     */
-    public $resourceUrl = null;
+    public static function cache() {
+        if (is_null(self::$instance)) {
+            self::$instance = new static();
+            // @todo : Allow for file based caching later (for now just stores scrub cache for a single thread)
+        }
+        return self::$instance;
+    }
 
-    /**
-     * @var null
-     */
-    public $includeEntities = null;
+    public function get($entity, $original_list) {
+        $key = $this->key($entity, $original_list);
+        if (isset($this->scrubs[$key])) {
+            return $this->scrubs[$key];
+        }
+        return null;
+    }
+
+    public function push($entity, $original_list, $final_list) {
+        $key = $this->key($entity, $original_list);
+        $this->scrubs[$key] = $final_list;
+    }
+
+    protected function key($entity, $list) {
+        sort($list);
+        return md5($entity.implode('|', $list));
+    }
+
 }

@@ -4,7 +4,7 @@ A Robust PHP implementation of the Paymo App API
 ![](https://img.shields.io/badge/Status-Not%20Usable-red)
 ![](https://img.shields.io/badge/Stable-None-blue)
 ![](https://img.shields.io/badge/Latest-0.0.1-red)
-![](https://img.shields.io/badge/Language-PHP-green)
+![](https://img.shields.io/badge/PHP->=7.1-green)
 ![](https://img.shields.io/github/license/jcolombo/paymo-api-php)
 ![](https://img.shields.io/github/issues/jcolombo/paymo-api-php)
 ![](https://img.shields.io/github/forks/jcolombo/paymo-api-php)
