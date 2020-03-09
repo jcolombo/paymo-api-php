@@ -28,7 +28,8 @@
       },
       "client": {
         "type": "resource",
-        "resource": "Jcolombo\\PaymoApiPhp\\Entity\\Resource\\Client"
+        "resource": "Jcolombo\\PaymoApiPhp\\Entity\\Resource\\Client",
+        "collectionKey": "clients"
       },
       "clients": {
         "type": "collection",
@@ -37,7 +38,8 @@
       },
       "projectstatus": {
         "type": "resource",
-        "resource": "Jcolombo\\PaymoApiPhp\\Entity\\Resource\\ProjectStatus"
+        "resource": "Jcolombo\\PaymoApiPhp\\Entity\\Resource\\ProjectStatus",
+        "collectionKey": "projectstatuses"
       },
       "projectstatuses": {
         "type": "collection",

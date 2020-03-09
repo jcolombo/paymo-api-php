@@ -6,7 +6,7 @@
  *
  * MIT License
  * Copyright (c) 2020 - Joel Colombo <jc-dev@360psg.com>
- * Last Updated : 3/6/20, 11:45 PM
+ * Last Updated : 3/8/20, 11:57 PM
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -43,12 +43,17 @@ class RequestAbstraction
     public $method = 'GET';
 
     /**
-     * @var null
+     * @var string | null
      */
     public $resourceUrl = null;
 
     /**
-     * @var null
+     * @var string | null
      */
-    public $includeEntities = null;
+    public $include = null;
+
+    /**
+     * @var string | null
+     */
+    public $where = null;
 }

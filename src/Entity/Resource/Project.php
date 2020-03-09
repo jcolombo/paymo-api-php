@@ -6,7 +6,7 @@
  *
  * MIT License
  * Copyright (c) 2020 - Joel Colombo <jc-dev@360psg.com>
- * Last Updated : 3/6/20, 12:11 PM
+ * Last Updated : 3/8/20, 11:57 PM
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -89,12 +89,12 @@ class Project extends AbstractResource
         'code' => 'text',
         'task_code_increment' => 'integer',
         'description' => 'text',
-        'client_id' => 'entity:client',
-        'status_id' => 'entity:projectstatus',
+        'client_id' => 'resource:client',
+        'status_id' => 'resource:projectstatus',
         'active' => 'boolean',
         'color' => 'text',
-        'users' => 'entityList:users',
-        'managers' => 'entityList:managers',
+        'users' => 'collection:users',
+        'managers' => 'collection:managers',
         'billable' => 'boolean',
         'flat_billing' => 'boolean',
         'price_per_hour' => 'decimal',
@@ -104,8 +104,8 @@ class Project extends AbstractResource
         'budget_hours' => 'decimal',
         'adjustable_hours' => 'boolean',
         'invoiced' => 'boolean',
-        'invoice_item_id' => 'entity:invoiceitem',
-        'workflow_id' => 'entity:milestone',
+        'invoice_item_id' => 'resource:invoiceitem',
+        'workflow_id' => 'resource:milestone',
         'created_on' => 'datetime',
         'updated_on' => 'datetime',
         // Undocumented Props
@@ -116,8 +116,10 @@ class Project extends AbstractResource
      * Allowable operators for list() calls on specific properties
      */
     public const WHERE_OPERATIONS = [
+        'code'=>null,
         'client_id' => ['='],
         'active' => ['='],
+        '!active' => ['like', 'not like'],
         'users' => ['=', 'in', 'not in'],
         'managers' => ['=', 'in', 'not in'],
         'billable' => ['='],

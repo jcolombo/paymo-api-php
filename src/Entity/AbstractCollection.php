@@ -6,7 +6,7 @@
  *
  * MIT License
  * Copyright (c) 2020 - Joel Colombo <jc-dev@360psg.com>
- * Last Updated : 3/6/20, 5:40 PM
+ * Last Updated : 3/8/20, 11:57 PM
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -32,10 +32,21 @@ namespace Jcolombo\PaymoApiPhp\Entity;
 use ArrayAccess;
 use Exception;
 use Iterator;
+use Jcolombo\PaymoApiPhp\Configuration;
 use Jcolombo\PaymoApiPhp\Paymo;
+use Jcolombo\PaymoApiPhp\Request;
 
 abstract class AbstractCollection extends AbstractEntity implements Iterator, ArrayAccess
 {
+    protected $entityKey = null;
+    /**
+     * @var string|null
+     */
+    protected $entityClass = null;
+    /**
+     * @var string|null
+     */
+    protected $collectionClass = null;
     /**
      * @var int
      */
@@ -45,30 +56,88 @@ abstract class AbstractCollection extends AbstractEntity implements Iterator, Ar
      */
     private $data = [];
 
-    protected $entityKey = null;
-
     /**
      * EntityCollection constructor.
      *
-     * @param   string   $entityKey The entity key from the entityMap to indicate what type of resources are contained
-     * @param array | Paymo | string | null $paymo Either an API Key, Paymo Connection, config settings array (from
-     *                                             another entitied getConfiguration call), or null to get first
-     *                                             connection available
+     * @param string                        $entityKey The entity key from the entityMap to indicate what type of
+     *                                                 resources are contained
+     * @param array | Paymo | string | null $paymo     Either an API Key, Paymo Connection, config settings array (from
+     *                                                 another entitied getConfiguration call), or null to get first
+     *                                                 connection available
      *
      * @throws Exception
      */
-    public function __construct($entityKey, $paymo=null)
+    public function __construct($entityKey, $paymo = null)
     {
         parent::__construct($paymo);
         $this->entityKey = $entityKey;
+        $this->entityClass = EntityMap::resource($entityKey);
+        $this->collectionClass = EntityMap::collection($entityKey);
         $this->index = 0;
         $this->data = [];
     }
 
-    public function fetch($fields = [], $where = [], $validate = true) {
+    /**
+     * Static method to always create a resource or collection using the currently configured mapped class in Entity
+     * Map
+     * NOTE: Using this method to factory create your class will void IDE typehinting when developing (as it doesnt
+     * know what class will return)
+     *
+     * @param null $paymo                          * @param array | Paymo | string | null $paymo Either an API Key,
+     *                                             Paymo Connection, config settings array (from another entitied
+     *                                             getConfiguration call), or null to get first connection available
+     *
+     * @throws Exception
+     * @return AbstractCollection
+     */
+    public static function new($paymo = null)
+    {
+        return parent::new($paymo);
+    }
 
-        echo "FETCH LIST HERE";
-        var_dump($this);
+    /**
+     * @param array $fields
+     * @param array $where
+     * @param bool  $validate
+     *
+     * @throws \GuzzleHttp\Exception\GuzzleException
+     * @throws Exception
+     * @return $this
+     */
+    public function fetch($fields = [], $where = [], $validate = true)
+    {
+        /** @var AbstractResource $resClass */
+        $resClass = $this->entityClass;
+        /** @var AbstractCollection $resClass */
+        $colClass = $this->collectionClass;
+        echo "FETCH LIST HERE\n\n";
+
+        //$label = $resClass::LABEL;
+        if (!$this->overwriteDirtyWithRequests && $this->isDirty()) {
+            $label = $resClass::LABEL;
+            throw new Exception("{$label} attempted to fetch new data while it had dirty entities and protection is enabled.");
+        }
+        //$s = microtime(true);
+        [$select, $include, $where] = static::cleanupForRequest($resClass::API_ENTITY, $fields, $where);
+        //var_dump($select, $include); exit;
+        //$e = microtime(true);
+        //$scrub = $e - $s;
+
+        $response = Request::list($this->connection, $resClass::API_PATH,
+                                  ['select' => $select, 'include' => $include, 'where'=>$where]);
+
+        //var_dump($response); exit;
+
+//        echo "SCRUB TIME: {$scrub}\n";
+//        echo "REQUEST TIME: {$response->responseTime}\n";
+//        var_dump($response->responseTime);
+        if ($response->result) {
+            $this->_hydrate($response->result);
+        }
+
+        return $this;
+
+
 
         // $where = [
         //   'prop' => string (key)
@@ -81,6 +150,32 @@ abstract class AbstractCollection extends AbstractEntity implements Iterator, Ar
         // Return new hydrated collection array
         //return [];
         return $this;
+    }
+
+    /**
+     * @param $data
+     *
+     * @throws Exception
+     */
+    public function _hydrate($data) {
+        /** @var AbstractResource $resClass */
+        $resClass = $this->entityClass;
+        if (is_array($data)) {
+            $this->clear();
+            $this->hydrationMode = true;
+            foreach ($data as $o) {
+                /** @var AbstractResource $tmp */
+                $tmp = new $resClass($this->getConfiguration());
+                $tmp->_hydrate($o->id, $o);
+                $this->data[$o->id] = $tmp;
+            }
+            $this->hydrationMode = false;
+        }
+    }
+
+    public function isDirty() {
+        // @todo Check the collection for any dirty entities
+        return false;
     }
 
     /**

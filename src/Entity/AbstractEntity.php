@@ -6,7 +6,7 @@
  *
  * MIT License
  * Copyright (c) 2020 - Joel Colombo <jc-dev@360psg.com>
- * Last Updated : 3/6/20, 11:45 PM
+ * Last Updated : 3/8/20, 11:57 PM
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -32,19 +32,37 @@ namespace Jcolombo\PaymoApiPhp\Entity;
 use Exception;
 use Jcolombo\PaymoApiPhp\Cache\ScrubCache;
 use Jcolombo\PaymoApiPhp\Paymo;
+use Jcolombo\PaymoApiPhp\Request;
 use Jcolombo\PaymoApiPhp\Utility\RequestCondition;
 
+/**
+ * Class AbstractEntity
+ *
+ * @package Jcolombo\PaymoApiPhp\Entity
+ */
 abstract class AbstractEntity
 {
     /**
      * The valid possible operators usable in WHERE clauses when selecting lists of entities
      */
-    public const VALID_OPERATORS = ['=', '!=', '<', '<=', '>', '>=', 'like', 'not like', 'in', 'not_in'];
+    public const VALID_OPERATORS = ['=', '!=', '<', '<=', '>', '>=', 'like', 'not like', 'in', 'not_in', 'range'];
 
+    /**
+     * @var bool
+     */
     protected $hydrationMode = false;
 
+    /**
+     * @var array|Paymo|mixed|string|null
+     */
     protected $connection = null;
+    /**
+     * @var bool
+     */
     protected $overwriteDirtyWithRequests = true;
+    /**
+     * @var bool
+     */
     protected $useCacheIfAvailable = true;
 
     /**
@@ -106,6 +124,29 @@ abstract class AbstractEntity
     }
 
     /**
+     * Static method to always create a resource or collection using the currently configured mapped class  in Entity
+     * Map NOTE: Using this method to factory create your class will void IDE typehinting when developing (as it doesnt
+     * know what class will return)
+     *
+     * @param null $paymo                          * @param array | Paymo | string | null $paymo Either an API Key,
+     *                                             Paymo Connection, config settings array (from another entitied
+     *                                             getConfiguration call), or null to get first connection available
+     *
+     * @throws Exception
+     * @return AbstractResource | AbstractCollection
+     */
+    public static function new($paymo = null)
+    {
+        $realClass = EntityMap::resource(static::API_ENTITY);
+        if (is_null($realClass)) {
+            throw new Exception("No class found in the Entity Mapp for creating a {static::LABEL} with key '{static::API_ENTITY}'");
+        }
+
+        //@todo Anyone with ideas on how a simple way to typehint the return type correctly for IDE's (like PhpStorm). Minor concern.
+        return new $realClass($paymo);
+    }
+
+    /**
      * Determine if a key is either a prop or an include type on a specific entity
      *
      * @param string $entityKey     The entity key to use in look up
@@ -114,8 +155,11 @@ abstract class AbstractEntity
      * @throws Exception
      * @return bool
      */
-    public static function isSelectable($entityKey, $propOrInclude)
+    public static function isSelectable($entityKey, $propOrInclude=null)
     {
+        if (is_null($propOrInclude)) {
+            [$entityKey, $propOrInclude] = EntityMap::extractResourceProp($entityKey);
+        }
         $entityResource = EntityMap::resource($entityKey);
 
         return !!$entityResource && (self::isProp($entityKey, $propOrInclude)
@@ -125,17 +169,19 @@ abstract class AbstractEntity
     /**
      * Check if a specific entity has a valid property type allowed
      *
-     * @param string $entityKey  The entity key to use in look up
-     * @param string $includeKey The prop key that is being checked for allowance
+     * @param string $entityKey The entity key to use in look up
+     * @param null|string   $propKey
      *
      * @throws Exception
      * @return bool
      */
-    public static function isProp($entityKey, $includeKey)
+    public static function isProp($entityKey, $propKey=null)
     {
+        if (is_null($propKey)) {
+            [$entityKey, $propKey] = EntityMap::extractResourceProp($entityKey);
+        }
         $entityResource = EntityMap::resource($entityKey);
-
-        return !!$entityResource && isset($entityResource::PROP_TYPES[$includeKey]);
+        return !!$entityResource && isset($entityResource::PROP_TYPES[$propKey]);
     }
 
     /**
@@ -149,9 +195,67 @@ abstract class AbstractEntity
      */
     public static function isIncludable($entityKey, $includeKey)
     {
+        if (is_null($includeKey)) {
+            [$entityKey, $includeKey] = EntityMap::extractResourceProp($entityKey);
+        }
         $entityResource = EntityMap::resource($entityKey);
 
         return !!$entityResource && isset($entityResource::INCLUDE_TYPES[$includeKey]);
+    }
+
+    /**
+     * @param      $entityKey
+     * @param      $operator
+     * @param      $value
+     * @param bool $validate
+     *
+     * @throws Exception
+     * @return bool | string
+     */
+    public static function allowWhere($entityKey, $operator, $value=null) {
+        [$key, $prop] = EntityMap::extractResourceProp($entityKey);
+        $entityResource = EntityMap::resource($key);
+        $ops = !!$entityResource ? $entityResource::INCLUDE_TYPES : [];
+        $isProp = self::isProp($key, $prop);
+
+        if ($isProp && !isset($ops[$prop])) { return true; }
+        if ($isProp && array_key_exists($prop, $ops) && is_null($ops[$prop])) {
+            return "Property {$entityKey} cannot be used in WHERE conditions";
+        }
+        if ($isProp && array_key_exists($prop, $ops)) {
+            $allowed = in_array($operator, $ops[$prop]);
+            $notAllowed = in_array($operator, $ops['!'.$prop]);
+            if (!$allowed || $notAllowed) {
+                return "Property {$entityKey} cannot use the {$operator} operator.";
+            }
+            return true;
+        }
+        if (!is_null($value)) {
+            $datatype = static::getPropertyDataType($key, $prop);
+            $primitive = Request::getPrimitiveType($datatype);
+            if (in_array($operator, ['in','not in','range'])) {
+                if (!is_array($value)) { $value = [$value]; }
+                foreach ($value as $v) {
+                    $valid_value = gettype($v) == $primitive;
+                    if ($primitive=='timestamp') { $valid_value = gettype($v) == 'string' || gettype($v) == 'integer'; }
+                    if (!$valid_value) {
+                        return "WHERE: {$entityKey} {$operator} expects array[{$primitive}] but got ".gettype($v).": {$v}";
+                    }
+                }
+            } else {
+                if (is_array($value)) {
+                    return "WHERE: {$entityKey} {$operator} received an array, expected {$primitive}";
+                }
+                $valid = gettype($value) != $primitive;
+                if ($valid) {
+                    if ($primitive=='timestamp') { $valid = gettype($value) == 'string' || gettype($value) == 'integer'; }
+                    if (!$valid) {
+                        return "WHERE: {$entityKey} {$operator} expects {$primitive} but got ".gettype($value).": {$value}";
+                    }
+                }
+            }
+        }
+        return true;
     }
 
     /**
@@ -166,10 +270,8 @@ abstract class AbstractEntity
      */
     protected static function cleanupForRequest($entityKey, $fields = [], $whereFilters = [])
     {
-        // @todo Implement WHERE filter scrubbing
         $select = [];
         $include = [];
-        $where = [];
         foreach ($fields as $k) {
             if (self::isProp($entityKey, $k)) {
                 $select[] = $k;
@@ -177,10 +279,68 @@ abstract class AbstractEntity
                 $include[] = $k;
             }
         }
-        if (count($select) > 0 && !in_array('id', $select)) { $select[] = 'id'; }
-        $include = self::scrubInclude($include, $entityKey);
+        if (count($select) > 0 && !in_array('id', $select)) {
+            $select[] = 'id';
+        }
+        $include = static::scrubInclude($include, $entityKey);
+        $where = static::scrubWhere($whereFilters, $entityKey);
 
         return [$select, $include, $where];
+    }
+
+    /**
+     * @param RequestCondition[] $where
+     * @param string             $entityKey
+     *
+     * @throws Exception
+     * @return RequestCondition[]
+     */
+    public static function scrubWhere($where, $entityKey) {
+        $filteredWhere = [];
+        foreach($where as $w) {
+            $pts = explode('.', $w->prop);
+            if ($w->type==='where') {
+                if (count($pts) === 1 && self::isProp($entityKey, $pts[0])) {
+                    $w->dataType = self::getPropertyDataType($entityKey, $pts[0]);
+                    $filteredWhere[] = $w;
+                } else {
+                    $eProp = array_pop($pts);
+                    $eKey = array_pop($pts);
+                    if (EntityMap::exists($eKey) && self::isProp($eKey, $eProp)) {
+                        $w->dataType = self::getPropertyDataType($eKey, $eProp);
+                        $filteredWhere[] = $w;
+                    }
+                }
+            } else if ($w->type==='has') {
+                if (count($pts) === 1 && self::isIncludable($entityKey, $pts[0])) {
+                    $filteredWhere[] = $w;
+                } else {
+                    $eProp = array_pop($pts);
+                    $eKey = array_pop($pts);
+                    if (EntityMap::exists($eKey) && self::isIncludable($eKey, $eProp)) {
+                        $filteredWhere[] = $w;
+                    }
+                }
+            }
+        }
+        return $filteredWhere;
+    }
+
+    /**
+     * Get the defined property datatype for the resource entity
+     *
+     * @param string $entityKey
+     * @param string $prop
+     *
+     * @throws Exception
+     * @return string | null
+     */
+    public static function getPropertyDataType($entityKey, $prop) {
+        $resClass = EntityMap::resource($entityKey);
+        if ($resClass && self::isProp($entityKey, $prop)) {
+            return $resClass::PROP_TYPES[$prop] ?? null;
+        }
+        return null;
     }
 
     /**
@@ -197,7 +357,9 @@ abstract class AbstractEntity
     {
         $include = array_unique($include);
         $cached = ScrubCache::cache()->get($entityKey, $include);
-        if (!is_null($cached)) { return $cached; }
+        if (!is_null($cached)) {
+            return $cached;
+        }
         $realInclude = [];
         foreach ($include as $index => $i) {
             $parts = explode('.', $i, 3);
@@ -246,19 +408,19 @@ abstract class AbstractEntity
                     if (!in_array($tmp, $parts[0]) && !in_array($tmp, $realInclude)) {
                         $realInclude[] = $tmp;
                     }
-
                 }
             }
         }
         $flipped = array_flip($realInclude);
         foreach ($realInclude as $i) {
-            $tmp = substr($i, count($i)-4, 3)==='.id' ? substr($i, 0, count($i)-4) : null;
+            $tmp = substr($i, count($i) - 4, 3) === '.id' ? substr($i, 0, count($i) - 4) : null;
             if (!is_null($tmp) && isset($flipped[$tmp])) {
                 unset($flipped[$i]);
             }
         }
         $cleaned = array_flip($flipped);
         ScrubCache::cache()->push($entityKey, $include, $cleaned);
+
         return $cleaned;
     }
 

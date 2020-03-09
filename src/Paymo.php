@@ -6,7 +6,7 @@
  *
  * MIT License
  * Copyright (c) 2020 - Joel Colombo <jc-dev@360psg.com>
- * Last Updated : 3/6/20, 11:45 PM
+ * Last Updated : 3/8/20, 11:57 PM
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -183,14 +183,17 @@ class Paymo
         $props['auth'] = [$aP[0], isset($aP[1]) ? $aP[1] : 'apiKeyUsed'];
 
         // Compile the query string options
-        if (!is_null($request->includeEntities)) {
-            $query['include'] = $request->includeEntities;
+        if (!is_null($request->include)) {
+            $query['include'] = $request->include;
+        }
+        if (!is_null($request->where)) {
+            $query['where'] = $request->where;
         }
         if (count($query) > 0) {
             $props['query'] = $query;
         }
 
-        //var_dump($props); exit;
+        //var_dump($props); //exit;
 
         // Run the GUZZLE request to the live API
         $request_start = microtime(true);

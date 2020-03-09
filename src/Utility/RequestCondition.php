@@ -6,7 +6,7 @@
  *
  * MIT License
  * Copyright (c) 2020 - Joel Colombo <jc-dev@360psg.com>
- * Last Updated : 3/6/20, 12:11 PM
+ * Last Updated : 3/8/20, 11:57 PM
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -29,6 +29,10 @@
 
 namespace Jcolombo\PaymoApiPhp\Utility;
 
+use Exception;
+use Jcolombo\PaymoApiPhp\Entity\AbstractEntity;
+use Jcolombo\PaymoApiPhp\Entity\EntityMap;
+
 /**
  * Class RequestCondition
  *
@@ -36,12 +40,17 @@ namespace Jcolombo\PaymoApiPhp\Utility;
  */
 class RequestCondition
 {
+    public $type = 'where';
     /**
-     * @var
+     * @var string
      */
     public $prop;
     /**
-     * @var
+     * @var string
+     */
+    public $dataType = null;
+    /**
+     * @var mixed
      */
     public $value;
     /**
@@ -52,4 +61,132 @@ class RequestCondition
      * @var bool
      */
     public $validate = true;
+
+    /**
+     * @param string $prop
+     * @param mixed  $value
+     * @param string $operator
+     * @param bool   $validate
+     *
+     * @throws Exception
+     * @return RequestCondition
+     */
+    public static function where($prop, $value, $operator='=', $validate=true) {
+        $isProp = AbstractEntity::isProp($prop);
+        if ($validate) {
+            if (!$isProp) {
+                throw new Exception("Attempting to limit results on '{$prop}' which is not a valid prop");
+            }
+            $error = AbstractEntity::allowWhere($prop, $operator, $value);
+            if ($error !== true) {
+                throw new Exception($error);
+            }
+        }
+        $w = new RequestCondition();
+        $w->prop = $prop;
+        $w->value = $value;
+        $w->operator = $operator;
+        $w->validate = $validate;
+        return $w;
+    }
+
+    /**
+     * @param        $include
+     * @param int    $count
+     * @param string $operator
+     *
+     * @throws Exception
+     * @return RequestCondition
+     */
+    public static function has($include, $count=0, $operator='>') {
+        // operators    INT) =, <, <=, >, >=, !=    ARRAY) >=<, =>=<=, =>=<, >=<=
+        if (strpos($include,'.')) {
+            [$key, $prop] = EntityMap::extractResourceProp($include);
+            $isInclude = AbstractEntity::isIncludable($key, $prop);
+            if (!$isInclude) { throw new Exception("Attempting to compare HAS results for '{$include}' on a non-included key"); }
+        }
+        $w = new RequestCondition();
+        $w->type = 'has';
+        $w->prop = $include;
+        $w->value = $count;
+        $w->operator = $operator;
+        return $w;
+    }
+
+    public static function checkHas($cnt, $operator, $amt)
+    {
+        switch ($operator) {
+            case('='):
+                return $cnt == $amt;
+                break;
+            case('>'):
+                return $cnt > $amt;
+                break;
+            case('<'):
+                return $cnt < $amt;
+                break;
+            case('>='):
+                return $cnt >= $amt;
+                break;
+            case('<='):
+                return $cnt <= $amt;
+                break;
+            case('!='):
+                return $cnt != $amt;
+                break;
+            case('>.<'):
+                return $cnt > $amt[0] && $cnt < $amt[1];
+                break;
+            case('=>.<='):
+                return $cnt >= $amt[0] && $cnt <= $amt[1];
+                break;
+            case('=>.<'):
+                return $cnt >= $amt[0] && $cnt < $amt[1];
+                break;
+            case('>.<='):
+                return $cnt > $amt[0] && $cnt <= $amt[1];
+                break;
+            case('<|>'):
+                return $cnt < $amt[0] || $cnt > $amt[1];
+                break;
+            case('<=|=>'):
+                return $cnt <= $amt[0] || $cnt >= $amt[1];
+                break;
+            case('<|=>'):
+                return $cnt < $amt[0] || $cnt >= $amt[1];
+                break;
+            case('<=|>'):
+                return $cnt <= $amt[0] || $cnt > $amt[1];
+                break;
+        }
+    }
+
+    public static function filterHas($objects, $keys)
+    {
+        foreach ($objects as $i => $o) {
+            $keepIt = true;
+            foreach ($keys as $k => $deepKey) {
+                if ($k === '_has') {
+                    continue;
+                }
+                $cnt = 0;
+                if (isset($o->$k) && is_array($o->$k)) {
+                    $o->$k = static::filterHas($o->$k, $deepKey);
+                    $cnt = count($o->$k);
+                }
+                $has = isset($deepKey['_has']) && count($deepKey['_has']) > 0 ? $deepKey['_has'] : [];
+                foreach ($has as $h) {
+                    $keepIt = RequestCondition::checkHas($cnt, $h['operator'], $h['value']);
+                    if (!$keepIt) {
+                        break;
+                    }
+                }
+            }
+            if (!$keepIt) {
+                unset($objects[$i]);
+            }
+        }
+
+        return $objects;
+    }
 }

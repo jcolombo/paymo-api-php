@@ -6,7 +6,7 @@
  *
  * MIT License
  * Copyright (c) 2020 - Joel Colombo <jc-dev@360psg.com>
- * Last Updated : 3/6/20, 5:40 PM
+ * Last Updated : 3/8/20, 11:57 PM
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -174,6 +174,12 @@ class EntityMap
                 return $parts[1];
             }
         }
+        if (strpos($key, '.')>0) {
+            $k1 = array_pop(explode('.', $key));
+            if (self::exists($k1)) {
+                return $k1;
+            }
+        }
 
         return $key;
     }
@@ -218,8 +224,19 @@ class EntityMap
         if ($strict && (!is_string($key) || !Configuration::has(self::CONFIG_PATH.$key.'.resource'))) {
             throw new Exception("[$key] does not have a configured resource class defined");
         }
-
         return Configuration::get(self::CONFIG_PATH.$key.'.resource');
+    }
+
+    /**
+     * @param $fullKey
+     *
+     * @return array
+     */
+    public static function extractResourceProp($fullKey) {
+        if (strpos($fullKey, '.') === false) { return [$fullKey, null]; }
+        $pts = explode('.', $fullKey);
+        $prop = array_pop($pts);
+        return [implode('.', $pts), $prop];
     }
 
     /**
@@ -252,7 +269,6 @@ class EntityMap
         if ($strict && !$cClass) {
             throw new Exception("[$key] does not have a configured collection class defined");
         }
-
         return $cClass;
     }
 
