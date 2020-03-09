@@ -6,7 +6,7 @@
  *
  * MIT License
  * Copyright (c) 2020 - Joel Colombo <jc-dev@360psg.com>
- * Last Updated : 3/9/20, 12:50 PM
+ * Last Updated : 3/9/20, 3:44 PM
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -113,7 +113,7 @@ class Configuration
      * be available on the instance after the NEXT load call
      *
      * @param string | null $path If set to a string, pushes the path into the ->paths list for loading future
-     *                 configurations
+     *                            configurations
      */
     public function overload($path = null)
     {

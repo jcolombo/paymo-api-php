@@ -6,7 +6,7 @@
  *
  * MIT License
  * Copyright (c) 2020 - Joel Colombo <jc-dev@360psg.com>
- * Last Updated : 3/9/20, 3:43 PM
+ * Last Updated : 3/9/20, 3:44 PM
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -156,7 +156,7 @@ class RequestCondition
                 }
                 throw new Exception("Attempting to limit '{$entityBase}' results on '{$prop}' which is not a valid prop");
             }
-            $allowProp = strpos($prop,'.')===false ? $entityBase.'.'.$prop : $prop;
+            $allowProp = strpos($prop, '.') === false ? $entityBase.'.'.$prop : $prop;
             $error = $resource::allowWhere($allowProp, $operator, $value);
             if ($error !== true) {
                 throw new Exception($error);
@@ -183,11 +183,11 @@ class RequestCondition
      * checked and it then is eliminated with a second rule. etc. Rules always eliminate from the deepest point then up
      * until it reaches the root elements.
      *
-     * @param string      $include  The "include" parameter of a list of items that will have their "count" checked
-     *                              against
-     * @param int | int[] $count    The count to use in the comparison operator evaluation
-     * @param string      $operator The operator to use when checking the count. Different operators require either a
-     *                              single integer or an array of 2 integers (for range based checks)
+     * @param string      $include    The "include" parameter of a list of items that will have their "count" checked
+     *                                against
+     * @param int | int[] $count      The count to use in the comparison operator evaluation
+     * @param string      $operator   The operator to use when checking the count. Different operators require either a
+     *                                single integer or an array of 2 integers (for range based checks)
      * @param null        $baseEntity The optional base entity code for eventual validation of allowed includes
      *
      * @throws Exception
@@ -195,7 +195,7 @@ class RequestCondition
      *                          results of an API call
      * @todo Wire this into deep resource include checks. For now this is only applied to list searches
      */
-    public static function has($include, $count = 0, $operator = '>', $baseEntity=null)
+    public static function has($include, $count = 0, $operator = '>', $baseEntity = null)
     {
         if (!isset(static::HAS_OPERATORS[$operator])) {
             throw new Exception("Invalid operator '{$operator}' sent for {$include}. Must be one of ".implode(', ',
