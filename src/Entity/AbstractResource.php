@@ -6,7 +6,7 @@
  * .
  * MIT License
  * Copyright (c) 2020 - Joel Colombo <jc-dev@360psg.com>
- * Last Updated : 3/9/20, 6:20 PM
+ * Last Updated : 3/9/20, 7:40 PM
  * .
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -112,7 +112,23 @@ abstract class AbstractResource extends AbstractEntity
         }
         if (!is_null($id)) {
             $this->props['id'] = (int) $id;
+            $this->wash();
         }
+
+        return $this;
+    }
+
+    /**
+     * Overwrite the loaded values with the current values, thereby resetting the dirty state on all props
+     * WARNING: Washing the object loses the last loaded or saved values and assumes the current values are
+     * clean and saved via some other means. Entities are always auto-washed after loading and hydration is
+     * complete
+     *
+     * @return AbstractResource Returns the object itself for optional object chaining
+     */
+    public function wash()
+    {
+        $this->loaded = $this->props;
 
         return $this;
     }
@@ -252,6 +268,22 @@ abstract class AbstractResource extends AbstractEntity
     }
 
     /**
+     * Resets the object to empty. Keeps any settings but clears the data from the props,
+     * unlisted, loaded, and included collections.
+     *
+     * @return AbstractResource Returns the object itself for optional object chaining
+     */
+    public function clear()
+    {
+        $this->props = [];
+        $this->unlisted = [];
+        $this->loaded = [];
+        $this->included = [];
+
+        return $this;
+    }
+
+    /**
      * Manual call in place of the direct magic method setter, allows for bulk property setting as array
      *
      * @param string | array $key   Either a prop key or an associative array of prop key=>value combinations
@@ -272,21 +304,6 @@ abstract class AbstractResource extends AbstractEntity
                 }
             }
         }
-
-        return $this;
-    }
-
-    /**
-     * Overwrite the loaded values with the current values, thereby resetting the dirty state on all props
-     * WARNING: Washing the object loses the last loaded or saved values and assumes the current values are
-     * clean and saved via some other means. Entities are always auto-washed after loading and hydration is
-     * complete
-     *
-     * @return AbstractResource Returns the object itself for optional object chaining
-     */
-    public function wash()
-    {
-        $this->loaded = $this->props;
 
         return $this;
     }
@@ -408,8 +425,8 @@ abstract class AbstractResource extends AbstractEntity
     public function getDirtyKeys()
     {
         $keys = [];
-        foreach ($this->loaded as $k => $v) {
-            if (isset($this->props[$k]) && $this->props[$k] !== $v) {
+        foreach ($this->props as $k => $v) {
+            if (!isset($this->loaded[$k]) || (isset($this->loaded[$k]) && $this->loaded[$k] !== $v)) {
                 $keys[] = $k;
             }
         }
@@ -445,22 +462,6 @@ abstract class AbstractResource extends AbstractEntity
             $this->hydrationMode = false;
             $this->loaded = $this->props;
         }
-    }
-
-    /**
-     * Resets the object to empty. Keeps any settings but clears the data from the props,
-     * unlisted, loaded, and included collections.
-     *
-     * @return AbstractResource Returns the object itself for optional object chaining
-     */
-    public function clear()
-    {
-        $this->props = [];
-        $this->unlisted = [];
-        $this->loaded = [];
-        $this->included = [];
-
-        return $this;
     }
 
     /**
@@ -547,19 +548,55 @@ abstract class AbstractResource extends AbstractEntity
         return $this;
     }
 
-    public function update($updateRelations = false)
+    /**
+     * Make an update request to the API to update data for a specific resource, requires an ID be set on the object
+     * and have at least one dirtty non-ID prop (or dirty children if option is set)
+     *
+     * @param array $options An associative array of possible options for configuring the update rules
+     *                       [updateRelations] : bool [Default: true] - Will traverse all relations and check for dirty
+     *                       objects and trigger updates to each dirty one
+     *                       [createRelations] : bool [Default: true] - Will create any related includes in collections
+     *                       if they do not yet have ids
+     *
+     * @throws Exception
+     * @throws GuzzleException
+     * @return $this
+     */
+    public function update($options = [])
     {
-        $update = $this->props;
+        $updateRelations = $options['updateRelations'] ?? true;
+        $createRelations = $options['createRelations'] ?? true;
+        $id = 0;
+        if (isset($this->props['id'])) {
+            $id = $this->props['id'];
+        }
+        $label = $this::LABEL;
+        if (!$id || (int) $id < 1) {
+            throw new Exception("Attempted to update a {$label} without an id being set");
+        }
+        $originalUpdate = $this->props;
         foreach ($this::READONLY as $k) {
-            unset($update[$k]);
+            unset($originalUpdate[$k]);
+        }
+        $update = [];
+        $dirty = $this->getDirtyKeys();
+        foreach ($dirty as $k) {
+            if (isset($originalUpdate[$k])) {
+                $update[$k] = $originalUpdate[$k];
+            }
         }
         // Compare fields in $update with $this->loaded and only post the dirty items
         // If $updateRelations, attempt to update() all children, true=ALL, number 1+ depth of relations
-        // Save to DB with REQUEST (PUT)
-        // Traverse and save hydrated children if modified as well
-        // Update / Hydrate object with changes in response
-        // Reset $this->loaded to current values
-        return true; // on Success
+        if (count($update) > 0) {
+            $response = Request::update($this->connection, $this::API_PATH, $id, $update);
+            if ($response->result) {
+                $this->_hydrate($response->result);
+                // @todo Populate a response summary of data on the object (like if it came from live, timestamp of request, timestamp of data retrieved/cache, etc
+            }
+            // Traverse and save hydrated children if modified as well
+        }
+
+        return $this;
     }
 
     /**

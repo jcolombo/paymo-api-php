@@ -6,7 +6,7 @@
  * .
  * MIT License
  * Copyright (c) 2020 - Joel Colombo <jc-dev@360psg.com>
- * Last Updated : 3/9/20, 3:51 PM
+ * Last Updated : 3/9/20, 7:40 PM
  * .
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -124,4 +124,19 @@ class Project extends AbstractResource
         'managers' => ['=', 'in', 'not in'],
         'billable' => ['='],
     ];
+
+    // SPECIAL PROPS
+    // tasklists_order = [int,int,int,...] To reorder the list of tasklists attached to the project
+    //                      Can only be set and used when doing an UPDATE call
+    // template_id = INT. Can be used at create or update time to attach all the tasks from a template project ID
+
+    // Special Methods
+
+    // useTimeAndMaterials($useMode=null) $useMode can be 'null', 'task', 'project', 'company'
+    //    will set billable=true, flat_billing=false, price_per_hour=$$$project_rate$$$,hourly_billing_mode=$useMode
+    //
+    // useFlatRate($price=null) will set billable=true,flat_billing=true,price=$price (or leave alone if null)
+    //
+    // useNonBillable() billable=false (ALL other billing fields will simply be ignored)
+
 }

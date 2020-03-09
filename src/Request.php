@@ -6,7 +6,7 @@
  * .
  * MIT License
  * Copyright (c) 2020 - Joel Colombo <jc-dev@360psg.com>
- * Last Updated : 3/9/20, 6:20 PM
+ * Last Updated : 3/9/20, 7:40 PM
  * .
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -171,6 +171,35 @@ class Request
         }
 
         //var_dump($response); exit;
+
+        return $response;
+    }
+
+    /**
+     * Update an existing entity with ID patching just the modified data
+     *
+     * @param Paymo  $connection A valid Paymo Connection object instance
+     * @param string $objectKey  The API path tacked on to connections base URL
+     * @param int    $id
+     * @param array  $data       The raw data to update the entity with ID
+     *
+     * @throws Exception
+     * @throws GuzzleException
+     * @return RequestResponse
+     */
+    public static function update(Paymo $connection, $objectKey, $id, $data)
+    {
+        if ((int) $id < 1) {
+            throw new Exception("Attempting to update a resource without an integer ID");
+        }
+        $request = new RequestAbstraction();
+        $request->method = 'PUT';
+        $request->resourceUrl = $objectKey.'/'.$id;
+        $request->data = $data;
+        $response = $connection->execute($request);
+        if ($response->body && $response->validBody($objectKey, 1)) {
+            $response->result = $response->body->$objectKey[0];
+        }
 
         return $response;
     }
