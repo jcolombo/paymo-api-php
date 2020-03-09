@@ -6,7 +6,7 @@
  *
  * MIT License
  * Copyright (c) 2020 - Joel Colombo <jc-dev@360psg.com>
- * Last Updated : 3/8/20, 11:57 PM
+ * Last Updated : 3/9/20, 12:09 AM
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -132,29 +132,6 @@ class EntityMap
     }
 
     /**
-     * Look up the entity to see if it refers to a different entity for its resource and/or collection classes
-     * If it does, it returns then as string names of the referenced keys. If not, they are null
-     *
-     * @param string $key The entity key to be looked up
-     *
-     * @return stdClass Returns a generic object with a ->resource and ->collection property (each is a string or null)
-     */
-    public static function mapKeys($key) {
-        $map = new stdClass();
-        $map -> resource = null;
-        $map -> collection = null;
-        $key = self::extractKey($key);
-        if (is_string($key)) {
-            if (Configuration::has(self::CONFIG_PATH.$key)) {
-                $map = new stdClass();
-                $map->resource = Configuration::get(self::CONFIG_PATH.$key.'.resourceKey');
-                $map->collection = Configuration::get(self::CONFIG_PATH.$key.'.collectionKey');
-            }
-        }
-        return $map;
-    }
-
-    /**
      * Strips out any ":" prefixes before an entity name, some aspects of the program store entities with a prefix
      * Primarily used when testing against property types that define things like "projects"=>"collection:projects"
      * or "client"=>"resource:client", etc.
@@ -174,7 +151,7 @@ class EntityMap
                 return $parts[1];
             }
         }
-        if (strpos($key, '.')>0) {
+        if (strpos($key, '.') > 0) {
             $k1 = array_pop(explode('.', $key));
             if (self::exists($k1)) {
                 return $k1;
@@ -202,6 +179,31 @@ class EntityMap
     }
 
     /**
+     * Look up the entity to see if it refers to a different entity for its resource and/or collection classes
+     * If it does, it returns then as string names of the referenced keys. If not, they are null
+     *
+     * @param string $key The entity key to be looked up
+     *
+     * @return stdClass Returns a generic object with a ->resource and ->collection property (each is a string or null)
+     */
+    public static function mapKeys($key)
+    {
+        $map = new stdClass();
+        $map->resource = null;
+        $map->collection = null;
+        $key = self::extractKey($key);
+        if (is_string($key)) {
+            if (Configuration::has(self::CONFIG_PATH.$key)) {
+                $map = new stdClass();
+                $map->resource = Configuration::get(self::CONFIG_PATH.$key.'.resourceKey');
+                $map->collection = Configuration::get(self::CONFIG_PATH.$key.'.collectionKey');
+            }
+        }
+
+        return $map;
+    }
+
+    /**
      * Get the resource class for the $key entity
      *
      * @param string $key    The entity key to be looked up
@@ -224,19 +226,8 @@ class EntityMap
         if ($strict && (!is_string($key) || !Configuration::has(self::CONFIG_PATH.$key.'.resource'))) {
             throw new Exception("[$key] does not have a configured resource class defined");
         }
-        return Configuration::get(self::CONFIG_PATH.$key.'.resource');
-    }
 
-    /**
-     * @param $fullKey
-     *
-     * @return array
-     */
-    public static function extractResourceProp($fullKey) {
-        if (strpos($fullKey, '.') === false) { return [$fullKey, null]; }
-        $pts = explode('.', $fullKey);
-        $prop = array_pop($pts);
-        return [implode('.', $pts), $prop];
+        return Configuration::get(self::CONFIG_PATH.$key.'.resource');
     }
 
     /**
@@ -269,7 +260,24 @@ class EntityMap
         if ($strict && !$cClass) {
             throw new Exception("[$key] does not have a configured collection class defined");
         }
+
         return $cClass;
+    }
+
+    /**
+     * @param $fullKey
+     *
+     * @return array
+     */
+    public static function extractResourceProp($fullKey)
+    {
+        if (strpos($fullKey, '.') === false) {
+            return [$fullKey, null];
+        }
+        $pts = explode('.', $fullKey);
+        $prop = array_pop($pts);
+
+        return [implode('.', $pts), $prop];
     }
 
 }

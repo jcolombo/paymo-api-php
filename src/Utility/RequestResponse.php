@@ -6,7 +6,7 @@
  *
  * MIT License
  * Copyright (c) 2020 - Joel Colombo <jc-dev@360psg.com>
- * Last Updated : 3/6/20, 11:45 PM
+ * Last Updated : 3/9/20, 12:09 AM
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -28,8 +28,6 @@
  */
 
 namespace Jcolombo\PaymoApiPhp\Utility;
-
-use Jcolombo\PaymoApiPhp\Entity\AbstractResource;
 
 /**
  * Class RequestResponse
@@ -70,6 +68,7 @@ class RequestResponse
 
     /**
      * The cleaned up processed result to be used by the caller on success
+     *
      * @var null | array | object
      */
     public $result = null;

@@ -6,7 +6,7 @@
  *
  * MIT License
  * Copyright (c) 2020 - Joel Colombo <jc-dev@360psg.com>
- * Last Updated : 3/8/20, 11:57 PM
+ * Last Updated : 3/9/20, 12:09 AM
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -243,42 +243,11 @@ class Request
     // DataTypes:
     // text, integer, resource:*, collection:*, boolean, datetime, email, url, decimal, array
 
-    public static function getPrimitiveType($type) {
-        if (strpos($type, 'resource:')!==false) {
-            $type = 'integer';
-        } elseif (strpos($type, 'collection:')!==false) {
-            $type = 'integer';
-        }
-        switch ($type) {
-            case('datetime'):
-                $cast = 'timestamp';
-                break;
-            case('array'):
-            case('integer'):
-                $cast = 'integer';
-                break;
-            case('double'):
-            case('decimal'):
-                $cast = 'double';
-                break;
-            case('boolean'):
-                $cast = 'boolean';
-                break;
-            case('email'):
-            case('url'):
-            case('text'):
-            default:
-                $cast = 'string';
-                break;
-        }
-        return $cast;
-    }
-
     public static function convertValueForFilter($type, $value)
     {
-        if (strpos($type, 'resource:')!==false) {
+        if (strpos($type, 'resource:') !== false) {
             $type = 'integer';
-        } elseif (strpos($type, 'collection:')!==false) {
+        } elseif (strpos($type, 'collection:') !== false) {
             $type = 'integer';
         }
         switch ($type) {
@@ -345,12 +314,9 @@ class Request
         return $value;
     }
 
-    // Casts: integer, integer[], string, string[], range[], double, float[]
-    // text, integer, resource:*, collection:*, boolean, datetime, email, url, decimal, array
-
     /**
      * @param stdClass[]         $objects Array of objects returned in the body of the API response
-     * @param RequestCondition[] $where  The send of where conditions added to the original request
+     * @param RequestCondition[] $where   The send of where conditions added to the original request
      *
      * @return stdClass | stdClass[]
      */
@@ -363,7 +329,7 @@ class Request
         if (count($where) > 0) {
             $hasFilter = new Dot();
             foreach ($where as $d) {
-                if ($d->type==='has') {
+                if ($d->type === 'has') {
                     $value = $hasFilter->get($d->prop.'._has', []);
                     $op = ['operator' => $d->operator, 'value' => $d->value];
                     $value[] = $op;
@@ -376,6 +342,42 @@ class Request
         }
 
         return $newObjects ?? $objects;
+    }
+
+    // Casts: integer, integer[], string, string[], range[], double, float[]
+    // text, integer, resource:*, collection:*, boolean, datetime, email, url, decimal, array
+
+    public static function getPrimitiveType($type)
+    {
+        if (strpos($type, 'resource:') !== false) {
+            $type = 'integer';
+        } elseif (strpos($type, 'collection:') !== false) {
+            $type = 'integer';
+        }
+        switch ($type) {
+            case('datetime'):
+                $cast = 'timestamp';
+                break;
+            case('array'):
+            case('integer'):
+                $cast = 'integer';
+                break;
+            case('double'):
+            case('decimal'):
+                $cast = 'double';
+                break;
+            case('boolean'):
+                $cast = 'boolean';
+                break;
+            case('email'):
+            case('url'):
+            case('text'):
+            default:
+                $cast = 'string';
+                break;
+        }
+
+        return $cast;
     }
 
 }

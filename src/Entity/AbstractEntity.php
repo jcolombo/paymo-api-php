@@ -6,7 +6,7 @@
  *
  * MIT License
  * Copyright (c) 2020 - Joel Colombo <jc-dev@360psg.com>
- * Last Updated : 3/8/20, 11:57 PM
+ * Last Updated : 3/9/20, 12:09 AM
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -155,7 +155,7 @@ abstract class AbstractEntity
      * @throws Exception
      * @return bool
      */
-    public static function isSelectable($entityKey, $propOrInclude=null)
+    public static function isSelectable($entityKey, $propOrInclude = null)
     {
         if (is_null($propOrInclude)) {
             [$entityKey, $propOrInclude] = EntityMap::extractResourceProp($entityKey);
@@ -169,18 +169,19 @@ abstract class AbstractEntity
     /**
      * Check if a specific entity has a valid property type allowed
      *
-     * @param string $entityKey The entity key to use in look up
-     * @param null|string   $propKey
+     * @param string      $entityKey The entity key to use in look up
+     * @param null|string $propKey
      *
      * @throws Exception
      * @return bool
      */
-    public static function isProp($entityKey, $propKey=null)
+    public static function isProp($entityKey, $propKey = null)
     {
         if (is_null($propKey)) {
             [$entityKey, $propKey] = EntityMap::extractResourceProp($entityKey);
         }
         $entityResource = EntityMap::resource($entityKey);
+
         return !!$entityResource && isset($entityResource::PROP_TYPES[$propKey]);
     }
 
@@ -212,13 +213,17 @@ abstract class AbstractEntity
      * @throws Exception
      * @return bool | string
      */
-    public static function allowWhere($entityKey, $operator, $value=null) {
+    public static function allowWhere($entityKey, $operator, $value = null)
+    {
         [$key, $prop] = EntityMap::extractResourceProp($entityKey);
+        /** @var AbstractEntity $entityResource */
         $entityResource = EntityMap::resource($key);
         $ops = !!$entityResource ? $entityResource::INCLUDE_TYPES : [];
         $isProp = self::isProp($key, $prop);
 
-        if ($isProp && !isset($ops[$prop])) { return true; }
+        if ($isProp && !isset($ops[$prop])) {
+            return true;
+        }
         if ($isProp && array_key_exists($prop, $ops) && is_null($ops[$prop])) {
             return "Property {$entityKey} cannot be used in WHERE conditions";
         }
@@ -228,16 +233,21 @@ abstract class AbstractEntity
             if (!$allowed || $notAllowed) {
                 return "Property {$entityKey} cannot use the {$operator} operator.";
             }
+
             return true;
         }
         if (!is_null($value)) {
             $datatype = static::getPropertyDataType($key, $prop);
             $primitive = Request::getPrimitiveType($datatype);
-            if (in_array($operator, ['in','not in','range'])) {
-                if (!is_array($value)) { $value = [$value]; }
+            if (in_array($operator, ['in', 'not in', 'range'])) {
+                if (!is_array($value)) {
+                    $value = [$value];
+                }
                 foreach ($value as $v) {
                     $valid_value = gettype($v) == $primitive;
-                    if ($primitive=='timestamp') { $valid_value = gettype($v) == 'string' || gettype($v) == 'integer'; }
+                    if ($primitive == 'timestamp') {
+                        $valid_value = gettype($v) == 'string' || gettype($v) == 'integer';
+                    }
                     if (!$valid_value) {
                         return "WHERE: {$entityKey} {$operator} expects array[{$primitive}] but got ".gettype($v).": {$v}";
                     }
@@ -248,14 +258,36 @@ abstract class AbstractEntity
                 }
                 $valid = gettype($value) != $primitive;
                 if ($valid) {
-                    if ($primitive=='timestamp') { $valid = gettype($value) == 'string' || gettype($value) == 'integer'; }
+                    if ($primitive == 'timestamp') {
+                        $valid = gettype($value) == 'string' || gettype($value) == 'integer';
+                    }
                     if (!$valid) {
                         return "WHERE: {$entityKey} {$operator} expects {$primitive} but got ".gettype($value).": {$value}";
                     }
                 }
             }
         }
+
         return true;
+    }
+
+    /**
+     * Get the defined property datatype for the resource entity
+     *
+     * @param string $entityKey
+     * @param string $prop
+     *
+     * @throws Exception
+     * @return string | null
+     */
+    public static function getPropertyDataType($entityKey, $prop)
+    {
+        $resClass = EntityMap::resource($entityKey);
+        if ($resClass && self::isProp($entityKey, $prop)) {
+            return $resClass::PROP_TYPES[$prop] ?? null;
+        }
+
+        return null;
     }
 
     /**
@@ -286,61 +318,6 @@ abstract class AbstractEntity
         $where = static::scrubWhere($whereFilters, $entityKey);
 
         return [$select, $include, $where];
-    }
-
-    /**
-     * @param RequestCondition[] $where
-     * @param string             $entityKey
-     *
-     * @throws Exception
-     * @return RequestCondition[]
-     */
-    public static function scrubWhere($where, $entityKey) {
-        $filteredWhere = [];
-        foreach($where as $w) {
-            $pts = explode('.', $w->prop);
-            if ($w->type==='where') {
-                if (count($pts) === 1 && self::isProp($entityKey, $pts[0])) {
-                    $w->dataType = self::getPropertyDataType($entityKey, $pts[0]);
-                    $filteredWhere[] = $w;
-                } else {
-                    $eProp = array_pop($pts);
-                    $eKey = array_pop($pts);
-                    if (EntityMap::exists($eKey) && self::isProp($eKey, $eProp)) {
-                        $w->dataType = self::getPropertyDataType($eKey, $eProp);
-                        $filteredWhere[] = $w;
-                    }
-                }
-            } else if ($w->type==='has') {
-                if (count($pts) === 1 && self::isIncludable($entityKey, $pts[0])) {
-                    $filteredWhere[] = $w;
-                } else {
-                    $eProp = array_pop($pts);
-                    $eKey = array_pop($pts);
-                    if (EntityMap::exists($eKey) && self::isIncludable($eKey, $eProp)) {
-                        $filteredWhere[] = $w;
-                    }
-                }
-            }
-        }
-        return $filteredWhere;
-    }
-
-    /**
-     * Get the defined property datatype for the resource entity
-     *
-     * @param string $entityKey
-     * @param string $prop
-     *
-     * @throws Exception
-     * @return string | null
-     */
-    public static function getPropertyDataType($entityKey, $prop) {
-        $resClass = EntityMap::resource($entityKey);
-        if ($resClass && self::isProp($entityKey, $prop)) {
-            return $resClass::PROP_TYPES[$prop] ?? null;
-        }
-        return null;
     }
 
     /**
@@ -422,6 +399,46 @@ abstract class AbstractEntity
         ScrubCache::cache()->push($entityKey, $include, $cleaned);
 
         return $cleaned;
+    }
+
+    /**
+     * @param RequestCondition[] $where
+     * @param string             $entityKey
+     *
+     * @throws Exception
+     * @return RequestCondition[]
+     */
+    public static function scrubWhere($where, $entityKey)
+    {
+        $filteredWhere = [];
+        foreach ($where as $w) {
+            $pts = explode('.', $w->prop);
+            if ($w->type === 'where') {
+                if (count($pts) === 1 && self::isProp($entityKey, $pts[0])) {
+                    $w->dataType = self::getPropertyDataType($entityKey, $pts[0]);
+                    $filteredWhere[] = $w;
+                } else {
+                    $eProp = array_pop($pts);
+                    $eKey = array_pop($pts);
+                    if (EntityMap::exists($eKey) && self::isProp($eKey, $eProp)) {
+                        $w->dataType = self::getPropertyDataType($eKey, $eProp);
+                        $filteredWhere[] = $w;
+                    }
+                }
+            } elseif ($w->type === 'has') {
+                if (count($pts) === 1 && self::isIncludable($entityKey, $pts[0])) {
+                    $filteredWhere[] = $w;
+                } else {
+                    $eProp = array_pop($pts);
+                    $eKey = array_pop($pts);
+                    if (EntityMap::exists($eKey) && self::isIncludable($eKey, $eProp)) {
+                        $filteredWhere[] = $w;
+                    }
+                }
+            }
+        }
+
+        return $filteredWhere;
     }
 
     /**

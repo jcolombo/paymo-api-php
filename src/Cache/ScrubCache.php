@@ -6,7 +6,7 @@
  *
  * MIT License
  * Copyright (c) 2020 - Joel Colombo <jc-dev@360psg.com>
- * Last Updated : 3/6/20, 11:45 PM
+ * Last Updated : 3/9/20, 12:09 AM
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -31,34 +31,41 @@ namespace Jcolombo\PaymoApiPhp\Cache;
 
 class ScrubCache
 {
-    static $instance = null;
+    public static $instance = null;
 
     protected $scrubs = [];
 
-    public static function cache() {
+    public static function cache()
+    {
         if (is_null(self::$instance)) {
             self::$instance = new static();
             // @todo : Allow for file based caching later (for now just stores scrub cache for a single thread)
         }
+
         return self::$instance;
     }
 
-    public function get($entity, $original_list) {
+    public function get($entity, $original_list)
+    {
         $key = $this->key($entity, $original_list);
         if (isset($this->scrubs[$key])) {
             return $this->scrubs[$key];
         }
+
         return null;
     }
 
-    public function push($entity, $original_list, $final_list) {
-        $key = $this->key($entity, $original_list);
-        $this->scrubs[$key] = $final_list;
+    protected function key($entity, $list)
+    {
+        sort($list);
+
+        return md5($entity.implode('|', $list));
     }
 
-    protected function key($entity, $list) {
-        sort($list);
-        return md5($entity.implode('|', $list));
+    public function push($entity, $original_list, $final_list)
+    {
+        $key = $this->key($entity, $original_list);
+        $this->scrubs[$key] = $final_list;
     }
 
 }

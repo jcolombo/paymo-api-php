@@ -6,7 +6,7 @@
  *
  * MIT License
  * Copyright (c) 2020 - Joel Colombo <jc-dev@360psg.com>
- * Last Updated : 3/8/20, 11:57 PM
+ * Last Updated : 3/9/20, 12:09 AM
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -31,8 +31,8 @@ namespace Jcolombo\PaymoApiPhp\Entity;
 
 use ArrayAccess;
 use Exception;
+use GuzzleHttp\Exception\GuzzleException;
 use Iterator;
-use Jcolombo\PaymoApiPhp\Configuration;
 use Jcolombo\PaymoApiPhp\Paymo;
 use Jcolombo\PaymoApiPhp\Request;
 
@@ -100,7 +100,7 @@ abstract class AbstractCollection extends AbstractEntity implements Iterator, Ar
      * @param array $where
      * @param bool  $validate
      *
-     * @throws \GuzzleHttp\Exception\GuzzleException
+     * @throws GuzzleException
      * @throws Exception
      * @return $this
      */
@@ -124,7 +124,7 @@ abstract class AbstractCollection extends AbstractEntity implements Iterator, Ar
         //$scrub = $e - $s;
 
         $response = Request::list($this->connection, $resClass::API_PATH,
-                                  ['select' => $select, 'include' => $include, 'where'=>$where]);
+                                  ['select' => $select, 'include' => $include, 'where' => $where]);
 
         //var_dump($response); exit;
 
@@ -136,8 +136,6 @@ abstract class AbstractCollection extends AbstractEntity implements Iterator, Ar
         }
 
         return $this;
-
-
 
         // $where = [
         //   'prop' => string (key)
@@ -152,12 +150,19 @@ abstract class AbstractCollection extends AbstractEntity implements Iterator, Ar
         return $this;
     }
 
+    public function isDirty()
+    {
+        // @todo Check the collection for any dirty entities
+        return false;
+    }
+
     /**
      * @param $data
      *
      * @throws Exception
      */
-    public function _hydrate($data) {
+    public function _hydrate($data)
+    {
         /** @var AbstractResource $resClass */
         $resClass = $this->entityClass;
         if (is_array($data)) {
@@ -173,9 +178,9 @@ abstract class AbstractCollection extends AbstractEntity implements Iterator, Ar
         }
     }
 
-    public function isDirty() {
-        // @todo Check the collection for any dirty entities
-        return false;
+    public function clear()
+    {
+        $this->data = [];
     }
 
     /**
@@ -263,10 +268,5 @@ abstract class AbstractCollection extends AbstractEntity implements Iterator, Ar
     public function raw()
     {
         return $this->data;
-    }
-
-    public function clear()
-    {
-        $this->data = [];
     }
 }

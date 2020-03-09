@@ -6,7 +6,7 @@
  *
  * MIT License
  * Copyright (c) 2020 - Joel Colombo <jc-dev@360psg.com>
- * Last Updated : 3/8/20, 11:57 PM
+ * Last Updated : 3/9/20, 12:09 AM
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -71,7 +71,8 @@ class RequestCondition
      * @throws Exception
      * @return RequestCondition
      */
-    public static function where($prop, $value, $operator='=', $validate=true) {
+    public static function where($prop, $value, $operator = '=', $validate = true)
+    {
         $isProp = AbstractEntity::isProp($prop);
         if ($validate) {
             if (!$isProp) {
@@ -87,6 +88,7 @@ class RequestCondition
         $w->value = $value;
         $w->operator = $operator;
         $w->validate = $validate;
+
         return $w;
     }
 
@@ -98,21 +100,61 @@ class RequestCondition
      * @throws Exception
      * @return RequestCondition
      */
-    public static function has($include, $count=0, $operator='>') {
+    public static function has($include, $count = 0, $operator = '>')
+    {
         // operators    INT) =, <, <=, >, >=, !=    ARRAY) >=<, =>=<=, =>=<, >=<=
-        if (strpos($include,'.')) {
+        if (strpos($include, '.')) {
             [$key, $prop] = EntityMap::extractResourceProp($include);
             $isInclude = AbstractEntity::isIncludable($key, $prop);
-            if (!$isInclude) { throw new Exception("Attempting to compare HAS results for '{$include}' on a non-included key"); }
+            if (!$isInclude) {
+                throw new Exception("Attempting to compare HAS results for '{$include}' on a non-included key");
+            }
         }
         $w = new RequestCondition();
         $w->type = 'has';
         $w->prop = $include;
         $w->value = $count;
         $w->operator = $operator;
+
         return $w;
     }
 
+    public static function filterHas($objects, $keys)
+    {
+        foreach ($objects as $i => $o) {
+            $keepIt = true;
+            foreach ($keys as $k => $deepKey) {
+                if ($k === '_has') {
+                    continue;
+                }
+                $cnt = 0;
+                if (isset($o->$k) && is_array($o->$k)) {
+                    $o->$k = static::filterHas($o->$k, $deepKey);
+                    $cnt = count($o->$k);
+                }
+                $has = isset($deepKey['_has']) && count($deepKey['_has']) > 0 ? $deepKey['_has'] : [];
+                foreach ($has as $h) {
+                    $keepIt = RequestCondition::checkHas($cnt, $h['operator'], $h['value']);
+                    if (!$keepIt) {
+                        break;
+                    }
+                }
+            }
+            if (!$keepIt) {
+                unset($objects[$i]);
+            }
+        }
+
+        return $objects;
+    }
+
+    /**
+     * @param $cnt
+     * @param $operator
+     * @param $amt
+     *
+     * @return bool
+     */
     public static function checkHas($cnt, $operator, $amt)
     {
         switch ($operator) {
@@ -159,34 +201,7 @@ class RequestCondition
                 return $cnt <= $amt[0] || $cnt > $amt[1];
                 break;
         }
-    }
 
-    public static function filterHas($objects, $keys)
-    {
-        foreach ($objects as $i => $o) {
-            $keepIt = true;
-            foreach ($keys as $k => $deepKey) {
-                if ($k === '_has') {
-                    continue;
-                }
-                $cnt = 0;
-                if (isset($o->$k) && is_array($o->$k)) {
-                    $o->$k = static::filterHas($o->$k, $deepKey);
-                    $cnt = count($o->$k);
-                }
-                $has = isset($deepKey['_has']) && count($deepKey['_has']) > 0 ? $deepKey['_has'] : [];
-                foreach ($has as $h) {
-                    $keepIt = RequestCondition::checkHas($cnt, $h['operator'], $h['value']);
-                    if (!$keepIt) {
-                        break;
-                    }
-                }
-            }
-            if (!$keepIt) {
-                unset($objects[$i]);
-            }
-        }
-
-        return $objects;
+        return false;
     }
 }
