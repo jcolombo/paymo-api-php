@@ -6,7 +6,7 @@
  *
  * MIT License
  * Copyright (c) 2020 - Joel Colombo <jc-dev@360psg.com>
- * Last Updated : 3/9/20, 12:50 PM
+ * Last Updated : 3/9/20, 3:43 PM
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -31,6 +31,7 @@ namespace Jcolombo\PaymoApiPhp\Utility;
 
 use Exception;
 use Jcolombo\PaymoApiPhp\Entity\AbstractEntity;
+use Jcolombo\PaymoApiPhp\Entity\AbstractResource;
 use Jcolombo\PaymoApiPhp\Entity\EntityMap;
 
 /**
@@ -107,18 +108,28 @@ class RequestCondition
     /**
      * Create a structured and validated WHERE condition to be passed to the API "where" call.
      * This method creates a validated check on the conditions to make sure they meet defined prop allowances
+     * Not intended to set the $entityBase manually. The WHERE condition should be set using the specific resource
+     * class
+     * For example Project::where(..) instead of RequestCondition::where(...) But it can be done. Validation will only
+     * work at the time of adding this condition if this parameter is set. If not, when the request compiles, if it
+     * does
+     * not meet the resources requirements, it will be stripped out silently.
      *
-     * @param string $prop     The entity collection property being filtered on
-     * @param mixed  $value    The value to be sent to the where condition (must match datatype expected for the prop)
-     * @param string $operator The operator to use in comparison, must meet allowed operators for the prop definition
-     * @param bool   $validate True or false if the prop type should be checked or not. Valid operators are ALWAYS
-     *                         checked but they wont be checked against the specific prop allowance if this is false
+     * @param string        $prop       The entity collection property being filtered on
+     * @param mixed         $value      The value to be sent to the where condition (must match datatype expected for
+     *                                  the prop)
+     * @param string        $operator   The operator to use in comparison, must meet allowed operators for the prop
+     *                                  definition
+     * @param bool          $validate   True or false if the prop type should be checked or not. Valid operators are
+     *                                  ALWAYS checked but they wont be checked against the specific prop allowance if
+     *                                  this is false
+     * @param string | null $entityBase The entity for the root type of entity being filtered on
      *
      * @throws Exception
      * @return RequestCondition An instance of the populated (and potentially validated) where condition to be used by
      *                          the Request object when compiling the WHERE condition for lists
      */
-    public static function where($prop, $value, $operator = '=', $validate = true)
+    public static function where($prop, $value, $operator = '=', $validate = true, $entityBase = null)
     {
         if (!in_array($operator, static::WHERE_OPERATORS)) {
             throw new Exception("Invalid operator '{$operator}' sent for {$prop}. Must be one of ".implode(', ',
@@ -130,12 +141,23 @@ class RequestCondition
             }
             $value = [$value];
         }
-        $isProp = AbstractEntity::isProp($prop);
-        if ($validate) {
-            if (!$isProp) {
-                throw new Exception("Attempting to limit results on '{$prop}' which is not a valid prop");
+        if (!is_null($entityBase) && $validate) {
+            /** @var AbstractResource $resource Just the class name of the resource type, labeled here for IDE static call below */
+            $resource = EntityMap::resource($entityBase);
+            if (!$resource) {
+                throw new Exception("No class is defined for entity resource '{$entityBase}'");
             }
-            $error = AbstractEntity::allowWhere($prop, $operator, $value);
+            $pts = explode('.', $prop);
+            $isProp = AbstractEntity::isProp($entityBase, $pts[0]);
+            if (!$isProp) {
+                $isInclude = AbstractEntity::isIncludable($entityBase, $pts[0]);
+                if (!$isInclude) {
+                    throw new Exception("Attempting to limit '{$entityBase}' relation results on '{$prop}' which is not a valid include relation");
+                }
+                throw new Exception("Attempting to limit '{$entityBase}' results on '{$prop}' which is not a valid prop");
+            }
+            $allowProp = strpos($prop,'.')===false ? $entityBase.'.'.$prop : $prop;
+            $error = $resource::allowWhere($allowProp, $operator, $value);
             if ($error !== true) {
                 throw new Exception($error);
             }
@@ -166,13 +188,14 @@ class RequestCondition
      * @param int | int[] $count    The count to use in the comparison operator evaluation
      * @param string      $operator The operator to use when checking the count. Different operators require either a
      *                              single integer or an array of 2 integers (for range based checks)
+     * @param null        $baseEntity The optional base entity code for eventual validation of allowed includes
      *
      * @throws Exception
      * @return RequestCondition An instance of the populated and validated has condition to apply to the successful
      *                          results of an API call
      * @todo Wire this into deep resource include checks. For now this is only applied to list searches
      */
-    public static function has($include, $count = 0, $operator = '>')
+    public static function has($include, $count = 0, $operator = '>', $baseEntity=null)
     {
         if (!isset(static::HAS_OPERATORS[$operator])) {
             throw new Exception("Invalid operator '{$operator}' sent for {$include}. Must be one of ".implode(', ',

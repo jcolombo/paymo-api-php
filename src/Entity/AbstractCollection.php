@@ -6,7 +6,7 @@
  *
  * MIT License
  * Copyright (c) 2020 - Joel Colombo <jc-dev@360psg.com>
- * Last Updated : 3/9/20, 12:50 PM
+ * Last Updated : 3/9/20, 3:43 PM
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -134,6 +134,9 @@ abstract class AbstractCollection extends AbstractEntity implements Iterator, Ar
      */
     public function fetch($fields = [], $where = [])
     {
+        if (!is_array($fields)) { $fields = [$fields]; }
+        if (!is_array($where)) { $where = [$where]; }
+        $this->validateFetch($fields, $where);
         /** @var AbstractResource $resClass */
         $resClass = $this->entityClass;
         if (!$this->overwriteDirtyWithRequests && $this->isDirty()) {

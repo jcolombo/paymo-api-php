@@ -6,7 +6,7 @@
  *
  * MIT License
  * Copyright (c) 2020 - Joel Colombo <jc-dev@360psg.com>
- * Last Updated : 3/9/20, 12:50 PM
+ * Last Updated : 3/9/20, 3:43 PM
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -439,9 +439,11 @@ abstract class AbstractEntity
                     $w->dataType = self::getPropertyDataType($entityKey, $pts[0]);
                     $filteredWhere[] = $w;
                 } else {
+                    $includeKey = $pts[0];
                     $eProp = array_pop($pts);
                     $eKey = array_pop($pts);
-                    if (EntityMap::exists($eKey) && self::isProp($eKey, $eProp)) {
+                    if (self::isIncludable($entityKey, $includeKey) && EntityMap::exists($eKey) && self::isProp($eKey,
+                                                                                                                $eProp)) {
                         $w->dataType = self::getPropertyDataType($eKey, $eProp);
                         $filteredWhere[] = $w;
                     }
@@ -460,6 +462,37 @@ abstract class AbstractEntity
         }
 
         return $filteredWhere;
+    }
+
+    /**
+     * Check the data types of the fields and where lists sent into the fetch calls of child entities
+     *
+     * @param string[]           $fields The list of fields to be checked as being all strings
+     * @param RequestCondition[] $where  The list of where conditions to check all are RequestCondition objects
+     *
+     * @throws Exception
+     * @return bool Returns true if all elements pass. Throws exception on any failures.
+     */
+    public function validateFetch($fields = [], $where = [])
+    {
+        if (!is_array($fields)) {
+            throw new Exception("Field list must be an array of fields to be selected");
+        }
+        if (!is_array($where)) {
+            throw new Exception("Where list must be an array of RequestCondition objects");
+        }
+        foreach ($fields as $f) {
+            if (!is_string($f)) {
+                throw new Exception("All fields must be sent as plain text strings of each key desired");
+            }
+        }
+        foreach ($where as $w) {
+            if (!is_a($w, 'Jcolombo\PaymoApiPhp\Utility\RequestCondition')) {
+                throw new Exception("Where conditions must all be instances of the RequestCondition class");
+            }
+        }
+
+        return true;
     }
 
     /**

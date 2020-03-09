@@ -6,7 +6,7 @@
  *
  * MIT License
  * Copyright (c) 2020 - Joel Colombo <jc-dev@360psg.com>
- * Last Updated : 3/9/20, 12:50 PM
+ * Last Updated : 3/9/20, 3:43 PM
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -35,6 +35,7 @@ use Jcolombo\PaymoApiPhp\Configuration;
 use Jcolombo\PaymoApiPhp\Entity\Collection\EntityCollection;
 use Jcolombo\PaymoApiPhp\Paymo;
 use Jcolombo\PaymoApiPhp\Request;
+use Jcolombo\PaymoApiPhp\Utility\RequestCondition;
 
 /**
  * Class AbstractResource
@@ -154,7 +155,40 @@ abstract class AbstractResource extends AbstractEntity
         $mappedKeys = EntityMap::mapKeys($entityKey);
         $entityKey = $mappedKeys->collection ?? $entityKey;
 
-        return new EntityCollection($entityKey, $paymo);
+        return new $cClass($entityKey, $paymo);
+    }
+
+    /**
+     * Class specific wrapper to create and validate the props and includes of the where condition for a specific
+     * entity resource
+     *
+     * @param        $prop     {@see RequestCondition::where()}
+     * @param        $value    {@see RequestCondition::where()}
+     * @param string $operator {@see RequestCondition::where()}
+     * @param bool   $validate {@see RequestCondition::where()}
+     *
+     * @throws Exception
+     * @return RequestCondition
+     */
+    public static function where($prop, $value, $operator = '=', $validate = true)
+    {
+        return RequestCondition::where($prop, $value, $operator, $validate, static::API_ENTITY);
+    }
+
+    /**
+     * Class specific wrapper to create and validate the props and includes of the HAS filter for a specific
+     * entity resource
+     *
+     * @param string $include  {@see RequestCondition::has()}
+     * @param int    $count    {@see RequestCondition::has()}
+     * @param string $operator {@see RequestCondition::has()}
+     *
+     * @throws Exception
+     * @return RequestCondition
+     */
+    public static function has($include, $count = 0, $operator = '>')
+    {
+        return RequestCondition::has($include, $count, $operator, static::API_ENTITY);
     }
 
     /**
@@ -255,6 +289,10 @@ abstract class AbstractResource extends AbstractEntity
         if (!$id || (int) $id < 1) {
             throw new Exception("Attempted to fetch a {$label} without an id being passed");
         }
+        if (!is_array($fields)) {
+            $fields = [$fields];
+        }
+        $this->validateFetch($fields);
         if (!$this->overwriteDirtyWithRequests && $this->isDirty()) {
             $label = $this::LABEL;
             throw new Exception("{$label} attempted to fetch new data while it had dirty fields and protection is enabled.");
