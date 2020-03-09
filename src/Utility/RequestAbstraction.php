@@ -6,7 +6,7 @@
  *
  * MIT License
  * Copyright (c) 2020 - Joel Colombo <jc-dev@360psg.com>
- * Last Updated : 3/9/20, 12:09 AM
+ * Last Updated : 3/9/20, 12:50 PM
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -38,21 +38,31 @@ class RequestAbstraction
 {
 
     /**
+     * The HTTP method used in the API remote call. Valid values are GET, POST, PUT, DELETE
+     *
      * @var string
      */
     public $method = 'GET';
 
     /**
+     * The path of the resource to tack on to the end of the connections base URL.
+     * For example if 'projects' is passed... it will end up calling https://www.paymoapp.com/api/projects
+     * Do not include anything after the path string. Those values are added by the application
+     *
      * @var string | null
      */
     public $resourceUrl = null;
 
     /**
+     * The string property of all the pre-scrubbed ?include= parameter that will be passed to the API
+     *
      * @var string | null
      */
     public $include = null;
 
     /**
+     * The string property of all the pre-scrubbed ?where= parameter that will be passed to the API
+     *
      * @var string | null
      */
     public $where = null;

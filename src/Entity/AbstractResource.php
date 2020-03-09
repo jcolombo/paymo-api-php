@@ -6,7 +6,7 @@
  *
  * MIT License
  * Copyright (c) 2020 - Joel Colombo <jc-dev@360psg.com>
- * Last Updated : 3/9/20, 12:09 AM
+ * Last Updated : 3/9/20, 12:50 PM
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -51,9 +51,34 @@ abstract class AbstractResource extends AbstractEntity
         'LABEL', 'API_PATH', 'API_ENTITY', 'REQUIRED_CREATE', 'READONLY', 'INCLUDE_TYPES', 'PROP_TYPES', 'WHERE_OPERATIONS'
     ];
 
+    /**
+     * The current values for the defined props for this instance of the resource
+     *
+     * @var array
+     */
     protected $props = [];
+
+    /**
+     * A list of values with associative keys for "props" set with values that are NOT valid maps properties or includes
+     *
+     * @var array
+     */
     protected $unlisted = [];
+
+    /**
+     * The values of the props as set after a clean load from the database (this is reset every time the resource is
+     * loaded from the API
+     *
+     * @var array
+     */
     protected $loaded = [];
+
+    /**
+     * An array of keys that have valid "included" resources for this object as defined by the valid include constant
+     * of this resource type
+     *
+     * @var array
+     */
     protected $included = [];
 
     /**
@@ -93,7 +118,7 @@ abstract class AbstractResource extends AbstractEntity
      * NOTE: Using this method to factory create your class will void IDE typehinting when developing (as it doesnt
      * know what class will return)
      *
-     * @param null $paymo                          * @param array | Paymo | string | null $paymo Either an API Key,
+     * @param array | Paymo | string | null $paymo Either an API Key,
      *                                             Paymo Connection, config settings array (from another entitied
      *                                             getConfiguration call), or null to get first connection available
      *
@@ -234,17 +259,9 @@ abstract class AbstractResource extends AbstractEntity
             $label = $this::LABEL;
             throw new Exception("{$label} attempted to fetch new data while it had dirty fields and protection is enabled.");
         }
-        $s = microtime(true);
         [$select, $include] = static::cleanupForRequest($this::API_ENTITY, $fields);
-        //var_dump($select, $include); exit;
-        $e = microtime(true);
-        $scrub = $e - $s;
-
         $response = Request::fetch($this->connection, $this::API_PATH, $id,
                                    ['select' => $select, 'include' => $include]);
-//        echo "SCRUB TIME: {$scrub}\n";
-//        echo "REQUEST TIME: {$response->responseTime}\n";
-//        var_dump($response->responseTime);
         if ($response->result) {
             $this->_hydrate($id, $response->result);
         }

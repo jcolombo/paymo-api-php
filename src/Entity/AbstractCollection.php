@@ -6,7 +6,7 @@
  *
  * MIT License
  * Copyright (c) 2020 - Joel Colombo <jc-dev@360psg.com>
- * Last Updated : 3/9/20, 12:09 AM
+ * Last Updated : 3/9/20, 12:50 PM
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -35,23 +35,47 @@ use GuzzleHttp\Exception\GuzzleException;
 use Iterator;
 use Jcolombo\PaymoApiPhp\Paymo;
 use Jcolombo\PaymoApiPhp\Request;
+use Jcolombo\PaymoApiPhp\Utility\RequestCondition;
+use stdClass;
 
+/**
+ * Class AbstractCollection
+ *
+ * @package Jcolombo\PaymoApiPhp\Entity
+ */
 abstract class AbstractCollection extends AbstractEntity implements Iterator, ArrayAccess
 {
-    protected $entityKey = null;
     /**
+     * The resource key used for populating the results with
+     *
+     * @var string|null
+     */
+    protected $entityKey = null;
+
+    /**
+     * The actual class name of the $entityKey for use in static method calls and validation
+     *
      * @var string|null
      */
     protected $entityClass = null;
+
     /**
+     * The collection class for the entityKey
+     *
      * @var string|null
      */
     protected $collectionClass = null;
+
     /**
+     * The internal pointer for the $data array index (for Array features)
+     *
      * @var int
      */
     private $index = 0;
+
     /**
+     * The storage variable for the array of results populated with instances of the $entityClass
+     *
      * @var AbstractResource[]
      */
     private $data = [];
@@ -83,7 +107,7 @@ abstract class AbstractCollection extends AbstractEntity implements Iterator, Ar
      * NOTE: Using this method to factory create your class will void IDE typehinting when developing (as it doesnt
      * know what class will return)
      *
-     * @param null $paymo                          * @param array | Paymo | string | null $paymo Either an API Key,
+     * @param array | Paymo | string | null $paymo Either an API Key,
      *                                             Paymo Connection, config settings array (from another entitied
      *                                             getConfiguration call), or null to get first connection available
      *
@@ -96,60 +120,41 @@ abstract class AbstractCollection extends AbstractEntity implements Iterator, Ar
     }
 
     /**
-     * @param array $fields
-     * @param array $where
-     * @param bool  $validate
+     * Fetch the list of a specific resource with requested fields, includes, and conditional limits
+     *
+     * @param string[]           $fields A list of props and includes to return from the API call. An empty[] simply
+     *                                   returns all props for the list of base resources
+     * @param RequestCondition[] $where  Optional set of conditions to limit the result set to (via API where or post
+     *                                   processing HAS clauses)
      *
      * @throws GuzzleException
      * @throws Exception
-     * @return $this
+     * @return AbstractCollection $this Returns itself for chaining methods. The object will be populated with the
+     *                            collection of resources before returning itself
      */
-    public function fetch($fields = [], $where = [], $validate = true)
+    public function fetch($fields = [], $where = [])
     {
         /** @var AbstractResource $resClass */
         $resClass = $this->entityClass;
-        /** @var AbstractCollection $resClass */
-        $colClass = $this->collectionClass;
-        echo "FETCH LIST HERE\n\n";
-
-        //$label = $resClass::LABEL;
         if (!$this->overwriteDirtyWithRequests && $this->isDirty()) {
             $label = $resClass::LABEL;
             throw new Exception("{$label} attempted to fetch new data while it had dirty entities and protection is enabled.");
         }
-        //$s = microtime(true);
         [$select, $include, $where] = static::cleanupForRequest($resClass::API_ENTITY, $fields, $where);
-        //var_dump($select, $include); exit;
-        //$e = microtime(true);
-        //$scrub = $e - $s;
-
         $response = Request::list($this->connection, $resClass::API_PATH,
                                   ['select' => $select, 'include' => $include, 'where' => $where]);
-
-        //var_dump($response); exit;
-
-//        echo "SCRUB TIME: {$scrub}\n";
-//        echo "REQUEST TIME: {$response->responseTime}\n";
-//        var_dump($response->responseTime);
         if ($response->result) {
             $this->_hydrate($response->result);
         }
 
         return $this;
-
-        // $where = [
-        //   'prop' => string (key)
-        //   'value' => any (validated against the operator)
-        //   'operator' => valid operator defaults:"="
-        //   'skipValidation' = boolean. if true, let any operator/value be used for this key
-        //  ]
-
-        // Call REQUEST (GET) with $fields and limit conditions set with WHERE
-        // Return new hydrated collection array
-        //return [];
-        return $this;
     }
 
+    /**
+     * Check if the collection has any dirty entries or new entries that need to be created still
+     *
+     * @return bool
+     */
     public function isDirty()
     {
         // @todo Check the collection for any dirty entities
@@ -157,7 +162,10 @@ abstract class AbstractCollection extends AbstractEntity implements Iterator, Ar
     }
 
     /**
-     * @param $data
+     * Populate the list with instances of the specific resource type for this collection.
+     *
+     * @param stdClass[] $data An array of standard objects to use in populating the list (cascade hydrates each object
+     *                         into its specific resource type)
      *
      * @throws Exception
      */
@@ -178,13 +186,18 @@ abstract class AbstractCollection extends AbstractEntity implements Iterator, Ar
         }
     }
 
+    /**
+     * Wipe out the data in this collection reset to an empty array list of resources
+     */
     public function clear()
     {
         $this->data = [];
     }
 
     /**
+     * Reset the pointer to index zero
      *
+     * @inheritDoc
      */
     public function rewind()
     {
@@ -192,6 +205,9 @@ abstract class AbstractCollection extends AbstractEntity implements Iterator, Ar
     }
 
     /**
+     * Get the current item at the set index
+     *
+     * @inheritDoc
      * @return mixed
      */
     public function current()
@@ -200,7 +216,10 @@ abstract class AbstractCollection extends AbstractEntity implements Iterator, Ar
     }
 
     /**
-     * @return bool|float|int|string|null
+     * Return the index of the pointer in the data array
+     *
+     * @inheritDoc
+     * @return int
      */
     public function key()
     {
@@ -208,7 +227,9 @@ abstract class AbstractCollection extends AbstractEntity implements Iterator, Ar
     }
 
     /**
+     * Increment the index of the data array
      *
+     * @inheritDoc
      */
     public function next()
     {
@@ -216,6 +237,9 @@ abstract class AbstractCollection extends AbstractEntity implements Iterator, Ar
     }
 
     /**
+     * Check if the current index has a valid value set
+     *
+     * @inheritDoc
      * @return bool
      */
     public function valid()
@@ -263,6 +287,9 @@ abstract class AbstractCollection extends AbstractEntity implements Iterator, Ar
     }
 
     /**
+     * Return the direct array of resources stored in the $data array (Breaks the value out of the collection wrapper
+     * class)
+     *
      * @return AbstractResource[]
      */
     public function raw()

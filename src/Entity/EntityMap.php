@@ -6,7 +6,7 @@
  *
  * MIT License
  * Copyright (c) 2020 - Joel Colombo <jc-dev@360psg.com>
- * Last Updated : 3/9/20, 12:09 AM
+ * Last Updated : 3/9/20, 12:50 PM
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -265,9 +265,16 @@ class EntityMap
     }
 
     /**
-     * @param $fullKey
+     * Split a passed $fullKey with possible dot notation to return the "last" dot segment as the prop
+     * Example: "project.name" would return ['project','name']
+     * Example2: "project.client.name" would return ['project.client', 'name']
+     * Example3: "project" would return ['project', null] since the key had no dots, it assumes the original key is the
+     * actual entity
      *
-     * @return array
+     * @param string $fullKey A dot notation of an entity with a prop as the last ".".
+     *
+     * @return array A 2 element array, the first element id the actual entity resource key, the second is the
+     *               property/include
      */
     public static function extractResourceProp($fullKey)
     {

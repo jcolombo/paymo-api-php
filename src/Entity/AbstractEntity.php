@@ -6,7 +6,7 @@
  *
  * MIT License
  * Copyright (c) 2020 - Joel Colombo <jc-dev@360psg.com>
- * Last Updated : 3/9/20, 12:09 AM
+ * Last Updated : 3/9/20, 12:50 PM
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -32,7 +32,7 @@ namespace Jcolombo\PaymoApiPhp\Entity;
 use Exception;
 use Jcolombo\PaymoApiPhp\Cache\ScrubCache;
 use Jcolombo\PaymoApiPhp\Paymo;
-use Jcolombo\PaymoApiPhp\Request;
+use Jcolombo\PaymoApiPhp\Utility\Converter;
 use Jcolombo\PaymoApiPhp\Utility\RequestCondition;
 
 /**
@@ -48,19 +48,32 @@ abstract class AbstractEntity
     public const VALID_OPERATORS = ['=', '!=', '<', '<=', '>', '>=', 'like', 'not like', 'in', 'not_in', 'range'];
 
     /**
+     * A temporary boolean used automatically by the class to allow population of readonly props during API responses
+     *
      * @var bool
      */
     protected $hydrationMode = false;
 
     /**
-     * @var array|Paymo|mixed|string|null
+     * The instance of the Paymo connection used for this object
+     *
+     * @var Paymo|null
      */
     protected $connection = null;
+
     /**
+     * Flag setting if true will automatically overwrite any existing data in this object when a new FETCh is called
+     * If set to false, the object will throw an error if data was "manually" changed since the last load but not saved
+     * before attempting to load new data.
+     *
      * @var bool
      */
     protected $overwriteDirtyWithRequests = true;
+
     /**
+     * Decide if this object should use cache on its fetch calls. Requires system wide caching also be enabled or its
+     * always treated as false
+     *
      * @var bool
      */
     protected $useCacheIfAvailable = true;
@@ -205,13 +218,17 @@ abstract class AbstractEntity
     }
 
     /**
-     * @param      $entityKey
-     * @param      $operator
-     * @param      $value
-     * @param bool $validate
+     * Check if a specific WHERE limit operator is allowed on a specific entity resource property
+     * If the value passed does not match the valid data type for a specific property it will return the error message
+     * If it is valid and has a valid value, it will return true
+     *
+     * @param string $entityKey The resource key to check for the property with any operator restrictions
+     * @param string $operator  The operator to check for valid use
+     * @param mixed  $value     The value to be used in the where condition (validated against the expected prop type)
      *
      * @throws Exception
-     * @return bool | string
+     * @return bool | string A boolean TRUE if all passed. Otherwise a string message for throwing in an Exception by
+     *              caller
      */
     public static function allowWhere($entityKey, $operator, $value = null)
     {
@@ -238,7 +255,7 @@ abstract class AbstractEntity
         }
         if (!is_null($value)) {
             $datatype = static::getPropertyDataType($key, $prop);
-            $primitive = Request::getPrimitiveType($datatype);
+            $primitive = Converter::getPrimitiveType($datatype);
             if (in_array($operator, ['in', 'not in', 'range'])) {
                 if (!is_array($value)) {
                     $value = [$value];
@@ -272,13 +289,14 @@ abstract class AbstractEntity
     }
 
     /**
-     * Get the defined property datatype for the resource entity
+     * Get the defined property datatype (non PHP official) for the resource entity
      *
-     * @param string $entityKey
-     * @param string $prop
+     * @param string $entityKey The entity to get the prop type from
+     * @param string $prop      The property on $entityKey resource to get the datatype from
      *
      * @throws Exception
-     * @return string | null
+     * @return string | null Either the string name of the internal property type... or null if the property cant be
+     *                found defined on the resource
      */
     public static function getPropertyDataType($entityKey, $prop)
     {
@@ -402,11 +420,14 @@ abstract class AbstractEntity
     }
 
     /**
-     * @param RequestCondition[] $where
-     * @param string             $entityKey
+     * Check all the properties of the RequestCondition against a specific entity to clean up its values before use
+     *
+     * @param RequestCondition[] $where     A RequestCondition to clean up for a specific entity resource (datatypes,
+     *                                      etc)
+     * @param string             $entityKey The entity to clean up the where "object" for
      *
      * @throws Exception
-     * @return RequestCondition[]
+     * @return RequestCondition[] Returns a "clean" list of valid RequestConditions, having stripped any bad ones out
      */
     public static function scrubWhere($where, $entityKey)
     {

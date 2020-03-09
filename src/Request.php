@@ -6,7 +6,7 @@
  *
  * MIT License
  * Copyright (c) 2020 - Joel Colombo <jc-dev@360psg.com>
- * Last Updated : 3/9/20, 12:09 AM
+ * Last Updated : 3/9/20, 12:50 PM
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -31,7 +31,7 @@ namespace Jcolombo\PaymoApiPhp;
 
 use Adbar\Dot;
 use GuzzleHttp\Exception\GuzzleException;
-use Jcolombo\PaymoApiPhp\Entity\AbstractEntity;
+use Jcolombo\PaymoApiPhp\Utility\Converter;
 use Jcolombo\PaymoApiPhp\Utility\RequestAbstraction;
 use Jcolombo\PaymoApiPhp\Utility\RequestCondition;
 use Jcolombo\PaymoApiPhp\Utility\RequestResponse;
@@ -106,12 +106,17 @@ class Request
     }
 
     /**
-     * @param                    $objects
-     * @param                    $select
-     * @param                    $include
-     * @param RequestCondition[] $where
+     * Manually clean up the body response from the API to scrub out any excess properties or values that were not
+     * expected This will map back to the resource property and include definitions as well as the requested
+     * select/include needs for this request. This would mostly come in useful when you need to make sure ONLY specific
+     * props or includes are set and the API has updated to send back more than you were expecting
      *
-     * @return array|mixed
+     * @param stdClass | stdClass[] $objects The JSON body object or array of objects from the API remote / cache call
+     * @param string[]              $select  The list of properties expected on the root resource objects requested
+     * @param string[]              $include The list of included related objects or object lists expected from your
+     *                                       request
+     *
+     * @return stdClass[] | stdClass The manually scrubbed version of the originally passed in $objects property
      */
     public static function scrubBody($objects, $select, $include)
     {
@@ -143,6 +148,16 @@ class Request
         return $isList ? $objList : $objList[0];
     }
 
+    /**
+     * Compile and run an expected list of multiple items of one resource type from the remote API
+     *
+     * @param Paymo  $connection A valid Paymo Connection object instance
+     * @param string $objectKey  The resource path to attach to the end of the base URL for the request
+     * @param array  $options    {@see fetch}
+     *
+     * @throws GuzzleException
+     * @return RequestResponse Returns an object on success or a boolean FALSE on failure to load list of entities
+     */
     public static function list(Paymo $connection, $objectKey, $options)
     {
         $scrub = !!$options['scrub'];
@@ -180,9 +195,12 @@ class Request
     }
 
     /**
+     * Compile the set of WHERE conditions sent for the request into a single string value to be added to the remote
+     * query
+     *
      * @param RequestCondition[] $where A collection of where conditions to apply to the request
      *
-     * @return string | null
+     * @return string | null The api ready WHERE value for the remote request ?where=
      */
     public static function compileWhereParameter($where)
     {
@@ -192,7 +210,7 @@ class Request
         $conditions = [];
         foreach ($where as $w) {
             if ($w->type === 'where') {
-                $filter = Request::convertOperatorValue($w);
+                $filter = Converter::convertOperatorValue($w);
                 if (!is_null($filter)) {
                     $conditions[] = $filter;
                 }
@@ -203,122 +221,16 @@ class Request
         return join(' and ', $conditions);
     }
 
-    public static function convertOperatorValue(RequestCondition $w)
-    {
-        //var_dump($w);
-        $value = self::convertValueForFilter($w->dataType, $w->value);
-        $ops = AbstractEntity::VALID_OPERATORS;
-        $operator = $w->operator;
-        if (in_array($operator, $ops)) {
-            switch ($operator) {
-                case('range'):
-                    $capOp = $value[2] ? '<=' : '<';
-
-                    return "{$w->prop}>={$value[0]} and {$w->prop}{$capOp}{$value[1]}";
-                    break;
-                case('in'):
-                case('not in'):
-                    return "{$w->prop} {$operator} ({$value})";
-                    break;
-                case('like'):
-                case('not like'):
-                    return "{$w->prop} {$operator} \"{$value}\"";
-                    break;
-                case('='):
-                case('<='):
-                case('<'):
-                case('>='):
-                case('>'):
-                case('!='):
-                default:
-                    return "{$w->prop}{$operator}{$value}";
-                    break;
-            }
-        }
-
-        return null;
-    }
-
-
-    // DataTypes:
-    // text, integer, resource:*, collection:*, boolean, datetime, email, url, decimal, array
-
-    public static function convertValueForFilter($type, $value)
-    {
-        if (strpos($type, 'resource:') !== false) {
-            $type = 'integer';
-        } elseif (strpos($type, 'collection:') !== false) {
-            $type = 'integer';
-        }
-        switch ($type) {
-            case('datetime'):
-                $cast = is_array($value) ? 'timestamp[]' : 'timestamp';
-                break;
-            case('array'):
-            case('integer'):
-                $cast = is_array($value) ? 'integer[]' : 'integer';
-                break;
-            case('double'):
-            case('decimal'):
-                $cast = is_array($value) ? 'double[]' : 'double';
-                break;
-            case('boolean'):
-                $cast = 'boolean';
-                break;
-            case('email'):
-            case('url'):
-            case('text'):
-            default:
-                $cast = is_array($value) ? 'string[]' : 'string';
-                break;
-        }
-
-        switch ($cast) {
-            case('timestamp'):
-                $value = is_int($value) ? $value : strtotime((string) $value);
-                break;
-            case('timestamp[]'):
-                $value = [
-                    is_int($value[0]) ? $value : strtotime((string) $value[0]),
-                    is_int($value[1]) ? $value : strtotime((string) $value[1]),
-                    isset($value[2]) && is_bool($value[2]) ? $value[2] : false
-                ];
-                break;
-            case('double[]'):
-                array_walk($value, function (&$i) { $i = (double) $i; });
-                $value = implode(',', $value);
-                break;
-            case('integer[]'):
-                array_walk($value, function (&$i) { $i = (int) $i; });
-                $value = implode(',', $value);
-                break;
-            case('string[]'):
-                array_walk($value, function (&$i) { $i = (string) $i; });
-                $value = '"'.implode('","', $value).'"';
-                break;
-            case('boolean'):
-                $value = $value !== false && $value !== 'false' ? 'true' : 'false';
-                break;
-            case('double'):
-                $value = (double) $value;
-                break;
-            case('integer'):
-                $value = (int) $value;
-                break;
-            case('string'):
-            default:
-                $value = (string) $value;
-                break;
-        }
-
-        return $value;
-    }
-
     /**
-     * @param stdClass[]         $objects Array of objects returned in the body of the API response
-     * @param RequestCondition[] $where   The send of where conditions added to the original request
+     * Filter the list of returned objects if the WHERE parameter had any "HAS" conditions
+     * After the response comes back, use the rules sent with type->has to eliminate any items (and sub-items) that do
+     * not contain the required number of results for its list
      *
-     * @return stdClass | stdClass[]
+     * @param stdClass | stdClass[] $objects Array of objects returned in the body of the API response
+     * @param RequestCondition[]    $where   The send of where conditions added to the original request
+     *
+     * @return stdClass | stdClass[] A scrubbed response of the original $objects parameter filtered by any "has"
+     *                  conditions
      */
     public static function postResponseFilter($objects, $where)
     {
@@ -337,47 +249,50 @@ class Request
                 }
             }
             if (count($hasFilter) > 0) {
-                $newObjects = RequestCondition::filterHas($objects, $hasFilter->all());
+                $newObjects = static::filterHas($objects, $hasFilter->all());
             }
         }
 
         return $newObjects ?? $objects;
     }
 
-    // Casts: integer, integer[], string, string[], range[], double, float[]
-    // text, integer, resource:*, collection:*, boolean, datetime, email, url, decimal, array
-
-    public static function getPrimitiveType($type)
+    /**
+     * Recursively check the list of objects against the multidimensional list of HAS keys valid for this request
+     * This method is only called by the postResponseFilter method or itself (recursively)
+     *
+     * @param stdClass[] $objects An array of stdClass generic objects to be filtered against (raw JSON body from API
+     *                            call)
+     * @param array      $keys    The Dot() formatted multi-dimensional array of valid "has" keys
+     *
+     * @return stdClass[] Returned a scrubbed list of $objects
+     */
+    public static function filterHas($objects, $keys)
     {
-        if (strpos($type, 'resource:') !== false) {
-            $type = 'integer';
-        } elseif (strpos($type, 'collection:') !== false) {
-            $type = 'integer';
-        }
-        switch ($type) {
-            case('datetime'):
-                $cast = 'timestamp';
-                break;
-            case('array'):
-            case('integer'):
-                $cast = 'integer';
-                break;
-            case('double'):
-            case('decimal'):
-                $cast = 'double';
-                break;
-            case('boolean'):
-                $cast = 'boolean';
-                break;
-            case('email'):
-            case('url'):
-            case('text'):
-            default:
-                $cast = 'string';
-                break;
+        foreach ($objects as $i => $o) {
+            $keepIt = true;
+            foreach ($keys as $k => $deepKey) {
+                if ($k === '_has') {
+                    continue;
+                }
+                $cnt = 0;
+                if (isset($o->$k) && is_array($o->$k)) {
+                    $o->$k = static::filterHas($o->$k, $deepKey);
+                    $cnt = count($o->$k);
+                }
+                $has = isset($deepKey['_has']) && count($deepKey['_has']) > 0 ? $deepKey['_has'] : [];
+                foreach ($has as $h) {
+                    $keepIt = RequestCondition::checkHas($cnt, $h['operator'], $h['value']);
+                    if (!$keepIt) {
+                        break;
+                    }
+                }
+            }
+            if (!$keepIt) {
+                unset($objects[$i]);
+            }
         }
 
-        return $cast;
+        return $objects;
     }
 
 }
