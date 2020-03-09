@@ -6,7 +6,7 @@
  * .
  * MIT License
  * Copyright (c) 2020 - Joel Colombo <jc-dev@360psg.com>
- * Last Updated : 3/9/20, 3:51 PM
+ * Last Updated : 3/9/20, 6:20 PM
  * .
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -116,7 +116,7 @@ abstract class AbstractCollection extends AbstractEntity implements Iterator, Ar
      */
     public static function new($paymo = null)
     {
-        return parent::new($paymo);
+        return parent::newCollection($paymo);
     }
 
     /**
@@ -152,6 +152,7 @@ abstract class AbstractCollection extends AbstractEntity implements Iterator, Ar
                                   ['select' => $select, 'include' => $include, 'where' => $where]);
         if ($response->result) {
             $this->_hydrate($response->result);
+            // @todo Populate a response summary of data on the object (like if it came from live, timestamp of request, timestamp of data retrieved/cache, etc
         }
 
         return $this;
@@ -186,7 +187,7 @@ abstract class AbstractCollection extends AbstractEntity implements Iterator, Ar
             foreach ($data as $o) {
                 /** @var AbstractResource $tmp */
                 $tmp = new $resClass($this->getConfiguration());
-                $tmp->_hydrate($o->id, $o);
+                $tmp->_hydrate($o, $o->id);
                 $this->data[$o->id] = $tmp;
             }
             $this->hydrationMode = false;

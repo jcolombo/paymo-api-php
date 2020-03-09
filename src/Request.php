@@ -6,7 +6,7 @@
  * .
  * MIT License
  * Copyright (c) 2020 - Joel Colombo <jc-dev@360psg.com>
- * Last Updated : 3/9/20, 3:51 PM
+ * Last Updated : 3/9/20, 6:20 PM
  * .
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -30,6 +30,7 @@
 namespace Jcolombo\PaymoApiPhp;
 
 use Adbar\Dot;
+use Braintree\Exception;
 use GuzzleHttp\Exception\GuzzleException;
 use Jcolombo\PaymoApiPhp\Utility\Converter;
 use Jcolombo\PaymoApiPhp\Utility\RequestAbstraction;
@@ -146,6 +147,56 @@ class Request
         }
 
         return $isList ? $objList : $objList[0];
+    }
+
+    /**
+     * Create a new object of $objectKey in the Paymo API
+     *
+     * @param Paymo  $connection A valid Paymo Connection object instance
+     * @param string $objectKey  The API path tacked on to connections base URL
+     * @param array  $data       The raw data to create the new entry with
+     *
+     * @throws GuzzleException
+     * @return RequestResponse
+     */
+    public static function create(Paymo $connection, $objectKey, $data)
+    {
+        $request = new RequestAbstraction();
+        $request->method = 'POST';
+        $request->resourceUrl = $objectKey;
+        $request->data = $data;
+        $response = $connection->execute($request);
+        if ($response->body && $response->validBody($objectKey, 1)) {
+            $response->result = $response->body->$objectKey[0];
+        }
+
+        //var_dump($response); exit;
+
+        return $response;
+    }
+
+    /**
+     * Delete an object of $objectKey with $id in the Paymo API
+     * WARNING: THIS IS NOT REVERSIBLE. Be SURE the ID matches the one you wish to delete. There is NO confirmation.
+     *
+     * @param Paymo  $connection A valid Paymo Connection object instance
+     * @param string $objectKey  The API path tacked on to connections base URL
+     * @param int    $id         The ID of the entity to delete
+     *
+     * @throws GuzzleException
+     * @throws Exception
+     * @return RequestResponse
+     */
+    public static function delete(Paymo $connection, $objectKey, $id)
+    {
+        if ((int) $id < 1) {
+            throw new Exception("Attempting to delete a resource without a integer ID");
+        }
+        $request = new RequestAbstraction();
+        $request->method = 'DELETE';
+        $request->resourceUrl = $objectKey.'/'.$id;
+
+        return $connection->execute($request);
     }
 
     /**

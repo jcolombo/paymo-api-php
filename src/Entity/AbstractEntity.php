@@ -6,7 +6,7 @@
  * .
  * MIT License
  * Copyright (c) 2020 - Joel Colombo <jc-dev@360psg.com>
- * Last Updated : 3/9/20, 3:51 PM
+ * Last Updated : 3/9/20, 6:20 PM
  * .
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -141,14 +141,38 @@ abstract class AbstractEntity
      * Map NOTE: Using this method to factory create your class will void IDE typehinting when developing (as it doesnt
      * know what class will return)
      *
+     * @param null       $paymo                    * @param array | Paymo | string | null $paymo Either an API Key,
+     *                                             Paymo Connection, config settings array (from another entitied
+     *                                             getConfiguration call), or null to get first connection available
+     * @param int | null $id                       An optional ID to pre-populate the ID property of the object
+     *
+     * @throws Exception
+     * @return AbstractResource
+     */
+    public static function newResource($paymo = null, $id = null)
+    {
+        $realClass = EntityMap::resource(static::API_ENTITY);
+        if (is_null($realClass)) {
+            throw new Exception("No class found in the Entity Mapp for creating a {static::LABEL} with key '{static::API_ENTITY}'");
+        }
+
+        //@todo Anyone with ideas on how a simple way to typehint the return type correctly for IDE's (like PhpStorm). Minor concern.
+        return new $realClass($paymo, $id);
+    }
+
+    /**
+     * Static method to always create a resource or collection using the currently configured mapped class  in Entity
+     * Map NOTE: Using this method to factory create your class will void IDE typehinting when developing (as it doesnt
+     * know what class will return)
+     *
      * @param null $paymo                          * @param array | Paymo | string | null $paymo Either an API Key,
      *                                             Paymo Connection, config settings array (from another entitied
      *                                             getConfiguration call), or null to get first connection available
      *
      * @throws Exception
-     * @return AbstractResource | AbstractCollection
+     * @return AbstractCollection
      */
-    public static function new($paymo = null)
+    public static function newCollection($paymo = null)
     {
         $realClass = EntityMap::resource(static::API_ENTITY);
         if (is_null($realClass)) {

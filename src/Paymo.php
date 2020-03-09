@@ -6,7 +6,7 @@
  * .
  * MIT License
  * Copyright (c) 2020 - Joel Colombo <jc-dev@360psg.com>
- * Last Updated : 3/9/20, 3:51 PM
+ * Last Updated : 3/9/20, 6:20 PM
  * .
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -173,6 +173,7 @@ class Paymo
         $headers = [];
         $props = [];
         $query = [];
+        $data = [];
 
         // Define Headers to send to Paymo
         $headers[] = ['Accept' => 'application/json'];
@@ -191,6 +192,9 @@ class Paymo
         }
         if (count($query) > 0) {
             $props['query'] = $query;
+        }
+        if (($request->method == 'POST' || $request->method == 'PUT') && !is_null($request->data) && is_array($request->data) && count($request->data) > 0) {
+            $props['json'] = $request->data;
         }
 
         //var_dump($props); //exit;

@@ -6,7 +6,7 @@
  * .
  * MIT License
  * Copyright (c) 2020 - Joel Colombo <jc-dev@360psg.com>
- * Last Updated : 3/9/20, 3:51 PM
+ * Last Updated : 3/9/20, 6:20 PM
  * .
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -90,10 +90,11 @@ abstract class AbstractResource extends AbstractEntity
      * @param array | Paymo | string | null $paymo Either an API Key, Paymo Connection, config settings array (from
      *                                             another entitied getConfiguration call), or null to get first
      *                                             connection available
+     * @param int | null                    $id    An optional ID to pre-populate the ID property of the object
      *
      * @throws Exception
      */
-    public function __construct($paymo = null)
+    public function __construct($paymo = null, $id = null)
     {
         parent::__construct($paymo);
         if (Configuration::get('devMode')) {
@@ -109,6 +110,9 @@ abstract class AbstractResource extends AbstractEntity
                                                                                                                    $missingConstants)."'");
             }
         }
+        if (!is_null($id)) {
+            $this->props['id'] = (int) $id;
+        }
 
         return $this;
     }
@@ -122,13 +126,14 @@ abstract class AbstractResource extends AbstractEntity
      * @param array | Paymo | string | null $paymo Either an API Key,
      *                                             Paymo Connection, config settings array (from another entitied
      *                                             getConfiguration call), or null to get first connection available
+     * @param int | null                    $id    An optional ID to pre-populate the ID property of the object
      *
      * @throws Exception
      * @return AbstractResource
      */
-    public static function new($paymo = null)
+    public static function new($paymo = null, $id = null)
     {
-        return parent::new($paymo);
+        return parent::newResource($paymo, $id);
     }
 
     /**
@@ -189,6 +194,61 @@ abstract class AbstractResource extends AbstractEntity
     public static function has($include, $count = 0, $operator = '>')
     {
         return RequestCondition::has($include, $count, $operator, static::API_ENTITY);
+    }
+
+    /**
+     * Creates a new resource object and calls its delete method (setting the response equal to a new instance of the
+     * entity with response results)
+     *
+     * @param int                           $id    The ID to perform the delete on
+     * @param array | Paymo | string | null $paymo Either an API Key, Paymo Connection, config settings array (from
+     *                                             another entitied getConfiguration call), or null to get first
+     *                                             connection available
+     *
+     * @throws GuzzleException
+     * @throws Exception
+     * @return AbstractResource | null
+     */
+    public static function deleteById($id, $paymo = null)
+    {
+        $resourceClass = EntityMap::resource(static::API_ENTITY);
+        $obj = null;
+        if ($resourceClass) {
+            /** @var AbstractResource $obj */
+            $obj = new $resourceClass($paymo, $id);
+            $obj->delete();
+        }
+
+        return $obj;
+    }
+
+    /**
+     * Delete a resource of this class type with the either the ID passed to the method OR the id set on this objects
+     * props Clears the object back to a reset fresh state after successfully deleting it.
+     *
+     * @param null $id The ID to perform the delete on
+     *
+     * @throws GuzzleException
+     * @throws Exception
+     * @return AbstractResource
+     */
+    public function delete()
+    {
+        $id = 0;
+        if (isset($this->props['id'])) {
+            $id = $this->props['id'];
+        }
+        if (!$id || (int) $id < 1) {
+            $label = $this::LABEL;
+            throw new Exception("Attempted to delete a {$label} without an id being passed");
+        }
+        $response = Request::delete($this->connection, $this::API_PATH, $id);
+        if ($response && $response->success) {
+            $this->clear();
+            // @todo Populate a response summary of data on the object (like if it came from live, timestamp of request, timestamp of data retrieved/cache, etc
+        }
+
+        return $this;
     }
 
     /**
@@ -301,7 +361,8 @@ abstract class AbstractResource extends AbstractEntity
         $response = Request::fetch($this->connection, $this::API_PATH, $id,
                                    ['select' => $select, 'include' => $include]);
         if ($response->result) {
-            $this->_hydrate($id, $response->result);
+            $this->_hydrate($response->result, $id);
+            // @todo Populate a response summary of data on the object (like if it came from live, timestamp of request, timestamp of data retrieved/cache, etc
         }
 
         return $this;
@@ -366,12 +427,11 @@ abstract class AbstractResource extends AbstractEntity
      *
      * @throws Exception
      */
-    public function _hydrate($objectId, $responseObject)
+    public function _hydrate($responseObject, $objectId = null)
     {
         if (is_object($responseObject)) {
             $this->clear();
             $this->hydrationMode = true;
-            $this->props['id'] = $objectId;
             foreach ($responseObject as $k => $v) {
                 if ($this::isIncludable($this::API_ENTITY, $k)) {
                     $this->_hydrateInclude($k, $v);
@@ -379,6 +439,9 @@ abstract class AbstractResource extends AbstractEntity
                     $this->__set($k, $v);
                 }
             }
+            if ($objectId) {
+                $this->props['id'] = $objectId;
+            } // Force ID to match the passed ID
             $this->hydrationMode = false;
             $this->loaded = $this->props;
         }
@@ -422,13 +485,32 @@ abstract class AbstractResource extends AbstractEntity
         } else {
             /** @var AbstractResource $result */
             $result = new $className($this->getConfiguration());
-            $result->_hydrate($object->id, $object);
+            $result->_hydrate($object, $object->id);
         }
         $this->included[$entityKey] = $result;
     }
 
-    public function create()
+    /**
+     * Create a new resource entry in the Paymo system with the data existing in this object
+     * Be careful calling this on an existing entity while leaving the stripReadonly option on as it will remove the
+     * readonly values and create a new copy of the entity
+     *
+     * @param array $options An associative array of possible options for configuring the creation rules
+     *                       [stripReadonly] : bool [Default: true] - Will strip any readonly props (like ID) from the
+     *                       creation values
+     *                       [cascade] : bool [Default: true] - Look for any child relations attached to this entity
+     *                       and create them as well (they will NOT strip readonly and only create them if they have no
+     *                       ID)
+     *
+     * @throws Exception
+     * @throws GuzzleException
+     * @return AbstractResource Returns itself fully hydrated with the results from the API.
+     */
+    public function create($options = [])
     {
+        $cancelReadonly = $options['cancelReadonly'] ?? true;
+        $stripReadonly = $options['stripReadonly'] ?? false;
+        $cascade = $options['cascade'] ?? true;
         foreach ($this::REQUIRED_CREATE as $k) {
             if (!isset($this->props[$k])) {
                 $label = $this::LABEL;
@@ -436,13 +518,33 @@ abstract class AbstractResource extends AbstractEntity
             }
         }
         $createWith = $this->props;
-        // Loop through read only props and strip them from $createWith;
-        // Add warning if any READONLY props were set and create is attempted (flag to ignore this)
-        // Create with REQUEST (POST)
-        // Create any children that are possible
-        // Hydrate this object
-        // Reset loaded
-        return true; // on Success
+        $continueCreate = true;
+        if ($stripReadonly || $cancelReadonly) {
+            foreach ($createWith as $p => $value) {
+                if (isset(static::READONLY[$p])) {
+                    if ($cancelReadonly) {
+                        $continueCreate = false;
+                        break;
+                    }
+                    unset($createWith[$p]);
+                }
+            }
+        }
+        // @todo Validate all the properties being sent match their valid datatypes as defined in the class requirements
+        // Only create this object if it DOES NOT have an id set
+        if ($continueCreate && !isset($createWith['id']) || $createWith['id'] < 1) {
+            $response = Request::create($this->connection, $this::API_PATH, $createWith);
+            if ($response->result) {
+                $this->_hydrate($response->result);
+                // @todo Populate a response summary of data on the object (like if it came from live, timestamp of request, timestamp of data retrieved/cache, etc
+            }
+            if ($cascade) {
+                // Create any children that are possible, currently cant create relations on the standalone resource
+                //@todo Cascade through included entities and create them if relevant
+            }
+        }
+
+        return $this;
     }
 
     public function update($updateRelations = false)
@@ -457,21 +559,6 @@ abstract class AbstractResource extends AbstractEntity
         // Traverse and save hydrated children if modified as well
         // Update / Hydrate object with changes in response
         // Reset $this->loaded to current values
-        return true; // on Success
-    }
-
-    public function delete($id = null)
-    {
-        if (is_null($id) && isset($this->props['id'])) {
-            $id = $this->props['id'];
-        }
-        if (!$id || (int) $id < 1) {
-            $label = $this::LABEL;
-            throw new Exception("Attempted to delete a {$label} without an id being passed");
-        }
-        // Delete project with REQUEST (DELETE)
-        $this->clear();
-
         return true; // on Success
     }
 

@@ -6,7 +6,7 @@
  * .
  * MIT License
  * Copyright (c) 2020 - Joel Colombo <jc-dev@360psg.com>
- * Last Updated : 3/9/20, 3:51 PM
+ * Last Updated : 3/9/20, 6:20 PM
  * .
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -52,6 +52,14 @@ class RequestAbstraction
      * @var string | null
      */
     public $resourceUrl = null;
+
+    /**
+     * An associative array of data to be sent in a POST or PUT request (for creation or updating of the entity)
+     * If left NULL, the request will not go through successfully if trying to POST or PUT
+     *
+     * @var array | null
+     */
+    public $data = null;
 
     /**
      * The string property of all the pre-scrubbed ?include= parameter that will be passed to the API
