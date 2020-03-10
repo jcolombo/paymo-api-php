@@ -55,6 +55,10 @@
         "type": "collection",
         "resourceKey": "user",
         "collection": true
+      },
+      "company": {
+        "type": "resource",
+        "resource": "Jcolombo\\PaymoApiPhp\\Entity\\Resource\\Company"
       }
     }
   }

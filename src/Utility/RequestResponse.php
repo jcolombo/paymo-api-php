@@ -6,7 +6,7 @@
  * .
  * MIT License
  * Copyright (c) 2020 - Joel Colombo <jc-dev@360psg.com>
- * Last Updated : 3/9/20, 3:51 PM
+ * Last Updated : 3/10/20, 1:32 PM
  * .
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -104,9 +104,9 @@ class RequestResponse
      */
     public function validBody($key, $minQty = 0)
     {
-        return $this->success
-            && $this->body
-            && is_array($this->body->$key)
-            && count($this->body->$key) >= $minQty;
+        return $this->success && $this->body && (
+            (is_array($this->body->$key) && count($this->body->$key) >= $minQty)
+            || is_object($this->body->$key)
+        );
     }
 }

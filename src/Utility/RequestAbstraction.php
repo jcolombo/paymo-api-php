@@ -6,7 +6,7 @@
  * .
  * MIT License
  * Copyright (c) 2020 - Joel Colombo <jc-dev@360psg.com>
- * Last Updated : 3/9/20, 6:20 PM
+ * Last Updated : 3/10/20, 1:32 PM
  * .
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -74,4 +74,10 @@ class RequestAbstraction
      * @var string | null
      */
     public $where = null;
+
+    /**
+     * A possible array of files to upload to the entity. Array[propKey=>filePath]. Must use POST method when set.
+     * @var string | null
+     */
+    public $files = null;
 }

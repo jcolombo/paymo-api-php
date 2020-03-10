@@ -6,7 +6,7 @@
  * .
  * MIT License
  * Copyright (c) 2020 - Joel Colombo <jc-dev@360psg.com>
- * Last Updated : 3/9/20, 7:40 PM
+ * Last Updated : 3/10/20, 1:32 PM
  * .
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -114,15 +114,14 @@ class Project extends AbstractResource
 
     /**
      * Allowable operators for list() calls on specific properties
+     * Use [prop] = ['=','!='] to allow these only. Use [!prop] = ['like'] to NOT allow these types
      */
     public const WHERE_OPERATIONS = [
-        'code' => null,
-        'client_id' => ['='],
-        'active' => ['='],
+        'active' => ['=', '!='],
         '!active' => ['like', 'not like'],
         'users' => ['=', 'in', 'not in'],
         'managers' => ['=', 'in', 'not in'],
-        'billable' => ['='],
+        'billable' => ['=', '!='],
     ];
 
     // SPECIAL PROPS

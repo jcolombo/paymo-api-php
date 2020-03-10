@@ -6,7 +6,7 @@
  * .
  * MIT License
  * Copyright (c) 2020 - Joel Colombo <jc-dev@360psg.com>
- * Last Updated : 3/9/20, 11:53 PM
+ * Last Updated : 3/10/20, 1:32 PM
  * .
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -46,6 +46,11 @@ abstract class AbstractEntity
      * The valid possible operators usable in WHERE clauses when selecting lists of entities
      */
     public const VALID_OPERATORS = ['=', '!=', '<', '<=', '>', '>=', 'like', 'not like', 'in', 'not in', 'range'];
+
+    /**
+     * An array of resource keys that do not have an ID to be checked when fetching / updating
+     */
+    public const SKIP_ID_FETCH_UPDATE = ['company'];
 
     /**
      * A temporary boolean used automatically by the class to allow population of readonly props during API responses

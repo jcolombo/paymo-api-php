@@ -6,7 +6,7 @@
  * .
  * MIT License
  * Copyright (c) 2020 - Joel Colombo <jc-dev@360psg.com>
- * Last Updated : 3/10/20, 12:20 AM
+ * Last Updated : 3/10/20, 1:32 PM
  * .
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -360,11 +360,12 @@ abstract class AbstractResource extends AbstractEntity
      */
     public function fetch($id = null, $fields = [])
     {
+        $checkId = in_array($this::API_ENTITY, static::SKIP_ID_FETCH_UPDATE) ? false : true;
         if (is_null($id) && isset($this->props['id'])) {
             $id = $this->props['id'];
         }
         $label = $this::LABEL;
-        if (!$id || (int) $id < 1) {
+        if ($checkId && (!$id || (int) $id < 1)) {
             throw new Exception("Attempted to fetch a {$label} without an id being passed");
         }
         if (!is_array($fields)) {
@@ -376,6 +377,7 @@ abstract class AbstractResource extends AbstractEntity
             throw new Exception("{$label} attempted to fetch new data while it had dirty fields and protection is enabled.");
         }
         [$select, $include] = static::cleanupForRequest($this::API_ENTITY, $fields);
+        if (!$checkId) { $id = -1; }
         $response = Request::fetch($this->connection, $this::API_PATH, $id,
                                    ['select' => $select, 'include' => $include]);
         if ($response->result) {
@@ -457,7 +459,7 @@ abstract class AbstractResource extends AbstractEntity
                     $this->__set($k, $v);
                 }
             }
-            if ($objectId) {
+            if ($objectId && $objectId > 0) {
                 $this->props['id'] = $objectId;
             } // Force ID to match the passed ID
             $this->hydrationMode = false;
@@ -565,6 +567,7 @@ abstract class AbstractResource extends AbstractEntity
      */
     public function update($options = [])
     {
+        $checkId = in_array($this::API_ENTITY, static::SKIP_ID_FETCH_UPDATE) ? false : true;
         $updateRelations = $options['updateRelations'] ?? true;
         $createRelations = $options['createRelations'] ?? true;
         $id = 0;
@@ -572,7 +575,7 @@ abstract class AbstractResource extends AbstractEntity
             $id = $this->props['id'];
         }
         $label = $this::LABEL;
-        if (!$id || (int) $id < 1) {
+        if ($checkId && (!$id || (int) $id < 1)) {
             throw new Exception("Attempted to update a {$label} without an id being set");
         }
         $originalUpdate = $this->props;
@@ -589,6 +592,7 @@ abstract class AbstractResource extends AbstractEntity
         // Compare fields in $update with $this->loaded and only post the dirty items
         // If $updateRelations, attempt to update() all children, true=ALL, number 1+ depth of relations
         if (count($update) > 0) {
+            if (!$checkId) { $id = -1; }
             $response = Request::update($this->connection, $this::API_PATH, $id, $update);
             if ($response->result) {
                 $this->_hydrate($response->result);
@@ -608,6 +612,7 @@ abstract class AbstractResource extends AbstractEntity
      *                         resources have a single image prop
      *
      * @throws Exception
+     * @throws GuzzleException
      * @return $this Return the object itself for chaining
      * @todo Refactor to allow for image uploads in the same call (means sending the data combined with file in
      *       multipart body)
@@ -615,10 +620,19 @@ abstract class AbstractResource extends AbstractEntity
     public function upload($filepath, $propKey = 'image')
     {
         // If there is no valid prop for the image, ignore this method
-        if (static::isProp(static::API_ENTITY, $propKey)) {
-            // @todo Make a POST request multipart form call with a local file image to upload to the entity
+        if (!$this->id || $this->id < 1) {
+            throw new Exception("File [{$propKey}] for {static::API_ENTITY} requires an ID be set for uploading");
         }
-
+        if (!file_exists($filepath)) {
+            throw new Exception("Upload file not found at {$filepath}");
+        }
+        if (static::isProp(static::API_ENTITY, $propKey)) {
+            $response = Request::upload($this->connection, static::API_PATH, $this->id, $propKey, $filepath);
+            if ($response->result) {
+                $this->_hydrate($response->result);
+                // @todo Populate a response summary of data on the object (like if it came from live, timestamp of request, timestamp of data retrieved/cache, etc
+            }
+        }
         return $this;
     }
 

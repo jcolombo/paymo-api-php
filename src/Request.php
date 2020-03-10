@@ -6,7 +6,7 @@
  * .
  * MIT License
  * Copyright (c) 2020 - Joel Colombo <jc-dev@360psg.com>
- * Last Updated : 3/9/20, 7:40 PM
+ * Last Updated : 3/10/20, 1:32 PM
  * .
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -61,10 +61,15 @@ class Request
      *                           excess response properties (in case API response added more than was requested)
      *
      * @throws GuzzleException
+     * @throws Exception
      * @return RequestResponse Returns an object on success or a boolean FALSE on failure to load entity
      */
     public static function fetch(Paymo $connection, $objectKey, $id, $options)
     {
+        $checkId = $id === -1 ? false : true;
+        if ($checkId && (int) $id < 1) {
+            throw new Exception("Attempting to fetch a resource without an integer ID");
+        }
         $scrub = !!$options['scrub'];
         $select = $options['select'] ?? [];
         $include = $options['include'] ?? [];
@@ -76,12 +81,12 @@ class Request
         }
         $request = new RequestAbstraction();
         $request->method = 'GET';
-        $request->resourceUrl = $objectKey."/{$id}";
+        $request->resourceUrl = $id > 0 ? $objectKey."/{$id}" : $objectKey;
         $request->include = Request::compileIncludeParameter(array_merge($select, $include));
         $response = $connection->execute($request);
         if ($response->body && $response->validBody($objectKey, 1)) {
-            $response->result = $scrub ? self::scrubBody($response->body->$objectKey[0], $select,
-                                                         $include) : $response->body->$objectKey[0];
+            $object = is_array($response->body->$objectKey) ? $response->body->$objectKey[0] : $response->body->$objectKey;
+            $response->result = $scrub ? self::scrubBody($object, $select, $include) : $object;
         }
 
         return $response;
@@ -180,7 +185,7 @@ class Request
      *
      * @param Paymo  $connection A valid Paymo Connection object instance
      * @param string $objectKey  The API path tacked on to connections base URL
-     * @param int    $id
+     * @param int    $id The ID of the resource to be updated
      * @param array  $data       The raw data to update the entity with ID
      *
      * @throws Exception
@@ -189,16 +194,45 @@ class Request
      */
     public static function update(Paymo $connection, $objectKey, $id, $data)
     {
-        if ((int) $id < 1) {
+        $checkId = $id === -1 ? false : true;
+        if ($checkId && (int) $id < 1) {
             throw new Exception("Attempting to update a resource without an integer ID");
         }
         $request = new RequestAbstraction();
         $request->method = 'PUT';
-        $request->resourceUrl = $objectKey.'/'.$id;
+        $request->resourceUrl = $id > 0 ? $objectKey.'/'.$id : $objectKey;
         $request->data = $data;
         $response = $connection->execute($request);
         if ($response->body && $response->validBody($objectKey, 1)) {
-            $response->result = $response->body->$objectKey[0];
+            $response->result = is_array($response->body->$objectKey) ? $response->body->$objectKey[0] : $response->body->$objectKey;
+        }
+
+        return $response;
+    }
+
+    /**
+     * @param Paymo  $connection A valid Paymo Connection object instance
+     * @param string $objectKey  The API path tacked on to connections base URL
+     * @param int    $id The ID of the resource to attach the file to
+     * @param   string    $prop The property on the resource to attach the file to
+     * @param   string    $filepath An existing full file path that can be read by PHP on the filesystem
+     *
+     * @throws Exception
+     * @throws GuzzleException
+     * @return RequestResponse
+     */
+    public static function upload(Paymo $connection, $objectKey, $id, $prop, $filepath) {
+        $checkId = $id === -1 ? false : true;
+        if ($checkId && (int) $id < 1) {
+            throw new Exception("Attempting to upload a file without an integer ID");
+        }
+        $request = new RequestAbstraction();
+        $request->method = 'POST';
+        $request->resourceUrl = $id > 0 ? $objectKey.'/'.$id : $objectKey;
+        $request->files = [$prop=>$filepath];
+        $response = $connection->execute($request);
+        if ($response->body && $response->validBody($objectKey, 1)) {
+            $response->result = is_array($response->body->$objectKey) ? $response->body->$objectKey[0] : $response->body->$objectKey;
         }
 
         return $response;
