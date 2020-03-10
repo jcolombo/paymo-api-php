@@ -77,6 +77,7 @@ class RequestAbstraction
 
     /**
      * A possible array of files to upload to the entity. Array[propKey=>filePath]. Must use POST method when set.
+     *
      * @var string | null
      */
     public $files = null;

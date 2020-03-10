@@ -185,7 +185,7 @@ class Request
      *
      * @param Paymo  $connection A valid Paymo Connection object instance
      * @param string $objectKey  The API path tacked on to connections base URL
-     * @param int    $id The ID of the resource to be updated
+     * @param int    $id         The ID of the resource to be updated
      * @param array  $data       The raw data to update the entity with ID
      *
      * @throws Exception
@@ -213,15 +213,16 @@ class Request
     /**
      * @param Paymo  $connection A valid Paymo Connection object instance
      * @param string $objectKey  The API path tacked on to connections base URL
-     * @param int    $id The ID of the resource to attach the file to
-     * @param   string    $prop The property on the resource to attach the file to
-     * @param   string    $filepath An existing full file path that can be read by PHP on the filesystem
+     * @param int    $id         The ID of the resource to attach the file to
+     * @param string $prop       The property on the resource to attach the file to
+     * @param string $filepath   An existing full file path that can be read by PHP on the filesystem
      *
      * @throws Exception
      * @throws GuzzleException
      * @return RequestResponse
      */
-    public static function upload(Paymo $connection, $objectKey, $id, $prop, $filepath) {
+    public static function upload(Paymo $connection, $objectKey, $id, $prop, $filepath)
+    {
         $checkId = $id === -1 ? false : true;
         if ($checkId && (int) $id < 1) {
             throw new Exception("Attempting to upload a file without an integer ID");
@@ -229,7 +230,7 @@ class Request
         $request = new RequestAbstraction();
         $request->method = 'POST';
         $request->resourceUrl = $id > 0 ? $objectKey.'/'.$id : $objectKey;
-        $request->files = [$prop=>$filepath];
+        $request->files = [$prop => $filepath];
         $response = $connection->execute($request);
         if ($response->body && $response->validBody($objectKey, 1)) {
             $response->result = is_array($response->body->$objectKey) ? $response->body->$objectKey[0] : $response->body->$objectKey;

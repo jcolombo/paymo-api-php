@@ -300,7 +300,8 @@ abstract class AbstractEntity
                     }
                     if ($primitive === 'string' && !is_null($enum) && is_array($enum)) {
                         if (!in_array($v, $enum)) {
-                            return "WHERE: {$entityKey} property value \"{$v}\" does not meet list restrictions of allowed options [".implode(', ', $enum)."]";
+                            return "WHERE: {$entityKey} property value \"{$v}\" does not meet list restrictions of allowed options [".implode(', ',
+                                                                                                                                              $enum)."]";
                         }
                     }
                     if (!$valid_value) {
@@ -314,7 +315,8 @@ abstract class AbstractEntity
                 $valid = gettype($value) == $primitive;
                 if ($primitive === 'string' && !is_null($enum) && is_array($enum)) {
                     if (!in_array($value, $enum)) {
-                        return "WHERE: {$entityKey} property value \"{$value}\" does not meet list restrictions of allowed options [".implode(', ', $enum)."]";
+                        return "WHERE: {$entityKey} property value \"{$value}\" does not meet list restrictions of allowed options [".implode(', ',
+                                                                                                                                              $enum)."]";
                     }
                 }
                 if (!$valid) {

@@ -29,6 +29,7 @@
 
 namespace Jcolombo\PaymoApiPhp\Entity\Resource;
 
+use Exception;
 use Jcolombo\PaymoApiPhp\Entity\AbstractResource;
 
 /**
@@ -125,17 +126,19 @@ class Company extends AbstractResource
      */
     public const WHERE_OPERATIONS = [];
 
-    public static function list($paymo=null) {
-        throw new \Exception("Company is a single resource and does not have a collection list");
+    public static function list($paymo = null)
+    {
+        throw new Exception("Company is a single resource and does not have a collection list");
     }
 
-    public function create($options=[]) {
-        throw new \Exception("Company is a single resource and cannot be created via the API");
+    public function create($options = [])
+    {
+        throw new Exception("Company is a single resource and cannot be created via the API");
     }
 
     public function delete()
     {
-        throw new \Exception("Company cannot be deleted through the API");
+        throw new Exception("Company cannot be deleted through the API");
     }
 
 }

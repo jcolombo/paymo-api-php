@@ -105,8 +105,8 @@ class RequestResponse
     public function validBody($key, $minQty = 0)
     {
         return $this->success && $this->body && (
-            (is_array($this->body->$key) && count($this->body->$key) >= $minQty)
-            || is_object($this->body->$key)
-        );
+                (is_array($this->body->$key) && count($this->body->$key) >= $minQty)
+                || is_object($this->body->$key)
+            );
     }
 }

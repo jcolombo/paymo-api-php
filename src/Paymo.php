@@ -197,11 +197,12 @@ class Paymo
             $props['json'] = $request->data;
         }
         if ($request->method == 'POST' && !is_null($request->files) && is_array($request->files) && count($request->files) > 0) {
-            $props['multipart'] = []; $openFiles = [];
-            foreach($request->files as $k => $file) {
+            $props['multipart'] = [];
+            $openFiles = [];
+            foreach ($request->files as $k => $file) {
                 $fHandler = fopen($file, 'r');
                 $openFiles[] = $fHandler;
-                $props['multipart'][] = ['name'=>$k, 'contents'=>$fHandler];
+                $props['multipart'][] = ['name' => $k, 'contents' => $fHandler];
             }
         }
 

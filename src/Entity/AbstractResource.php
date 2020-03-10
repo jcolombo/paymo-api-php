@@ -377,7 +377,9 @@ abstract class AbstractResource extends AbstractEntity
             throw new Exception("{$label} attempted to fetch new data while it had dirty fields and protection is enabled.");
         }
         [$select, $include] = static::cleanupForRequest($this::API_ENTITY, $fields);
-        if (!$checkId) { $id = -1; }
+        if (!$checkId) {
+            $id = -1;
+        }
         $response = Request::fetch($this->connection, $this::API_PATH, $id,
                                    ['select' => $select, 'include' => $include]);
         if ($response->result) {
@@ -592,7 +594,9 @@ abstract class AbstractResource extends AbstractEntity
         // Compare fields in $update with $this->loaded and only post the dirty items
         // If $updateRelations, attempt to update() all children, true=ALL, number 1+ depth of relations
         if (count($update) > 0) {
-            if (!$checkId) { $id = -1; }
+            if (!$checkId) {
+                $id = -1;
+            }
             $response = Request::update($this->connection, $this::API_PATH, $id, $update);
             if ($response->result) {
                 $this->_hydrate($response->result);
@@ -633,6 +637,7 @@ abstract class AbstractResource extends AbstractEntity
                 // @todo Populate a response summary of data on the object (like if it came from live, timestamp of request, timestamp of data retrieved/cache, etc
             }
         }
+
         return $this;
     }
 
