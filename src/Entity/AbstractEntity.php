@@ -6,7 +6,7 @@
  * .
  * MIT License
  * Copyright (c) 2020 - Joel Colombo <jc-dev@360psg.com>
- * Last Updated : 3/9/20, 6:20 PM
+ * Last Updated : 3/9/20, 11:53 PM
  * .
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -45,7 +45,7 @@ abstract class AbstractEntity
     /**
      * The valid possible operators usable in WHERE clauses when selecting lists of entities
      */
-    public const VALID_OPERATORS = ['=', '!=', '<', '<=', '>', '>=', 'like', 'not like', 'in', 'not_in', 'range'];
+    public const VALID_OPERATORS = ['=', '!=', '<', '<=', '>', '>=', 'like', 'not like', 'in', 'not in', 'range'];
 
     /**
      * A temporary boolean used automatically by the class to allow population of readonly props during API responses
@@ -261,9 +261,10 @@ abstract class AbstractEntity
         $entityResource = EntityMap::resource($key);
         $ops = !!$entityResource ? $entityResource::INCLUDE_TYPES : [];
         $isProp = self::isProp($key, $prop);
+        $whereValid = true;
 
         if ($isProp && !isset($ops[$prop])) {
-            return true;
+            $whereValid = true;
         }
         if ($isProp && array_key_exists($prop, $ops) && is_null($ops[$prop])) {
             return "Property {$entityKey} cannot be used in WHERE conditions";
@@ -274,12 +275,15 @@ abstract class AbstractEntity
             if (!$allowed || $notAllowed) {
                 return "Property {$entityKey} cannot use the {$operator} operator.";
             }
-
-            return true;
         }
-        if (!is_null($value)) {
+        if ($whereValid && !is_null($value)) {
             $datatype = static::getPropertyDataType($key, $prop);
             $primitive = Converter::getPrimitiveType($datatype);
+            $enum = null;
+            if (strpos($primitive, 'string::') === 0) {
+                $enum = explode('|', array_pop(explode('::', $primitive, 2)));
+                $primitive = 'string';
+            }
             if (in_array($operator, ['in', 'not in', 'range'])) {
                 if (!is_array($value)) {
                     $value = [$value];
@@ -289,6 +293,11 @@ abstract class AbstractEntity
                     if ($primitive == 'timestamp') {
                         $valid_value = gettype($v) == 'string' || gettype($v) == 'integer';
                     }
+                    if ($primitive === 'string' && !is_null($enum) && is_array($enum)) {
+                        if (!in_array($v, $enum)) {
+                            return "WHERE: {$entityKey} property value \"{$v}\" does not meet list restrictions of allowed options [".implode(', ', $enum)."]";
+                        }
+                    }
                     if (!$valid_value) {
                         return "WHERE: {$entityKey} {$operator} expects array[{$primitive}] but got ".gettype($v).": {$v}";
                     }
@@ -297,8 +306,13 @@ abstract class AbstractEntity
                 if (is_array($value)) {
                     return "WHERE: {$entityKey} {$operator} received an array, expected {$primitive}";
                 }
-                $valid = gettype($value) != $primitive;
-                if ($valid) {
+                $valid = gettype($value) == $primitive;
+                if ($primitive === 'string' && !is_null($enum) && is_array($enum)) {
+                    if (!in_array($value, $enum)) {
+                        return "WHERE: {$entityKey} property value \"{$value}\" does not meet list restrictions of allowed options [".implode(', ', $enum)."]";
+                    }
+                }
+                if (!$valid) {
                     if ($primitive == 'timestamp') {
                         $valid = gettype($value) == 'string' || gettype($value) == 'integer';
                     }

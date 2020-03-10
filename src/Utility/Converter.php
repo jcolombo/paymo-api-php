@@ -6,7 +6,7 @@
  * .
  * MIT License
  * Copyright (c) 2020 - Joel Colombo <jc-dev@360psg.com>
- * Last Updated : 3/9/20, 3:51 PM
+ * Last Updated : 3/9/20, 11:53 PM
  * .
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -51,12 +51,19 @@ class Converter
      */
     public static function getPrimitiveType($type)
     {
+        $values = [];
         if (strpos($type, 'resource:') !== false) {
             $type = 'integer';
         } elseif (strpos($type, 'collection:') !== false) {
             $type = 'integer';
+        } elseif (strpos($type, 'enum:') !== false) {
+            $values = explode('|', array_pop(explode(':', $type, 2)));
+            $type = 'enum';
         }
         switch ($type) {
+            case('enum'):
+                $cast = 'string::'.implode('|', $values);
+                break;
             case('datetime'):
                 $cast = 'timestamp';
                 break;
@@ -139,6 +146,8 @@ class Converter
             $type = 'integer';
         } elseif (strpos($type, 'collection:') !== false) {
             $type = 'integer';
+        } elseif (strpos($type, 'enum:') !== false) {
+            $type = 'text';
         }
         switch ($type) {
             case('datetime'):

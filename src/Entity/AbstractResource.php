@@ -6,7 +6,7 @@
  * .
  * MIT License
  * Copyright (c) 2020 - Joel Colombo <jc-dev@360psg.com>
- * Last Updated : 3/9/20, 7:40 PM
+ * Last Updated : 3/9/20, 11:53 PM
  * .
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -101,7 +101,8 @@ abstract class AbstractResource extends AbstractEntity
             $missingConstants = [];
             foreach (self::REQUIRED_CONSTANTS as $k) {
                 $classname = get_class($this);
-                if (!constant($classname.'::'.$k)) {
+                $constVal = constant($classname.'::'.$k);
+                if (!is_array($constVal) && !$constVal) {
                     $missingConstants[] = $k;
                 }
             }
