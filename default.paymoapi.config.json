@@ -45,6 +45,16 @@
         "type": "collection",
         "resourceKey": "projectstatus",
         "collection": true
+      },
+      "user": {
+        "type": "resource",
+        "resource": "Jcolombo\\PaymoApiPhp\\Entity\\Resource\\User",
+        "collectionKey": "users"
+      },
+      "users": {
+        "type": "collection",
+        "resourceKey": "user",
+        "collection": true
       }
     }
   }
