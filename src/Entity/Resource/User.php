@@ -6,7 +6,7 @@
  * .
  * MIT License
  * Copyright (c) 2020 - Joel Colombo <jc-dev@360psg.com>
- * Last Updated : 3/9/20, 11:53 PM
+ * Last Updated : 3/10/20, 12:20 AM
  * .
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -64,6 +64,7 @@ class User extends AbstractResource
      */
     public const READONLY = [
         'id', 'created_on', 'updated_on',
+        'image', // Manually process with the ->upload method
         'image_thumb_large', 'image_thumb_medium', 'image_thumb_small',
         'is_online', 'annual_leave_days_number', 'has_submitted_review',
         'menu_shortcut', 'user_hash', 'workflows', 'additional_privileges'
@@ -128,7 +129,7 @@ class User extends AbstractResource
      * Allowable operators for list() calls on specific properties
      */
     public const WHERE_OPERATIONS = [
-        'type'=>['=','!=','in','not in']
+        'type' => ['=', '!=', 'in', 'not in']
     ];
 
 }

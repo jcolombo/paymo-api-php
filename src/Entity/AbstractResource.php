@@ -6,7 +6,7 @@
  * .
  * MIT License
  * Copyright (c) 2020 - Joel Colombo <jc-dev@360psg.com>
- * Last Updated : 3/9/20, 11:53 PM
+ * Last Updated : 3/10/20, 12:20 AM
  * .
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -595,6 +595,28 @@ abstract class AbstractResource extends AbstractEntity
                 // @todo Populate a response summary of data on the object (like if it came from live, timestamp of request, timestamp of data retrieved/cache, etc
             }
             // Traverse and save hydrated children if modified as well
+        }
+
+        return $this;
+    }
+
+    /**
+     * Upload a file to an existing entity.
+     *
+     * @param string $filepath The path to the local file for uploading (usually is the the tmp uploaded path)
+     * @param string $propKey  The property key for the upload file to be attached to. Defaults to 'image' as most
+     *                         resources have a single image prop
+     *
+     * @throws Exception
+     * @return $this Return the object itself for chaining
+     * @todo Refactor to allow for image uploads in the same call (means sending the data combined with file in
+     *       multipart body)
+     */
+    public function upload($filepath, $propKey = 'image')
+    {
+        // If there is no valid prop for the image, ignore this method
+        if (static::isProp(static::API_ENTITY, $propKey)) {
+            // @todo Make a POST request multipart form call with a local file image to upload to the entity
         }
 
         return $this;
