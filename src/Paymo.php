@@ -6,7 +6,7 @@
  * .
  * MIT License
  * Copyright (c) 2020 - Joel Colombo <jc-dev@360psg.com>
- * Last Updated : 3/11/20, 3:49 PM
+ * Last Updated : 3/11/20, 5:26 PM
  * .
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -245,7 +245,7 @@ class Paymo
             $response->result = null;
             $response->success = ($response->responseCode >= 200 && $response->responseCode <= 299);
 
-            var_dump($response); exit;
+            //var_dump($response); exit;
 
             // @todo Handle errors with error handler class and configuration rules
             // Responses: (To be handled by an error handler)
