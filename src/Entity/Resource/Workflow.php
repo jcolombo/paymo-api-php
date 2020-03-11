@@ -6,7 +6,7 @@
  * .
  * MIT License
  * Copyright (c) 2020 - Joel Colombo <jc-dev@360psg.com>
- * Last Updated : 3/11/20, 5:26 PM
+ * Last Updated : 3/11/20, 6:50 PM
  * .
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -78,7 +78,8 @@ class Workflow extends AbstractResource
         'created_on' => 'datetime',
         'updated_on' => 'datetime',
         'name' => 'text',
-        'is_default' => 'boolean'
+        'is_default' => 'boolean',
+        // 'workflowstatuses_order' => 'collection:workflowstatus' // DOES NOT REORDER STATUSES. Can you? No documentation.
         // Undocumented Props        
     ];
 
