@@ -17,6 +17,9 @@
     "4xx": ["log","echo","exit"],
     "5xx": ["log","echo","exit"]
   },
+  "randomColor": {
+    "workflowstatus": true
+  },
   "classMap": {
     "defaultCollection": "Jcolombo\\PaymoApiPhp\\Entity\\Collection\\EntityCollection",
     "entity": {
@@ -82,6 +85,16 @@
       "workflows": {
         "type": "collection",
         "resourceKey": "workflow",
+        "collection": true
+      },
+      "workflowstatus": {
+        "type": "resource",
+        "resource": "Jcolombo\\PaymoApiPhp\\Entity\\Resource\\WorkflowStatus",
+        "collectionKey": "workflowstatuses"
+      },
+      "workflowstatuses": {
+        "type": "collection",
+        "resourceKey": "workflowstatus",
         "collection": true
       }
     }
