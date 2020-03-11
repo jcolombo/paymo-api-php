@@ -6,7 +6,7 @@
  * .
  * MIT License
  * Copyright (c) 2020 - Joel Colombo <jc-dev@360psg.com>
- * Last Updated : 3/11/20, 6:51 PM
+ * Last Updated : 3/11/20, 6:52 PM
  * .
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -229,14 +229,16 @@ class Paymo
             $response->responseReason = $guzzleResponse->getReasonPhrase();
             $response->headers = $guzzleResponse->getHeaders();
             $response->body = json_decode($guzzleResponse->getBody()->getContents());
-        } catch(ServerException | ClientException $e) {
+        } catch (ServerException | ClientException $e) {
             $msg = $e->getResponse()->getBody()->getContents() ?? null;
-            if ($msg) { $msg = json_decode($msg)->message; }
+            if ($msg) {
+                $msg = json_decode($msg)->message;
+            }
             $response->body = null;
             $response->responseCode = $e->getCode();
             $response->responseReason = $msg;
             $response->headers = null;
-        } catch(GuzzleException $e) {
+        } catch (GuzzleException $e) {
             // @todo Handle better with an error handler class
             echo "UNKNOWN EXCEPTION...\n";
             var_dump($e);
@@ -271,8 +273,6 @@ class Paymo
 
             return $response;
         }
-
-
 
 //        foreach ($response->getHeaders() as $name => $values) {
 //            echo $name . ': ' . implode(', ', $values) . "\r\n";

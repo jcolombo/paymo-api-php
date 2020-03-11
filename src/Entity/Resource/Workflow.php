@@ -6,7 +6,7 @@
  * .
  * MIT License
  * Copyright (c) 2020 - Joel Colombo <jc-dev@360psg.com>
- * Last Updated : 3/11/20, 6:50 PM
+ * Last Updated : 3/11/20, 6:52 PM
  * .
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -68,7 +68,7 @@ class Workflow extends AbstractResource
      * Valid relationship entities that can be loaded or attached to this entity
      * TRUE = the include is a list of multiple entities. FALSE = a single object is associated with the entity
      */
-    public const INCLUDE_TYPES = ['workflowstatuses'=>true];
+    public const INCLUDE_TYPES = ['workflowstatuses' => true];
 
     /**
      * Valid property types returned from the API json object for this entity

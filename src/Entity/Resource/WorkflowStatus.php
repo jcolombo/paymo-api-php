@@ -59,7 +59,7 @@ class WorkflowStatus extends AbstractResource
     /**
      * The minimum properties that must be set in order to create a new entry via the API
      */
-    public const REQUIRED_CREATE = ['name','color','workflow_id'];
+    public const REQUIRED_CREATE = ['name', 'color', 'workflow_id'];
 
     /**
      * The object properties that can only be read and never set, updated, or added to the creation
@@ -70,7 +70,7 @@ class WorkflowStatus extends AbstractResource
      * Valid relationship entities that can be loaded or attached to this entity
      * TRUE = the include is a list of multiple entities. FALSE = a single object is associated with the entity
      */
-    public const INCLUDE_TYPES = ['workflow'=>false];
+    public const INCLUDE_TYPES = ['workflow' => false];
 
     /**
      * Valid property types returned from the API json object for this entity
@@ -95,17 +95,22 @@ class WorkflowStatus extends AbstractResource
 
     /**
      * Perform standard create after checking the color requirement is met (and possibly set by config)
-     *
      * {@inheritDoc}
      */
-    public function create($options=[]) {
+    public function create($options = [])
+    {
         $config = Configuration::get('randomColor.workflowstatus');
         if (!$this->color && $config) {
-            if (is_array($config)) { $this->color = Color::byName($config[0],$config[1]); }
-            elseif (is_string($config)) { Color::byName($config); }
-            else { $this->color = Color::random(); }
+            if (is_array($config)) {
+                $this->color = Color::byName($config[0], $config[1]);
+            } elseif (is_string($config)) {
+                Color::byName($config);
+            } else {
+                $this->color = Color::random();
+            }
         }
+
         return parent::create($options);
     }
-    
+
 }

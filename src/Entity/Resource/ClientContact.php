@@ -6,7 +6,7 @@
  * .
  * MIT License
  * Copyright (c) 2020 - Joel Colombo <jc-dev@360psg.com>
- * Last Updated : 3/11/20, 3:49 PM
+ * Last Updated : 3/11/20, 6:52 PM
  * .
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -57,7 +57,7 @@ class ClientContact extends AbstractResource
     /**
      * The minimum properties that must be set in order to create a new entry via the API
      */
-    public const REQUIRED_CREATE = ['name','client_id'];
+    public const REQUIRED_CREATE = ['name', 'client_id'];
 
     /**
      * The object properties that can only be read and never set, updated, or added to the creation
@@ -74,7 +74,7 @@ class ClientContact extends AbstractResource
      * Valid relationship entities that can be loaded or attached to this entity
      * TRUE = the include is a list of multiple entities. FALSE = a single object is associated with the entity
      */
-    public const INCLUDE_TYPES = ['client'=>false];
+    public const INCLUDE_TYPES = ['client' => false];
 
     /**
      * Valid property types returned from the API json object for this entity
