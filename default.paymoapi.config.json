@@ -13,6 +13,10 @@
     "logging": false
   },
   "devMode": false,
+  "errors": {
+    "4xx": ["log","echo","exit"],
+    "5xx": ["log","echo","exit"]
+  },
   "classMap": {
     "defaultCollection": "Jcolombo\\PaymoApiPhp\\Entity\\Collection\\EntityCollection",
     "entity": {
@@ -59,6 +63,16 @@
       "company": {
         "type": "resource",
         "resource": "Jcolombo\\PaymoApiPhp\\Entity\\Resource\\Company"
+      },
+      "clientcontact": {
+        "type": "resource",
+        "resource": "Jcolombo\\PaymoApiPhp\\Entity\\Resource\\ClientContact",
+        "collectionKey": "clientcontacts"
+      },
+      "clientcontacts": {
+        "type": "collection",
+        "resourceKey": "clientcontact",
+        "collection": true
       }
     }
   }

@@ -6,7 +6,7 @@
  * .
  * MIT License
  * Copyright (c) 2020 - Joel Colombo <jc-dev@360psg.com>
- * Last Updated : 3/10/20, 1:32 PM
+ * Last Updated : 3/11/20, 3:49 PM
  * .
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -32,6 +32,7 @@ namespace Jcolombo\PaymoApiPhp;
 use Exception;
 use GuzzleHttp\Client as PaymoGuzzleClient;
 use GuzzleHttp\Exception\GuzzleException;
+use GuzzleHttp\Exception\ServerException;
 use Jcolombo\PaymoApiPhp\Utility\RequestAbstraction;
 use Jcolombo\PaymoApiPhp\Utility\RequestResponse;
 
@@ -149,6 +150,8 @@ class Paymo
                 // Throw an Exception if it fails
                 //self::$connections[$apiKey]->executeRequest('account', 'head');
             }
+            // @todo Implement logging if its enabled in the connection, special logging class will handle what to do
+            // Mixed with configuration options to customize logging rules and format, etc.
         }
 
         return self::$connections[$apiKey];
@@ -166,6 +169,9 @@ class Paymo
      */
     public function execute(RequestAbstraction $request, $options = [])
     {
+        // @todo Handle CACHE checks and return here before making an actual API call
+        // Response will include extra info about the cache from the loaded version of the cache
+
         $client = new PaymoGuzzleClient([
                                             'base_uri' => $this->connectionUrl,
                                             'timeout' => 5.0,
@@ -173,7 +179,6 @@ class Paymo
         $headers = [];
         $props = [];
         $query = [];
-        $data = [];
 
         // Define Headers to send to Paymo
         $headers[] = ['Accept' => 'application/json'];
@@ -187,6 +192,7 @@ class Paymo
         if (!is_null($request->include)) {
             $query['include'] = $request->include;
         }
+        //$query['include'] = 'fake';
         if (!is_null($request->where)) {
             $query['where'] = $request->where;
         }
@@ -210,33 +216,51 @@ class Paymo
 
         // Run the GUZZLE request to the live API
         $request_start = microtime(true);
-        $guzzleResponse = $client->request(
-            $request->method,
-            $request->resourceUrl,
-            $props
-        );
-        $request_end = microtime(true);
-        $request_time = $request_end - $request_start;
-        //var_dump($request_time); exit;
-        if (isset($openFiles) && is_array($openFiles)) {
-            foreach ($openFiles as $fH) {
-                fclose($fH);
+        try {
+            $response = new RequestResponse();
+            $response->request = $request;
+            $guzzleResponse = $client->request(
+                $request->method,
+                $request->resourceUrl,
+                $props
+            );
+            $response->responseCode = $guzzleResponse->getStatusCode();
+            $response->responseReason = $guzzleResponse->getReasonPhrase();
+            $response->headers = $guzzleResponse->getHeaders();
+            $response->body = json_decode($guzzleResponse->getBody()->getContents());
+        } catch(ServerException $e) {
+            $response->body = null;
+            $response->responseCode = $e->getCode();
+            $response->responseReason = $e->getMessage();
+            $response->headers = null;
+        } finally {
+            $request_end = microtime(true);
+            $request_time = $request_end - $request_start;
+            if (isset($openFiles) && is_array($openFiles)) {
+                foreach ($openFiles as $fH) {
+                    fclose($fH);
+                }
             }
+            $response->responseTime = $request_time;
+            $response->result = null;
+            $response->success = ($response->responseCode >= 200 && $response->responseCode <= 299);
+
+            var_dump($response); exit;
+
+            // @todo Handle errors with error handler class and configuration rules
+            // Responses: (To be handled by an error handler)
+            // 200 ALL GOOD
+            // 429 TOO MANY REQUESTS (sends header for "Retry-After" # of seconds to wait)
+            // 500 Server Error (probably a bad invalid/formatted request)
+            // Handle ERRORS before sending back the response
+
+            // @todo If cache is enabled, store the cache with the request cachekey and the response
+            // Response will include an extra parameter related to the cache info itself
+
+            return $response;
         }
 
-        // Construct normalized response for returning to the caller for processing (REQUEST object)
-        $response = new RequestResponse();
-        $response->request = $request;
-        $response->responseCode = $guzzleResponse->getStatusCode();
-        $response->responseReason = $guzzleResponse->getReasonPhrase();
-        $response->responseTime = $request_time;
-        $response->body = json_decode($guzzleResponse->getBody()->getContents());
-        $response->result = null;
-        $response->success = ($response->responseCode >= 200 && $response->responseCode <= 299);
 
-        //var_dump($response); exit;
-
-        return $response;
 
 //        foreach ($response->getHeaders() as $name => $values) {
 //            echo $name . ': ' . implode(', ', $values) . "\r\n";
