@@ -6,7 +6,7 @@
  * .
  * MIT License
  * Copyright (c) 2020 - Joel Colombo <jc-dev@360psg.com>
- * Last Updated : 3/11/20, 5:26 PM
+ * Last Updated : 3/11/20, 6:51 PM
  * .
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -31,6 +31,7 @@ namespace Jcolombo\PaymoApiPhp;
 
 use Exception;
 use GuzzleHttp\Client as PaymoGuzzleClient;
+use GuzzleHttp\Exception\ClientException;
 use GuzzleHttp\Exception\GuzzleException;
 use GuzzleHttp\Exception\ServerException;
 use Jcolombo\PaymoApiPhp\Utility\RequestAbstraction;
@@ -228,11 +229,18 @@ class Paymo
             $response->responseReason = $guzzleResponse->getReasonPhrase();
             $response->headers = $guzzleResponse->getHeaders();
             $response->body = json_decode($guzzleResponse->getBody()->getContents());
-        } catch(ServerException $e) {
+        } catch(ServerException | ClientException $e) {
+            $msg = $e->getResponse()->getBody()->getContents() ?? null;
+            if ($msg) { $msg = json_decode($msg)->message; }
             $response->body = null;
             $response->responseCode = $e->getCode();
-            $response->responseReason = $e->getMessage();
+            $response->responseReason = $msg;
             $response->headers = null;
+        } catch(GuzzleException $e) {
+            // @todo Handle better with an error handler class
+            echo "UNKNOWN EXCEPTION...\n";
+            var_dump($e);
+            exit;
         } finally {
             $request_end = microtime(true);
             $request_time = $request_end - $request_start;
@@ -256,6 +264,10 @@ class Paymo
 
             // @todo If cache is enabled, store the cache with the request cachekey and the response
             // Response will include an extra parameter related to the cache info itself
+
+            if (!$response->success) {
+                var_dump($response);
+            }
 
             return $response;
         }
