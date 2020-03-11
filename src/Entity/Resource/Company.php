@@ -6,7 +6,7 @@
  * .
  * MIT License
  * Copyright (c) 2020 - Joel Colombo <jc-dev@360psg.com>
- * Last Updated : 3/10/20, 1:32 PM
+ * Last Updated : 3/11/20, 1:32 PM
  * .
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -126,16 +126,38 @@ class Company extends AbstractResource
      */
     public const WHERE_OPERATIONS = [];
 
+    /**
+     * Cannot be called on this resource
+     *
+     * @param null $paymo {@see AbstractResource::list()}
+     *
+     * @throws Exception
+     * @return void
+     */
     public static function list($paymo = null)
     {
         throw new Exception("Company is a single resource and does not have a collection list");
     }
 
+    /**
+     * Cannot be called on this resource
+     *
+     * @param array $options {@see AbstractResource::create()}
+     *
+     * @throws Exception
+     * @return void
+     */
     public function create($options = [])
     {
         throw new Exception("Company is a single resource and cannot be created via the API");
     }
 
+    /**
+     * Cannot be called on this resource
+     *
+     * @throws Exception
+     * @return void
+     */
     public function delete()
     {
         throw new Exception("Company cannot be deleted through the API");

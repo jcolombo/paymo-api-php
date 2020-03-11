@@ -6,7 +6,7 @@
  * .
  * MIT License
  * Copyright (c) 2020 - Joel Colombo <jc-dev@360psg.com>
- * Last Updated : 3/11/20, 1:03 PM
+ * Last Updated : 3/11/20, 1:32 PM
  * .
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -631,9 +631,10 @@ abstract class AbstractResource extends AbstractEntity
      * Upload an image to an existing entity.
      *
      * @param string $filepath  The path to the local file for uploading (usually is the the tmp uploaded path)
-     * @param string $propKey   The property key for the upload file to be attached to. Also used as the mutlipart upload variable name for
-     *                          requests
-     * @param bool   $isPropKey Determine if this is supposed to be checked against the prop list on the resource or not
+     * @param string $propKey   The property key for the upload file to be attached to. Also used as the mutlipart
+     *                          upload variable name for requests
+     * @param bool   $isPropKey Determine if this is supposed to be checked against the prop list on the resource or
+     *                          not
      *
      * @throws GuzzleException
      * @throws Exception
@@ -666,8 +667,8 @@ abstract class AbstractResource extends AbstractEntity
      *
      * @param string $filepath  The path to the local file for uploading (usually is the the tmp uploaded path)
      * @param string $propKey   The property key for the upload file to be attached to. Defaults to 'file' as most
-     *                          resources add files via the 'file' key. Also used as the mutlipart upload variable name for
-     *                          requests
+     *                          resources add files via the 'file' key. Also used as the mutlipart upload variable name
+     *                          for requests
      * @param bool   $isPropKey Determine if this is supposed to be checked against the prop list on the resource or
      *                          not
      *
