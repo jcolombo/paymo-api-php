@@ -73,6 +73,16 @@
         "type": "collection",
         "resourceKey": "clientcontact",
         "collection": true
+      },
+      "workflow": {
+        "type": "resource",
+        "resource": "Jcolombo\\PaymoApiPhp\\Entity\\Resource\\Workflow",
+        "collectionKey": "workflows"
+      },
+      "workflows": {
+        "type": "collection",
+        "resourceKey": "workflow",
+        "collection": true
       }
     }
   }
