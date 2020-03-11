@@ -6,7 +6,7 @@
  * .
  * MIT License
  * Copyright (c) 2020 - Joel Colombo <jc-dev@360psg.com>
- * Last Updated : 3/11/20, 6:52 PM
+ * Last Updated : 3/11/20, 6:54 PM
  * .
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -104,7 +104,7 @@ class WorkflowStatus extends AbstractResource
             if (is_array($config)) {
                 $this->color = Color::byName($config[0], $config[1]);
             } elseif (is_string($config)) {
-                Color::byName($config);
+                $this->color = Color::byName($config);
             } else {
                 $this->color = Color::random();
             }
