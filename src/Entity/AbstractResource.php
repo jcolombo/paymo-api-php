@@ -6,7 +6,7 @@
  * .
  * MIT License
  * Copyright (c) 2020 - Joel Colombo <jc-dev@360psg.com>
- * Last Updated : 3/10/20, 1:32 PM
+ * Last Updated : 3/11/20, 1:03 PM
  * .
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -609,19 +609,39 @@ abstract class AbstractResource extends AbstractEntity
     }
 
     /**
-     * Upload a file to an existing entity.
+     * Upload an image to an entity
      *
-     * @param string $filepath The path to the local file for uploading (usually is the the tmp uploaded path)
-     * @param string $propKey  The property key for the upload file to be attached to. Defaults to 'image' as most
-     *                         resources have a single image prop
+     * @param string $filepath  The path to the local file for uploading (usually is the the tmp uploaded path)
+     * @param string $propKey   The property key for the upload file to be attached to. Defaults to 'image' as most
+     *                          resources have a single image prop. Also used as the mutlipart upload variable name for
+     *                          requests
+     * @param bool   $isPropKey Determine if this is supposed to be checked against the prop list on the resource or
+     *                          not
      *
-     * @throws Exception
      * @throws GuzzleException
+     * @throws Exception
+     * @return $this Return the object itself for chaining
+     */
+    public function image($filepath, $propKey = 'image', $isPropKey = true)
+    {
+        return $this->upload($filepath, $propKey, $isPropKey);
+    }
+
+    /**
+     * Upload an image to an existing entity.
+     *
+     * @param string $filepath  The path to the local file for uploading (usually is the the tmp uploaded path)
+     * @param string $propKey   The property key for the upload file to be attached to. Also used as the mutlipart upload variable name for
+     *                          requests
+     * @param bool   $isPropKey Determine if this is supposed to be checked against the prop list on the resource or not
+     *
+     * @throws GuzzleException
+     * @throws Exception
      * @return $this Return the object itself for chaining
      * @todo Refactor to allow for image uploads in the same call (means sending the data combined with file in
      *       multipart body)
      */
-    public function upload($filepath, $propKey = 'image')
+    protected function upload($filepath, $propKey, $isPropKey = true)
     {
         // If there is no valid prop for the image, ignore this method
         if (!$this->id || $this->id < 1) {
@@ -630,7 +650,7 @@ abstract class AbstractResource extends AbstractEntity
         if (!file_exists($filepath)) {
             throw new Exception("Upload file not found at {$filepath}");
         }
-        if (static::isProp(static::API_ENTITY, $propKey)) {
+        if (!$isPropKey || static::isProp(static::API_ENTITY, $propKey)) {
             $response = Request::upload($this->connection, static::API_PATH, $this->id, $propKey, $filepath);
             if ($response->result) {
                 $this->_hydrate($response->result);
@@ -639,6 +659,25 @@ abstract class AbstractResource extends AbstractEntity
         }
 
         return $this;
+    }
+
+    /**
+     * Upload a file attached to an entity
+     *
+     * @param string $filepath  The path to the local file for uploading (usually is the the tmp uploaded path)
+     * @param string $propKey   The property key for the upload file to be attached to. Defaults to 'file' as most
+     *                          resources add files via the 'file' key. Also used as the mutlipart upload variable name for
+     *                          requests
+     * @param bool   $isPropKey Determine if this is supposed to be checked against the prop list on the resource or
+     *                          not
+     *
+     * @throws GuzzleException
+     * @throws Exception
+     * @return $this Return the object itself for chaining
+     */
+    public function file($filepath, $propKey = 'file', $isPropKey = false)
+    {
+        return $this->upload($filepath, $propKey, $isPropKey);
     }
 
     /**

@@ -6,7 +6,7 @@
  * .
  * MIT License
  * Copyright (c) 2020 - Joel Colombo <jc-dev@360psg.com>
- * Last Updated : 3/9/20, 3:51 PM
+ * Last Updated : 3/11/20, 1:03 PM
  * .
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -96,8 +96,9 @@ class ProjectStatus extends AbstractResource
      * Allowable operators for list() calls on specific properties
      */
     public const WHERE_OPERATIONS = [
-        'active' => ['='],
+        'active' => ['=', '!='],
         'name' => ['=', 'like', 'not like'],
-        'readonly' => ['=']
+        'readonly' => ['=', '!='],
+        '!seq' => ['like', 'not like']
     ];
 }

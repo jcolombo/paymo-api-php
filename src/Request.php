@@ -6,7 +6,7 @@
  * .
  * MIT License
  * Copyright (c) 2020 - Joel Colombo <jc-dev@360psg.com>
- * Last Updated : 3/10/20, 1:32 PM
+ * Last Updated : 3/11/20, 1:03 PM
  * .
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -29,8 +29,8 @@
 
 namespace Jcolombo\PaymoApiPhp;
 
+use Exception;
 use Adbar\Dot;
-use Braintree\Exception;
 use GuzzleHttp\Exception\GuzzleException;
 use Jcolombo\PaymoApiPhp\Utility\Converter;
 use Jcolombo\PaymoApiPhp\Utility\RequestAbstraction;

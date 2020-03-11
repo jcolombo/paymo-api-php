@@ -6,7 +6,7 @@
  * .
  * MIT License
  * Copyright (c) 2020 - Joel Colombo <jc-dev@360psg.com>
- * Last Updated : 3/10/20, 12:20 AM
+ * Last Updated : 3/11/20, 1:03 PM
  * .
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -66,7 +66,7 @@ class Client extends AbstractResource
         'created_on',
         'updated_on',
         'active',
-        'image', // Manually process with the ->upload method
+        'image', // Manually process with the ->image method
         'image_thumb_large',
         'image_thumb_medium',
         'image_thumb_small',
