@@ -6,7 +6,7 @@
  * .
  * MIT License
  * Copyright (c) 2020 - Joel Colombo <jc-dev@360psg.com>
- * Last Updated : 3/11/20, 11:09 PM
+ * Last Updated : 3/11/20, 11:39 PM
  * .
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -82,6 +82,7 @@ class Converter
             case('email'):
             case('url'):
             case('text'):
+            case('html'):
             default:
                 $cast = 'string';
                 break;
@@ -171,6 +172,7 @@ class Converter
             case('email'):
             case('url'):
             case('text'):
+            case('html'):
             default:
                 $cast = is_array($value) ? 'string[]' : 'string';
                 break;
