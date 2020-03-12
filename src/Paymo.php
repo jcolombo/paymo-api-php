@@ -6,7 +6,7 @@
  * .
  * MIT License
  * Copyright (c) 2020 - Joel Colombo <jc-dev@360psg.com>
- * Last Updated : 3/11/20, 11:40 PM
+ * Last Updated : 3/12/20, 9:13 AM
  * .
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -175,7 +175,7 @@ class Paymo
 
         $client = new PaymoGuzzleClient([
                                             'base_uri' => $this->connectionUrl,
-                                            'timeout' => 5.0,
+                                            'timeout' => Configuration::get('connection.timeout'),
                                         ]);
         $headers = [];
         $props = [];
