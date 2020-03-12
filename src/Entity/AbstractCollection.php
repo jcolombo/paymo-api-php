@@ -6,7 +6,7 @@
  * .
  * MIT License
  * Copyright (c) 2020 - Joel Colombo <jc-dev@360psg.com>
- * Last Updated : 3/9/20, 6:20 PM
+ * Last Updated : 3/12/20, 8:36 AM
  * .
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -156,6 +156,21 @@ abstract class AbstractCollection extends AbstractEntity implements Iterator, Ar
         }
 
         return $this;
+    }
+
+    /**
+     * Return an array of stdClass objects that are also flattened using the same options cascaded to each
+     *
+     * @param array $options {@see AbstractResource::flatten()}
+     *
+     * @return stdClass[]
+     */
+    public function flatten($options=[]) {
+        $data = [];
+        foreach ($this->data as $k => $resource) {
+            $data[(int) $k] = $resource->flatten($options);
+        }
+        return $data;
     }
 
     /**

@@ -6,7 +6,7 @@
  * .
  * MIT License
  * Copyright (c) 2020 - Joel Colombo <jc-dev@360psg.com>
- * Last Updated : 3/11/20, 1:32 PM
+ * Last Updated : 3/12/20, 8:36 AM
  * .
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -36,6 +36,7 @@ use Jcolombo\PaymoApiPhp\Entity\Collection\EntityCollection;
 use Jcolombo\PaymoApiPhp\Paymo;
 use Jcolombo\PaymoApiPhp\Request;
 use Jcolombo\PaymoApiPhp\Utility\RequestCondition;
+use stdClass;
 
 /**
  * Class AbstractResource
@@ -732,6 +733,29 @@ abstract class AbstractResource extends AbstractEntity
         }
 
         return $values;
+    }
+
+    /**
+     * Return a stdClass object of the properties and its included relations (configured with options)
+     *
+     * @param array $options An associative array of setting options for how to flatten the responses.
+     *                       [stripNull] : boolean [false] = Will only return props that are not set to null
+     *
+     * @return stdClass
+     */
+    public function flatten($options=[]) {
+        $stripNull = $options['stripNull'] ?? false;
+        $data = $this->props;
+        if ($stripNull) {
+            foreach($data as $i => $d) {
+                if (is_null($d)) { unset($data[$i]); }
+            }
+        }
+        $response = json_decode(json_encode($data));
+        foreach ($this->included as $k => $list) {
+            $response->$k = $list->flatten($options);
+        }
+        return $response;
     }
 
     /**
