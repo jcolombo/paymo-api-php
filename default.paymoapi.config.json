@@ -96,6 +96,16 @@
         "type": "collection",
         "resourceKey": "workflowstatus",
         "collection": true
+      },
+      "milestone": {
+        "type": "resource",
+        "resource": "Jcolombo\\PaymoApiPhp\\Entity\\Resource\\Milestone",
+        "collectionKey": "milestones"
+      },
+      "milestones": {
+        "type": "collection",
+        "resourceKey": "milestone",
+        "collection": true
       }
     }
   }
