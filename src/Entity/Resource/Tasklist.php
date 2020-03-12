@@ -6,7 +6,7 @@
  * .
  * MIT License
  * Copyright (c) 2020 - Joel Colombo <jc-dev@360psg.com>
- * Last Updated : 3/12/20, 12:11 AM
+ * Last Updated : 3/12/20, 12:12 AM
  * .
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -57,12 +57,12 @@ class Tasklist extends AbstractResource
     /**
      * The minimum properties that must be set in order to create a new entry via the API
      */
-    public const REQUIRED_CREATE = ['name','project_id'];
+    public const REQUIRED_CREATE = ['name', 'project_id'];
 
     /**
      * The object properties that can only be read and never set, updated, or added to the creation
      */
-    public const READONLY = ['id', 'created_on', 'updated_on','project_id','tasks_count'];
+    public const READONLY = ['id', 'created_on', 'updated_on', 'project_id', 'tasks_count'];
 
     /**
      * Valid relationship entities that can be loaded or attached to this entity
@@ -70,8 +70,8 @@ class Tasklist extends AbstractResource
      */
     public const INCLUDE_TYPES = [
         'project' => false,
-        'miletstone'=>false,
-        'tasks'=>true
+        'miletstone' => false,
+        'tasks' => true
     ];
 
     /**
@@ -86,7 +86,7 @@ class Tasklist extends AbstractResource
         'project_id' => 'resource:project',
         'milestone_id' => 'resource:milestone',
         // Undocumented Props
-        'tasks_count' => ['incomplete'=>'integer','completed'=>'integer']
+        'tasks_count' => ['incomplete' => 'integer', 'completed' => 'integer']
     ];
 
     /**
