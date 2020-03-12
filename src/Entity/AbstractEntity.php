@@ -6,7 +6,7 @@
  * .
  * MIT License
  * Copyright (c) 2020 - Joel Colombo <jc-dev@360psg.com>
- * Last Updated : 3/12/20, 8:57 AM
+ * Last Updated : 3/12/20, 3:54 PM
  * .
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -518,7 +518,7 @@ abstract class AbstractEntity
      * @throws Exception
      * @return bool Returns true if all elements pass. Throws exception on any failures.
      */
-    public function validateFetch($fields = [], $where = [])
+    protected function validateFetch($fields = [], $where = [])
     {
         if (!is_array($fields)) {
             throw new Exception("Field list must be an array of fields to be selected");

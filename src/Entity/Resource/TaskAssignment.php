@@ -6,7 +6,7 @@
  * .
  * MIT License
  * Copyright (c) 2020 - Joel Colombo <jc-dev@360psg.com>
- * Last Updated : 3/12/20, 1:44 PM
+ * Last Updated : 3/12/20, 3:54 PM
  * .
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -63,7 +63,7 @@ class TaskAssignment extends AbstractResource
     /**
      * The object properties that can only be read and never set, updated, or added to the creation
      */
-    public const READONLY = ['id', 'created_on', 'updated_on'];
+    public const READONLY = ['id', 'created_on', 'updated_on', 'tracked_time', 'task_complete'];
 
     /**
      * An array of properties from the readonly array that can be set during creation but not after
@@ -88,8 +88,10 @@ class TaskAssignment extends AbstractResource
         'created_on' => 'datetime',
         'updated_on' => 'datetime',
         'user_id' => 'resource:user',
-        'task_id' => 'resource:task'
-        // Undocumented Props        
+        'task_id' => 'resource:task',
+        // Undocumented Props
+        'tracked_time' => 'integer',
+        'task_complete' => 'boolean' // This is not documented anywhere but can be used in WHERE calls
     ];
 
     /**

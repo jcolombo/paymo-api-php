@@ -146,7 +146,7 @@
       "userstasks": {
         "type": "collection",
         "resourceKey": "usertask",
-        "collection": true
+        "collection": "Jcolombo\\PaymoApiPhp\\Entity\\Collection\\TaskAssignmentCollection"
       }
     }
   }
