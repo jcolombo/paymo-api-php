@@ -2,7 +2,8 @@
   "connection": {
     "url": "https://app.paymoapp.com/api/",
     "defaultName": "PaymoApiConnection",
-    "verify": false
+    "verify": false,
+    "timeout": 5.0
   },
   "path": {
     "cache": null,
@@ -125,6 +126,16 @@
       "tasklists": {
         "type": "collection",
         "resourceKey": "tasklist",
+        "collection": true
+      },
+      "task": {
+        "type": "resource",
+        "resource": "Jcolombo\\PaymoApiPhp\\Entity\\Resource\\Task",
+        "collectionKey": "tasks"
+      },
+      "tasks": {
+        "type": "collection",
+        "resourceKey": "task",
         "collection": true
       }
     }
