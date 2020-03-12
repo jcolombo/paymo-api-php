@@ -106,6 +106,16 @@
         "type": "collection",
         "resourceKey": "milestone",
         "collection": true
+      },
+      "discussion": {
+        "type": "resource",
+        "resource": "Jcolombo\\PaymoApiPhp\\Entity\\Resource\\Discussion",
+        "collectionKey": "discussions"
+      },
+      "discussions": {
+        "type": "collection",
+        "resourceKey": "discussion",
+        "collection": true
       }
     }
   }
