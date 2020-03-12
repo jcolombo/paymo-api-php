@@ -6,7 +6,7 @@
  * .
  * MIT License
  * Copyright (c) 2020 - Joel Colombo <jc-dev@360psg.com>
- * Last Updated : 3/12/20, 8:57 AM
+ * Last Updated : 3/12/20, 11:07 AM
  * .
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -62,7 +62,7 @@ class Converter
         } elseif (strpos($type, 'enum:') !== false) {
             $values = explode('|', array_pop(explode(':', $type, 2)));
             $type = 'enum';
-        }  elseif (strpos($type, 'enumInt:') !== false) {
+        } elseif (strpos($type, 'enumInt:') !== false) {
             $values = explode('|', array_pop(explode(':', $type, 2)));
             $type = 'enumInt';
         }

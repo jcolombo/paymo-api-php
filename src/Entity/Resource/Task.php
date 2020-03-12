@@ -6,7 +6,7 @@
  * .
  * MIT License
  * Copyright (c) 2020 - Joel Colombo <jc-dev@360psg.com>
- * Last Updated : 3/12/20, 9:12 AM
+ * Last Updated : 3/12/20, 11:07 AM
  * .
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -56,8 +56,9 @@ class Task extends AbstractResource
 
     /**
      * The minimum properties that must be set in order to create a new entry via the API
+     * To make an OR limit: 'propA|propB' = ONLY 1 of these. 'propA||propB' = AT LEAST 1 or more of these.
      */
-    public const REQUIRED_CREATE = ['name','tasklist_id|project_id'];
+    public const REQUIRED_CREATE = ['name', 'tasklist_id|project_id'];
 
     /**
      * The object properties that can only be read and never set, updated, or added to the creation
@@ -68,6 +69,12 @@ class Task extends AbstractResource
         'recurring_profile_id', // What is a recurring profile object? Not documented?
         'billing_type'
     ];
+
+    /**
+     * An array of properties from the readonly array that can be set during creation but not after
+     * (This array is checked so long as the resource entity DOES NOT already have an ID set)
+     */
+    public const CREATEONLY = ['project_id'];
 
     /**
      * Valid relationship entities that can be loaded or attached to this entity
@@ -93,7 +100,7 @@ class Task extends AbstractResource
         'name' => 'text',
         'code' => 'text',
         'project_id' => 'resource:project',
-        'tasklist_id' =>'resource:tasklist',
+        'tasklist_id' => 'resource:tasklist',
         'seq' => 'integer',
         'description' => 'text',
         'complete' => 'boolean',

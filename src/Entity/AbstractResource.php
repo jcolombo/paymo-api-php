@@ -6,7 +6,7 @@
  * .
  * MIT License
  * Copyright (c) 2020 - Joel Colombo <jc-dev@360psg.com>
- * Last Updated : 3/12/20, 8:36 AM
+ * Last Updated : 3/12/20, 11:07 AM
  * .
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -50,7 +50,7 @@ abstract class AbstractResource extends AbstractEntity
      * Any child classes must define the list of constants in this array
      */
     public const REQUIRED_CONSTANTS = [
-        'LABEL', 'API_PATH', 'API_ENTITY', 'REQUIRED_CREATE', 'READONLY', 'INCLUDE_TYPES', 'PROP_TYPES', 'WHERE_OPERATIONS'
+        'LABEL', 'API_PATH', 'API_ENTITY', 'REQUIRED_CREATE', 'READONLY', 'CREATEONLY', 'INCLUDE_TYPES', 'PROP_TYPES', 'WHERE_OPERATIONS'
     ];
 
     /**
@@ -519,16 +519,35 @@ abstract class AbstractResource extends AbstractEntity
         $stripReadonly = $options['stripReadonly'] ?? false;
         $cascade = $options['cascade'] ?? true;
         foreach ($this::REQUIRED_CREATE as $k) {
-            if (!isset($this->props[$k])) {
-                $label = $this::LABEL;
-                throw new Exception("Paymo: Creating a '{$label}' requires a value for '{$k}'");
+            $multiOrAllowed = strpos($k, '||') !== false;
+            if ($multiOrAllowed) {
+                $k = str_replace('||', '|', $k);
+            }
+            $orList = (strpos($k, '|') !== false) ? explode('|', $k) : null;
+            if (is_array($orList)) {
+                $found = 0;
+                foreach ($orList as $oProp) {
+                    if (isset($this->props[$oProp])) {
+                        $found++;
+                    }
+                }
+            } else {
+                $found = isset($this->props[$k]);
+            }
+            $label = $this::LABEL;
+            $propLabel = str_replace('|', ' or ', $k);
+            if (!$found) {
+                throw new Exception("Paymo: Creating a '{$label}' requires a value for '{$propLabel}'");
+            } elseif (is_array($orList) && !$multiOrAllowed && $found > 1) {
+                throw new Exception("Paymo: Creating a '{$label}' must have ONLY ONE value from this list set '{$propLabel}'. {$found} were set.");
             }
         }
         $createWith = $this->props;
         $continueCreate = true;
         if ($stripReadonly || $cancelReadonly) {
             foreach ($createWith as $p => $value) {
-                if (isset(static::READONLY[$p])) {
+                $isNewCreatable = (!$this->id && in_array($p, static::CREATEONLY));
+                if (isset(static::READONLY[$p]) && !$isNewCreatable) {
                     if ($cancelReadonly) {
                         $continueCreate = false;
                         break;
@@ -743,18 +762,22 @@ abstract class AbstractResource extends AbstractEntity
      *
      * @return stdClass
      */
-    public function flatten($options=[]) {
+    public function flatten($options = [])
+    {
         $stripNull = $options['stripNull'] ?? false;
         $data = $this->props;
         if ($stripNull) {
-            foreach($data as $i => $d) {
-                if (is_null($d)) { unset($data[$i]); }
+            foreach ($data as $i => $d) {
+                if (is_null($d)) {
+                    unset($data[$i]);
+                }
             }
         }
         $response = json_decode(json_encode($data));
         foreach ($this->included as $k => $list) {
             $response->$k = $list->flatten($options);
         }
+
         return $response;
     }
 
@@ -792,7 +815,9 @@ abstract class AbstractResource extends AbstractEntity
     public function __set($name, $value)
     {
         if ($this::isProp($this::API_ENTITY, $name)) {
-            if ($this->hydrationMode || !in_array($name, $this::READONLY)) {
+            $noIdCreateOnly = (!$this->id && in_array($name, $this::CREATEONLY));
+            $canSet = ($this->hydrationMode || !in_array($name, $this::READONLY) || $noIdCreateOnly);
+            if ($canSet) {
                 $this->props[$name] = $value;
             }
         } else {

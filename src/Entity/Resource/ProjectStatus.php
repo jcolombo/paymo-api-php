@@ -6,7 +6,7 @@
  * .
  * MIT License
  * Copyright (c) 2020 - Joel Colombo <jc-dev@360psg.com>
- * Last Updated : 3/12/20, 12:17 AM
+ * Last Updated : 3/12/20, 11:07 AM
  * .
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -68,6 +68,12 @@ class ProjectStatus extends AbstractResource
         'updated_on',
         'readonly',
     ];
+
+    /**
+     * An array of properties from the readonly array that can be set during creation but not after
+     * (This array is checked so long as the resource entity DOES NOT already have an ID set)
+     */
+    public const CREATEONLY = [];
 
     /**
      * Valid relationship entities that can be loaded or attached to this entity
