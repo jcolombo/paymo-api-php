@@ -6,7 +6,7 @@
  * .
  * MIT License
  * Copyright (c) 2020 - Joel Colombo <jc-dev@360psg.com>
- * Last Updated : 3/11/20, 6:52 PM
+ * Last Updated : 3/11/20, 11:09 PM
  * .
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -78,6 +78,7 @@ class Converter
             case('boolean'):
                 $cast = 'boolean';
                 break;
+            case('date'):
             case('email'):
             case('url'):
             case('text'):
@@ -164,6 +165,9 @@ class Converter
             case('boolean'):
                 $cast = 'boolean';
                 break;
+            case('date'):
+                $cast = is_array($value) ? 'date[]' : 'string';
+                break;
             case('email'):
             case('url'):
             case('text'):
@@ -182,6 +186,9 @@ class Converter
                     is_int($value[1]) ? $value : strtotime((string) $value[1]),
                     isset($value[2]) && is_bool($value[2]) ? $value[2] : false
                 ];
+                break;
+            case('date[]'):
+                array_walk($value, function (&$i) { $i = (string) $i; });
                 break;
             case('double[]'):
                 array_walk($value, function (&$i) { $i = (double) $i; });
