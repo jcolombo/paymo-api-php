@@ -6,7 +6,7 @@
  * .
  * MIT License
  * Copyright (c) 2020 - Joel Colombo <jc-dev@360psg.com>
- * Last Updated : 3/11/20, 11:39 PM
+ * Last Updated : 3/12/20, 12:11 AM
  * .
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -52,6 +52,9 @@ class Converter
     public static function getPrimitiveType($type)
     {
         $values = [];
+        if (is_array($type)) {
+            // @todo Handle an object type. Has keys with properties that have basic types as well
+        }
         if (strpos($type, 'resource:') !== false) {
             $type = 'integer';
         } elseif (strpos($type, 'collection:') !== false) {

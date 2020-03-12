@@ -116,6 +116,16 @@
         "type": "collection",
         "resourceKey": "discussion",
         "collection": true
+      },
+      "tasklist": {
+        "type": "resource",
+        "resource": "Jcolombo\\PaymoApiPhp\\Entity\\Resource\\Tasklist",
+        "collectionKey": "tasklists"
+      },
+      "tasklists": {
+        "type": "collection",
+        "resourceKey": "tasklist",
+        "collection": true
       }
     }
   }
