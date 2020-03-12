@@ -6,7 +6,7 @@
  * .
  * MIT License
  * Copyright (c) 2020 - Joel Colombo <jc-dev@360psg.com>
- * Last Updated : 3/10/20, 1:32 PM
+ * Last Updated : 3/12/20, 8:57 AM
  * .
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -285,7 +285,7 @@ abstract class AbstractEntity
             $datatype = static::getPropertyDataType($key, $prop);
             $primitive = Converter::getPrimitiveType($datatype);
             $enum = null;
-            if (strpos($primitive, 'string::') === 0) {
+            if (strpos($primitive, 'string::') === 0 || strpos($primitive, 'integer::') === 0) {
                 $enum = explode('|', array_pop(explode('::', $primitive, 2)));
                 $primitive = 'string';
             }
@@ -299,7 +299,7 @@ abstract class AbstractEntity
                         $valid_value = gettype($v) == 'string' || gettype($v) == 'integer';
                     }
                     if ($primitive === 'string' && !is_null($enum) && is_array($enum)) {
-                        if (!in_array($v, $enum)) {
+                        if (!in_array($v.'', $enum)) {
                             return "WHERE: {$entityKey} property value \"{$v}\" does not meet list restrictions of allowed options [".implode(', ',
                                                                                                                                               $enum)."]";
                         }
@@ -314,7 +314,7 @@ abstract class AbstractEntity
                 }
                 $valid = gettype($value) == $primitive;
                 if ($primitive === 'string' && !is_null($enum) && is_array($enum)) {
-                    if (!in_array($value, $enum)) {
+                    if (!in_array($value.'', $enum)) {
                         return "WHERE: {$entityKey} property value \"{$value}\" does not meet list restrictions of allowed options [".implode(', ',
                                                                                                                                               $enum)."]";
                     }
