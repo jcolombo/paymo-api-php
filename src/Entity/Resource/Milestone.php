@@ -6,7 +6,7 @@
  * .
  * MIT License
  * Copyright (c) 2020 - Joel Colombo <jc-dev@360psg.com>
- * Last Updated : 3/11/20, 11:09 PM
+ * Last Updated : 3/11/20, 11:10 PM
  * .
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -57,12 +57,12 @@ class Milestone extends AbstractResource
     /**
      * The minimum properties that must be set in order to create a new entry via the API
      */
-    public const REQUIRED_CREATE = ['name','project_id','due_date'];
+    public const REQUIRED_CREATE = ['name', 'project_id', 'due_date'];
 
     /**
      * The object properties that can only be read and never set, updated, or added to the creation
      */
-    public const READONLY = ['id', 'created_on', 'updated_on','reminder_sent'];
+    public const READONLY = ['id', 'created_on', 'updated_on', 'reminder_sent'];
 
     /**
      * Valid relationship entities that can be loaded or attached to this entity
