@@ -147,6 +147,16 @@
         "type": "collection",
         "resourceKey": "usertask",
         "collection": "Jcolombo\\PaymoApiPhp\\Entity\\Collection\\TaskAssignmentCollection"
+      },
+      "booking": {
+        "type": "resource",
+        "resource": "Jcolombo\\PaymoApiPhp\\Entity\\Resource\\Booking",
+        "collectionKey": "bookings"
+      },
+      "bookings": {
+        "type": "collection",
+        "resourceKey": "booking",
+        "collection": "Jcolombo\\PaymoApiPhp\\Entity\\Collection\\BookingCollection"
       }
     }
   }
