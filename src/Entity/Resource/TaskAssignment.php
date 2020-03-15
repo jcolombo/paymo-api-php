@@ -6,7 +6,7 @@
  * .
  * MIT License
  * Copyright (c) 2020 - Joel Colombo <jc-dev@360psg.com>
- * Last Updated : 3/12/20, 3:54 PM
+ * Last Updated : 3/15/20, 1:42 PM
  * .
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -58,7 +58,7 @@ class TaskAssignment extends AbstractResource
      * The minimum properties that must be set in order to create a new entry via the API
      * To make an OR limit: 'propA|propB' = ONLY 1 of these. 'propA||propB' = AT LEAST 1 or more of these.
      */
-    public const REQUIRED_CREATE = ['user_id','task_id'];
+    public const REQUIRED_CREATE = ['user_id', 'task_id'];
 
     /**
      * The object properties that can only be read and never set, updated, or added to the creation

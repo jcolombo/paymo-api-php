@@ -6,7 +6,7 @@
  * .
  * MIT License
  * Copyright (c) 2020 - Joel Colombo <jc-dev@360psg.com>
- * Last Updated : 3/12/20, 3:54 PM
+ * Last Updated : 3/15/20, 1:42 PM
  * .
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -158,13 +158,6 @@ abstract class AbstractCollection extends AbstractEntity implements Iterator, Ar
         return $this;
     }
 
-    public function sort($sortBy=[]) {
-        // @todo Add a sort by system similar to the WHERE calls that will post-process sort the list
-        // Resource::sort('prop', 'direction=ASC') calls to CollectionSort::sort(...)
-        // Add new constant SORTABLE_ON = []. If key not defined, allow. If null, not allowed.
-        //     If string, call collection method.
-    }
-
     /**
      * Check if the collection has any dirty entries or new entries that need to be created still
      *
@@ -207,6 +200,14 @@ abstract class AbstractCollection extends AbstractEntity implements Iterator, Ar
     public function clear()
     {
         $this->data = [];
+    }
+
+    public function sort($sortBy = [])
+    {
+        // @todo Add a sort by system similar to the WHERE calls that will post-process sort the list
+        // Resource::sort('prop', 'direction=ASC') calls to CollectionSort::sort(...)
+        // Add new constant SORTABLE_ON = []. If key not defined, allow. If null, not allowed.
+        //     If string, call collection method.
     }
 
     /**

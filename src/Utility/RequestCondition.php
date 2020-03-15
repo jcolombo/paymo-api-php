@@ -6,7 +6,7 @@
  * .
  * MIT License
  * Copyright (c) 2020 - Joel Colombo <jc-dev@360psg.com>
- * Last Updated : 3/12/20, 1:34 PM
+ * Last Updated : 3/15/20, 1:42 PM
  * .
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -153,7 +153,7 @@ class RequestCondition
                 $isInclude = AbstractEntity::isIncludable($entityBase, $pts[0]);
                 if (!$isInclude) {
                     throw new Exception("Attempting to limit '{$entityBase}' relation results on '{$prop}' which is not a valid include relation");
-                } elseif(!$isProp && !$isInclude) {
+                } elseif (!$isProp && !$isInclude) {
                     throw new Exception("Attempting to limit '{$entityBase}' results on '{$prop}' which is not a valid prop");
                 }
             }

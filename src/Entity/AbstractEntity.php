@@ -6,7 +6,7 @@
  * .
  * MIT License
  * Copyright (c) 2020 - Joel Colombo <jc-dev@360psg.com>
- * Last Updated : 3/12/20, 3:54 PM
+ * Last Updated : 3/15/20, 1:42 PM
  * .
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -510,6 +510,20 @@ abstract class AbstractEntity
     }
 
     /**
+     * Get all the entities settings as an associative array that can be used to clone them into a new entity
+     *
+     * @return array All the intended clone contents from this entity
+     */
+    public function getConfiguration()
+    {
+        return [
+            'connection' => $this->connection,
+            'overwriteDirtyWithRequests' => $this->overwriteDirtyWithRequests,
+            'useCacheIfAvailable' => $this->useCacheIfAvailable
+        ];
+    }
+
+    /**
      * Check the data types of the fields and where lists sent into the fetch calls of child entities
      *
      * @param string[]           $fields The list of fields to be checked as being all strings
@@ -538,20 +552,6 @@ abstract class AbstractEntity
         }
 
         return true;
-    }
-
-    /**
-     * Get all the entities settings as an associative array that can be used to clone them into a new entity
-     *
-     * @return array All the intended clone contents from this entity
-     */
-    public function getConfiguration()
-    {
-        return [
-            'connection' => $this->connection,
-            'overwriteDirtyWithRequests' => $this->overwriteDirtyWithRequests,
-            'useCacheIfAvailable' => $this->useCacheIfAvailable
-        ];
     }
 
 }

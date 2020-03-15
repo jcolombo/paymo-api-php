@@ -6,7 +6,7 @@
  * .
  * MIT License
  * Copyright (c) 2020 - Joel Colombo <jc-dev@360psg.com>
- * Last Updated : 3/12/20, 3:54 PM
+ * Last Updated : 3/15/20, 1:42 PM
  * .
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -38,18 +38,20 @@ class TaskAssignmentCollection extends EntityCollection
      * Wrap validation for fetches to insure user_id and/or task_id WHERE condition has been met
      * {@inheritDoc}
      */
-    protected function validateFetch($fields=[], $where=[]) {
+    protected function validateFetch($fields = [], $where = [])
+    {
         // @todo Find out what these do (undocumented)... 'booking_date', 'has_bookings', 'task_dates', 'task_complete'
         $needOne = ['task_id', 'user_id', 'booking_date', 'has_bookings', 'task_dates', 'task_complete'];
         $foundOne = false;
-        foreach($where as $w) {
+        foreach ($where as $w) {
             if (in_array($w->prop, $needOne)) {
                 $foundOne = true;
                 break;
             }
         }
         if (!$foundOne) {
-            throw new Exception("Task Assigment collections require at least one of the following be set as a filter : ".implode(', ', $needOne));
+            throw new Exception("Task Assigment collections require at least one of the following be set as a filter : ".implode(', ',
+                                                                                                                                 $needOne));
         }
 
         return parent::validateFetch($fields, $where);
