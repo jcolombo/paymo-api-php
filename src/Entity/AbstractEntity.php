@@ -6,7 +6,7 @@
  * .
  * MIT License
  * Copyright (c) 2020 - Joel Colombo <jc-dev@360psg.com>
- * Last Updated : 3/15/20, 1:42 PM
+ * Last Updated : 3/15/20, 11:31 PM
  * .
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -351,6 +351,10 @@ abstract class AbstractEntity
         }
 
         return null;
+    }
+
+    public static function getResponseKey($object)
+    {
     }
 
     /**

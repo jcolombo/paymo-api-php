@@ -6,7 +6,7 @@
  * .
  * MIT License
  * Copyright (c) 2020 - Joel Colombo <jc-dev@360psg.com>
- * Last Updated : 3/11/20, 1:32 PM
+ * Last Updated : 3/15/20, 11:31 PM
  * .
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -66,6 +66,7 @@ class Request
      */
     public static function fetch(Paymo $connection, $objectKey, $id, $options)
     {
+        [$pathKey, $responseKey] = static::getObjectReponseKeys($objectKey);
         $checkId = $id === -1 ? false : true;
         if ($checkId && (int) $id < 1) {
             throw new Exception("Attempting to fetch a resource without an integer ID");
@@ -81,15 +82,34 @@ class Request
         }
         $request = new RequestAbstraction();
         $request->method = 'GET';
-        $request->resourceUrl = $id > 0 ? $objectKey."/{$id}" : $objectKey;
+        $request->resourceUrl = $id > 0 ? $pathKey."/{$id}" : $pathKey;
         $request->include = Request::compileIncludeParameter(array_merge($select, $include));
         $response = $connection->execute($request);
-        if ($response->body && $response->validBody($objectKey, 1)) {
-            $object = is_array($response->body->$objectKey) ? $response->body->$objectKey[0] : $response->body->$objectKey;
+        if ($response->body && $response->validBody($responseKey, 1)) {
+            $object = is_array($response->body->$responseKey) ? $response->body->$responseKey[0] : $response->body->$responseKey;
             $response->result = $scrub ? self::scrubBody($object, $select, $include) : $object;
         }
 
         return $response;
+    }
+
+    /**
+     * Explode the object keys to check if there is an alternative response and path key
+     *
+     * @param string $key A possible object API path key. If it contains a ":" it has an alternative response path
+     *
+     * @return string[] Returns a two element array with the API path first and the object response path second
+     */
+    public static function getObjectReponseKeys($key)
+    {
+        $parts = explode(':', $key);
+        $pathKey = $responseKey = $key;
+        if (count($parts) == 2) {
+            $pathKey = $parts[0];
+            $responseKey = $parts[1];
+        }
+
+        return [$pathKey, $responseKey];
     }
 
     /**
@@ -166,13 +186,14 @@ class Request
      */
     public static function create(Paymo $connection, $objectKey, $data)
     {
+        [$pathKey, $responseKey] = static::getObjectReponseKeys($objectKey);
         $request = new RequestAbstraction();
         $request->method = 'POST';
-        $request->resourceUrl = $objectKey;
+        $request->resourceUrl = $pathKey;
         $request->data = $data;
         $response = $connection->execute($request);
-        if ($response->body && $response->validBody($objectKey, 1)) {
-            $response->result = $response->body->$objectKey[0];
+        if ($response->body && $response->validBody($responseKey, 1)) {
+            $response->result = $response->body->$responseKey[0];
         }
 
         //var_dump($response); exit;
@@ -194,17 +215,18 @@ class Request
      */
     public static function update(Paymo $connection, $objectKey, $id, $data)
     {
+        [$pathKey, $responseKey] = static::getObjectReponseKeys($objectKey);
         $checkId = $id === -1 ? false : true;
         if ($checkId && (int) $id < 1) {
             throw new Exception("Attempting to update a resource without an integer ID");
         }
         $request = new RequestAbstraction();
         $request->method = 'PUT';
-        $request->resourceUrl = $id > 0 ? $objectKey.'/'.$id : $objectKey;
+        $request->resourceUrl = $id > 0 ? $pathKey.'/'.$id : $pathKey;
         $request->data = $data;
         $response = $connection->execute($request);
-        if ($response->body && $response->validBody($objectKey, 1)) {
-            $response->result = is_array($response->body->$objectKey) ? $response->body->$objectKey[0] : $response->body->$objectKey;
+        if ($response->body && $response->validBody($responseKey, 1)) {
+            $response->result = is_array($response->body->$responseKey) ? $response->body->$responseKey[0] : $response->body->$responseKey;
         }
 
         return $response;
@@ -223,17 +245,18 @@ class Request
      */
     public static function upload(Paymo $connection, $objectKey, $id, $prop, $filepath)
     {
+        [$pathKey, $responseKey] = static::getObjectReponseKeys($objectKey);
         $checkId = $id === -1 ? false : true;
         if ($checkId && (int) $id < 1) {
             throw new Exception("Attempting to upload a file without an integer ID");
         }
         $request = new RequestAbstraction();
         $request->method = 'POST';
-        $request->resourceUrl = $id > 0 ? $objectKey.'/'.$id : $objectKey;
+        $request->resourceUrl = $id > 0 ? $pathKey.'/'.$id : $pathKey;
         $request->files = [$prop => $filepath];
         $response = $connection->execute($request);
-        if ($response->body && $response->validBody($objectKey, 1)) {
-            $response->result = is_array($response->body->$objectKey) ? $response->body->$objectKey[0] : $response->body->$objectKey;
+        if ($response->body && $response->validBody($responseKey, 1)) {
+            $response->result = is_array($response->body->$responseKey) ? $response->body->$responseKey[0] : $response->body->$responseKey;
         }
 
         return $response;
@@ -256,9 +279,10 @@ class Request
         if ((int) $id < 1) {
             throw new Exception("Attempting to delete a resource without a integer ID");
         }
+        [$pathKey, $responseKey] = static::getObjectReponseKeys($objectKey);
         $request = new RequestAbstraction();
         $request->method = 'DELETE';
-        $request->resourceUrl = $objectKey.'/'.$id;
+        $request->resourceUrl = $pathKey.'/'.$id;
 
         return $connection->execute($request);
     }
@@ -275,6 +299,7 @@ class Request
      */
     public static function list(Paymo $connection, $objectKey, $options)
     {
+        [$pathKey, $responseKey] = static::getObjectReponseKeys($objectKey);
         $scrub = !!$options['scrub'];
         $select = $options['select'] ?? [];
         $include = $options['include'] ?? [];
@@ -287,7 +312,7 @@ class Request
         }
         $request = new RequestAbstraction();
         $request->method = 'GET';
-        $request->resourceUrl = $objectKey;
+        $request->resourceUrl = $pathKey;
         $request->include = Request::compileIncludeParameter(array_merge($select, $include));
         $request->where = Request::compileWhereParameter($where);
 
@@ -296,10 +321,10 @@ class Request
 
         $response = $connection->execute($request);
 
-        if ($response->body && $response->validBody($objectKey, 0)) {
-            $response->body->$objectKey = self::postResponseFilter($response->body->$objectKey, $where);
-            $response->result = $scrub ? self::scrubBody($response->body->$objectKey, $select,
-                                                         $include) : $response->body->$objectKey;
+        if ($response->body && $response->validBody($responseKey, 0)) {
+            $response->body->$responseKey = self::postResponseFilter($response->body->$responseKey, $where);
+            $response->result = $scrub ? self::scrubBody($response->body->$responseKey, $select,
+                                                         $include) : $response->body->$responseKey;
         }
 
 //        echo "\n\nRESPONSE DUMP...\n";

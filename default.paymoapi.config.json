@@ -167,6 +167,56 @@
         "type": "collection",
         "resourceKey": "entry",
         "collection": true
+      },
+      "projecttemplate": {
+        "type": "resource",
+        "resource": "Jcolombo\\PaymoApiPhp\\Entity\\Resource\\ProjectTemplate",
+        "collectionKey": "projecttemplates"
+      },
+      "projecttemplates": {
+        "type": "collection",
+        "resourceKey": "projecttemplate",
+        "collection": true
+      },
+      "projecttemplatestasklist": {
+        "type": "resource",
+        "resource": "Jcolombo\\PaymoApiPhp\\Entity\\Resource\\ProjectTemplateTasklist",
+        "collectionKey": "projecttemplatestasklists"
+      },
+      "projecttemplatestasklists": {
+        "type": "collection",
+        "resourceKey": "projecttemplatestasklist",
+        "collection": true
+      },
+      "projecttemplatestask": {
+        "type": "resource",
+        "resource": "Jcolombo\\PaymoApiPhp\\Entity\\Resource\\ProjectTemplateTask",
+        "collectionKey": "projecttemplatestasks"
+      },
+      "projecttemplatestasks": {
+        "type": "collection",
+        "resourceKey": "projecttemplatestask",
+        "collection": true
+      },
+      "projecttemplatetasklist": {
+        "type": "resource",
+        "resource": "Jcolombo\\PaymoApiPhp\\Entity\\Resource\\ProjectTemplateTasklist",
+        "collectionKey": "projecttemplatetasklists"
+      },
+      "projecttemplatetasklists": {
+        "type": "collection",
+        "resourceKey": "projecttemplatetasklist",
+        "collection": true
+      },
+      "projecttemplatetask": {
+        "type": "resource",
+        "resource": "Jcolombo\\PaymoApiPhp\\Entity\\Resource\\ProjectTemplateTask",
+        "collectionKey": "projecttemplatetasks"
+      },
+      "projecttemplatetasks": {
+        "type": "collection",
+        "resourceKey": "projecttemplatetask",
+        "collection": true
       }
     }
   }

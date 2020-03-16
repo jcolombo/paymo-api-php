@@ -6,7 +6,7 @@
  * .
  * MIT License
  * Copyright (c) 2020 - Joel Colombo <jc-dev@360psg.com>
- * Last Updated : 3/15/20, 8:11 PM
+ * Last Updated : 3/15/20, 11:31 PM
  * .
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -52,6 +52,11 @@ abstract class AbstractResource extends AbstractEntity
     public const REQUIRED_CONSTANTS = [
         'LABEL', 'API_PATH', 'API_ENTITY', 'REQUIRED_CREATE', 'READONLY', 'CREATEONLY', 'INCLUDE_TYPES', 'PROP_TYPES', 'WHERE_OPERATIONS'
     ];
+
+    /**
+     * Default value to override the responding API object property to process. NULL unless defined by the child classes
+     */
+    public const API_RESPONSE_KEY = null;
 
     /**
      * The current values for the defined props for this instance of the resource
@@ -260,7 +265,8 @@ abstract class AbstractResource extends AbstractEntity
             $label = $this::LABEL;
             throw new Exception("Attempted to delete a {$label} without an id being passed");
         }
-        $response = Request::delete($this->connection, $this::API_PATH, $id);
+        $respKey = $this::API_RESPONSE_KEY ? ':'.$this::API_RESPONSE_KEY : '';
+        $response = Request::delete($this->connection, $this::API_PATH.$respKey, $id);
         if ($response && $response->success) {
             $this->clear();
             // @todo Populate a response summary of data on the object (like if it came from live, timestamp of request, timestamp of data retrieved/cache, etc
@@ -381,7 +387,8 @@ abstract class AbstractResource extends AbstractEntity
         if (!$checkId) {
             $id = -1;
         }
-        $response = Request::fetch($this->connection, $this::API_PATH, $id,
+        $respKey = $this::API_RESPONSE_KEY ? ':'.$this::API_RESPONSE_KEY : '';
+        $response = Request::fetch($this->connection, $this::API_PATH.$respKey, $id,
                                    ['select' => $select, 'include' => $include]);
         if ($response->result) {
             $this->_hydrate($response->result, $id);
@@ -547,7 +554,8 @@ abstract class AbstractResource extends AbstractEntity
         // @todo Validate all the properties being sent match their valid datatypes as defined in the class requirements
         // Only create this object if it DOES NOT have an id set
         if ($continueCreate && !isset($createWith['id']) || $createWith['id'] < 1) {
-            $response = Request::create($this->connection, $this::API_PATH, $createWith);
+            $respKey = $this::API_RESPONSE_KEY ? ':'.$this::API_RESPONSE_KEY : '';
+            $response = Request::create($this->connection, $this::API_PATH.$respKey, $createWith);
             if ($response->result) {
                 $this->_hydrate($response->result);
                 // @todo Populate a response summary of data on the object (like if it came from live, timestamp of request, timestamp of data retrieved/cache, etc
@@ -651,7 +659,8 @@ abstract class AbstractResource extends AbstractEntity
             if (!$checkId) {
                 $id = -1;
             }
-            $response = Request::update($this->connection, $this::API_PATH, $id, $update);
+            $respKey = $this::API_RESPONSE_KEY ? ':'.$this::API_RESPONSE_KEY : '';
+            $response = Request::update($this->connection, $this::API_PATH.$respKey, $id, $update);
             if ($response->result) {
                 $this->_hydrate($response->result);
                 // @todo Populate a response summary of data on the object (like if it came from live, timestamp of request, timestamp of data retrieved/cache, etc
@@ -706,7 +715,8 @@ abstract class AbstractResource extends AbstractEntity
             throw new Exception("Upload file not found at {$filepath}");
         }
         if (!$isPropKey || static::isProp(static::API_ENTITY, $propKey)) {
-            $response = Request::upload($this->connection, static::API_PATH, $this->id, $propKey, $filepath);
+            $respKey = static::API_RESPONSE_KEY ? ':'.static::API_RESPONSE_KEY : '';
+            $response = Request::upload($this->connection, static::API_PATH.$respKey, $this->id, $propKey, $filepath);
             if ($response->result) {
                 $this->_hydrate($response->result);
                 // @todo Populate a response summary of data on the object (like if it came from live, timestamp of request, timestamp of data retrieved/cache, etc

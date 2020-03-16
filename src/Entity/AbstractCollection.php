@@ -6,7 +6,7 @@
  * .
  * MIT License
  * Copyright (c) 2020 - Joel Colombo <jc-dev@360psg.com>
- * Last Updated : 3/15/20, 1:42 PM
+ * Last Updated : 3/15/20, 11:31 PM
  * .
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -147,8 +147,9 @@ abstract class AbstractCollection extends AbstractEntity implements Iterator, Ar
             $label = $resClass::LABEL;
             throw new Exception("{$label} attempted to fetch new data while it had dirty entities and protection is enabled.");
         }
+        $respKey = $resClass::API_RESPONSE_KEY ? ':'.$resClass::API_RESPONSE_KEY : '';
         [$select, $include, $where] = static::cleanupForRequest($resClass::API_ENTITY, $fields, $where);
-        $response = Request::list($this->connection, $resClass::API_PATH,
+        $response = Request::list($this->connection, $resClass::API_PATH.$respKey,
                                   ['select' => $select, 'include' => $include, 'where' => $where]);
         if ($response->result) {
             $this->_hydrate($response->result);
