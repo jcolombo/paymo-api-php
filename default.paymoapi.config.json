@@ -157,6 +157,16 @@
         "type": "collection",
         "resourceKey": "booking",
         "collection": "Jcolombo\\PaymoApiPhp\\Entity\\Collection\\BookingCollection"
+      },
+      "entry": {
+        "type": "resource",
+        "resource": "Jcolombo\\PaymoApiPhp\\Entity\\Resource\\TimeEntry",
+        "collectionKey": "entries"
+      },
+      "entries": {
+        "type": "collection",
+        "resourceKey": "entry",
+        "collection": true
       }
     }
   }

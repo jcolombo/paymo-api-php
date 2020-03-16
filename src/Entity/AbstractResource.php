@@ -6,7 +6,7 @@
  * .
  * MIT License
  * Copyright (c) 2020 - Joel Colombo <jc-dev@360psg.com>
- * Last Updated : 3/12/20, 11:07 AM
+ * Last Updated : 3/15/20, 8:06 PM
  * .
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -518,28 +518,16 @@ abstract class AbstractResource extends AbstractEntity
         $cancelReadonly = $options['cancelReadonly'] ?? true;
         $stripReadonly = $options['stripReadonly'] ?? false;
         $cascade = $options['cascade'] ?? true;
+        $label = $this::LABEL;
         foreach ($this::REQUIRED_CREATE as $k) {
-            $multiOrAllowed = strpos($k, '||') !== false;
-            if ($multiOrAllowed) {
-                $k = str_replace('||', '|', $k);
-            }
-            $orList = (strpos($k, '|') !== false) ? explode('|', $k) : null;
-            if (is_array($orList)) {
-                $found = 0;
-                foreach ($orList as $oProp) {
-                    if (isset($this->props[$oProp])) {
-                        $found++;
-                    }
+            $success = $this->_validateCreateRequirement($k);
+            if (!$success) {
+                $propLabel = str_replace('||', ' OR ', $k);
+                $propLabel = str_replace('|', ' or ', $propLabel);
+                if (strpos($k, '&') !== false) {
+                    $propLabel = str_replace('&', ' & ', $propLabel);
                 }
-            } else {
-                $found = isset($this->props[$k]);
-            }
-            $label = $this::LABEL;
-            $propLabel = str_replace('|', ' or ', $k);
-            if (!$found) {
-                throw new Exception("Paymo: Creating a '{$label}' requires a value for '{$propLabel}'");
-            } elseif (is_array($orList) && !$multiOrAllowed && $found > 1) {
-                throw new Exception("Paymo: Creating a '{$label}' must have ONLY ONE value from this list set '{$propLabel}'. {$found} were set.");
+                throw new Exception("Paymo: Creating a '{$label}' requires value for {$propLabel}");
             }
         }
         $createWith = $this->props;
@@ -571,6 +559,52 @@ abstract class AbstractResource extends AbstractEntity
         }
 
         return $this;
+    }
+
+    protected function _validateCreateRequirement($key)
+    {
+        $success = false;
+        if (is_string($key)) {
+            if (strpos($key, '||') !== false) {
+                $pts = explode('||', $key);
+                $xor = 0;
+                foreach ($pts as $oK) {
+                    if ($this->_validateCreateRequirement($oK)) {
+                        $xor++;
+                    }
+                }
+
+                return $xor===1;
+            } elseif (strpos($key, '|') !== false) {
+                $pts = explode('|', $key);
+                foreach ($pts as $oK) {
+                    if ($this->_validateCreateRequirement($oK)) {
+                        return true;
+                    }
+                }
+
+                return false;
+            } elseif (strpos($key, '&') !== false) {
+                $pts = explode('&', $key);
+                $success = true;
+                foreach ($pts as $aK) {
+                    $success = $success && $this->_validateCreateRequirement($aK);
+                }
+
+                return $success;
+            } else {
+                return isset($this->props[$key]);
+            }
+        } elseif (is_array($key)) {
+            $success = true;
+            foreach ($key as $aK) {
+                $success = $success && $this->_validateCreateRequirement($aK);
+            }
+
+            return $success;
+        }
+
+        return $success;
     }
 
     /**

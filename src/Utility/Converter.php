@@ -6,7 +6,7 @@
  * .
  * MIT License
  * Copyright (c) 2020 - Joel Colombo <jc-dev@360psg.com>
- * Last Updated : 3/12/20, 11:07 AM
+ * Last Updated : 3/15/20, 8:06 PM
  * .
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -87,6 +87,7 @@ class Converter
             case('boolean'):
                 $cast = 'boolean';
                 break;
+            case('datetime[]'):
             case('date'):
             case('email'):
             case('url'):
@@ -121,7 +122,8 @@ class Converter
                     break;
                 case('in'):
                 case('not in'):
-                    return "{$w->prop} {$operator} ({$value})";
+                    $v = is_array($value) ? "{$value[0]},{$value[1]}" : $value;
+                    return "{$w->prop} {$operator} ({$v})";
                     break;
                 case('like'):
                 case('not like'):
@@ -163,6 +165,9 @@ class Converter
             $type = 'integer';
         }
         switch ($type) {
+            case('datetime[]'):
+                $cast = is_array($value) ? 'datetime[]' : 'datetime';
+                break;
             case('datetime'):
                 $cast = is_array($value) ? 'timestamp[]' : 'timestamp';
                 break;
@@ -211,6 +216,7 @@ class Converter
                 array_walk($value, function (&$i) { $i = (int) $i; });
                 $value = implode(',', $value);
                 break;
+            case('datetime[]'):
             case('string[]'):
                 array_walk($value, function (&$i) { $i = (string) $i; });
                 $value = '"'.implode('","', $value).'"';
@@ -224,12 +230,12 @@ class Converter
             case('integer'):
                 $value = (int) $value;
                 break;
+            case('datetime'):
             case('string'):
             default:
                 $value = (string) $value;
                 break;
         }
-
         return $value;
     }
 
