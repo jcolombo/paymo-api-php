@@ -6,7 +6,7 @@
  * .
  * MIT License
  * Copyright (c) 2020 - Joel Colombo <jc-dev@360psg.com>
- * Last Updated : 3/15/20, 8:06 PM
+ * Last Updated : 3/15/20, 8:11 PM
  * .
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -51,7 +51,7 @@ class TimeEntryCollection extends EntityCollection
         }
         if (!$foundOne) {
             throw new Exception("Time Entry collections require at least one of the following be set as a filter : ".implode(', ',
-                                                                                                                                 $needOne));
+                                                                                                                             $needOne));
         }
 
         return parent::validateFetch($fields, $where);

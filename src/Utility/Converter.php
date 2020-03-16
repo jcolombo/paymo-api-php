@@ -6,7 +6,7 @@
  * .
  * MIT License
  * Copyright (c) 2020 - Joel Colombo <jc-dev@360psg.com>
- * Last Updated : 3/15/20, 8:06 PM
+ * Last Updated : 3/15/20, 8:11 PM
  * .
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -123,6 +123,7 @@ class Converter
                 case('in'):
                 case('not in'):
                     $v = is_array($value) ? "{$value[0]},{$value[1]}" : $value;
+
                     return "{$w->prop} {$operator} ({$v})";
                     break;
                 case('like'):
@@ -236,6 +237,7 @@ class Converter
                 $value = (string) $value;
                 break;
         }
+
         return $value;
     }
 
