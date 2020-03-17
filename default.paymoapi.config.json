@@ -15,8 +15,16 @@
   },
   "devMode": false,
   "errors": {
-    "4xx": ["log","echo","exit"],
-    "5xx": ["log","echo","exit"]
+    "4xx": [
+      "log",
+      "echo",
+      "exit"
+    ],
+    "5xx": [
+      "log",
+      "echo",
+      "exit"
+    ]
   },
   "randomColor": {
     "workflowstatus": true
@@ -236,6 +244,16 @@
       "comments": {
         "type": "collection",
         "resourceKey": "comment",
+        "collection": true
+      },
+      "expense": {
+        "type": "resource",
+        "resource": "Jcolombo\\PaymoApiPhp\\Entity\\Resource\\Expense",
+        "collectionKey": "expenses"
+      },
+      "expenses": {
+        "type": "collection",
+        "resourceKey": "expense",
         "collection": true
       }
     }
