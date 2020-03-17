@@ -265,6 +265,16 @@
         "type": "collection",
         "resourceKey": "estimatetemplatesgallery",
         "collection": true
+      },
+      "estimatetemplate": {
+        "type": "resource",
+        "resource": "Jcolombo\\PaymoApiPhp\\Entity\\Resource\\EstimateTemplate",
+        "collectionKey": "estimatetemplates"
+      },
+      "estimatetemplates": {
+        "type": "collection",
+        "resourceKey": "estimatetemplate",
+        "collection": true
       }
     }
   }
