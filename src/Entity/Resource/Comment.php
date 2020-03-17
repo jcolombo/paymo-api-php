@@ -32,62 +32,54 @@ namespace Jcolombo\PaymoApiPhp\Entity\Resource;
 use Jcolombo\PaymoApiPhp\Entity\AbstractResource;
 
 /**
- * Class Task
+ * Class Comment
  *
  * @package Jcolombo\PaymoApiPhp\Entity\Resource
  */
-class Task extends AbstractResource
+class Comment extends AbstractResource
 {
 
     /**
      * The user friendly name for error displays, messages, alerts, and logging
      */
-    public const LABEL = 'Task';
+    public const LABEL = 'Comment';
 
     /**
      * The entity key for associations and references between the package code classes
      */
-    public const API_ENTITY = 'task';
+    public const API_ENTITY = 'comment';
 
     /**
      * The path that is attached to the API base URL for the api call
      */
-    public const API_PATH = 'tasks';
+    public const API_PATH = 'comments';
 
     /**
      * The minimum properties that must be set in order to create a new entry via the API
      * To make an OR limit: 'propA|propB' = ONLY 1 of these. 'propA||propB' = AT LEAST 1 or more of these.
      */
-    public const REQUIRED_CREATE = ['name', 'tasklist_id||project_id'];
+    public const REQUIRED_CREATE = ['content', 'thread_id||task_id||discussion_id||file_id'];
 
     /**
      * The object properties that can only be read and never set, updated, or added to the creation
      */
-    public const READONLY = ['id', 'created_on', 'updated_on', 'project_id',
-        // Undocumented types set to readonly for now
-        'completed_on', 'completed_by', 'cover_file_id', 'price', 'invoiced', 'start_date',
-        'recurring_profile_id', // What is a recurring profile object? Not documented?
-        'billing_type'
-    ];
+    public const READONLY = ['id', 'created_on', 'updated_on'];
 
     /**
      * An array of properties from the readonly array that can be set during creation but not after
      * (This array is checked so long as the resource entity DOES NOT already have an ID set)
      */
-    public const CREATEONLY = ['project_id'];
+    public const CREATEONLY = [];
 
     /**
      * Valid relationship entities that can be loaded or attached to this entity
      * TRUE = the include is a list of multiple entities. FALSE = a single object is associated with the entity
      */
     public const INCLUDE_TYPES = [
-        'project' => false,
-        'tasklist' => false,
-        'user' => false,
         'thread' => false,
-        'entries' => true,
-        'invoiceitem' => false,
-        'workflowstatus' => false
+        'user' => false,
+        'project' => false,
+        'files' => true
     ];
 
     /**
@@ -97,34 +89,10 @@ class Task extends AbstractResource
         'id' => 'integer',
         'created_on' => 'datetime',
         'updated_on' => 'datetime',
-        'name' => 'text',
-        'code' => 'text',
-        'project_id' => 'resource:project',
-        'tasklist_id' => 'resource:tasklist',
-        'seq' => 'integer',
-        'description' => 'text',
-        'complete' => 'boolean',
-        'due_date' => 'date',
-        'user_id' => 'resource:user',
-        'users' => 'collection:users',
-        'billable' => 'boolean',
-        'flat_billing' => 'boolean',
-        'price_per_hour' => 'decimal',
-        'budget_hours' => 'decimal',
-        'estimated_price' => 'decimal',
-        'invoived' => 'boolean',
-        'invoice_item_id' => 'resource:invoiceitem',
-        'priority' => 'intEnum:25|50|75|100',
-        'status_id' => 'resource:workflowstatus',
-        // Undocumented Props
-        'completed_on' => 'datetime',
-        'completed_by' => 'resource:user',
-        'cover_file_id' => 'resource:file',
-        'price' => 'decimal',
-        'invoiced' => 'boolean',
-        'start_date' => 'date',
-        'recurring_profile_id' => 'integer', // What is a recurring profile object? Not documented?
-        'billing_type' => 'text'
+        'content' => 'text',
+        'thread_id' => 'resource:thread',
+        'user_id' => 'resource:user'
+        // Undocumented Props        
     ];
 
     /**

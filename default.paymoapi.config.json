@@ -217,6 +217,26 @@
         "type": "collection",
         "resourceKey": "projecttemplatetask",
         "collection": true
+      },
+      "thread": {
+        "type": "resource",
+        "resource": "Jcolombo\\PaymoApiPhp\\Entity\\Resource\\CommentThread",
+        "collectionKey": "threads"
+      },
+      "threads": {
+        "type": "collection",
+        "resourceKey": "thread",
+        "collection": "Jcolombo\\PaymoApiPhp\\Entity\\Collection\\CommentThreadCollection"
+      },
+      "comment": {
+        "type": "resource",
+        "resource": "Jcolombo\\PaymoApiPhp\\Entity\\Resource\\Comment",
+        "collectionKey": "comments"
+      },
+      "comments": {
+        "type": "collection",
+        "resourceKey": "comment",
+        "collection": true
       }
     }
   }
