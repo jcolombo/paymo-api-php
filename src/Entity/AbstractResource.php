@@ -6,7 +6,7 @@
  * .
  * MIT License
  * Copyright (c) 2020 - Joel Colombo <jc-dev@360psg.com>
- * Last Updated : 3/15/20, 11:31 PM
+ * Last Updated : 3/17/20, 4:12 PM
  * .
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -265,7 +265,7 @@ abstract class AbstractResource extends AbstractEntity
             $label = $this::LABEL;
             throw new Exception("Attempted to delete a {$label} without an id being passed");
         }
-        $respKey = $this::API_RESPONSE_KEY ? ':'.$this::API_RESPONSE_KEY : '';
+        $respKey = $this->getResponseKey($this);
         $response = Request::delete($this->connection, $this::API_PATH.$respKey, $id);
         if ($response && $response->success) {
             $this->clear();
@@ -387,7 +387,7 @@ abstract class AbstractResource extends AbstractEntity
         if (!$checkId) {
             $id = -1;
         }
-        $respKey = $this::API_RESPONSE_KEY ? ':'.$this::API_RESPONSE_KEY : '';
+        $respKey = $this->getResponseKey($this);
         $response = Request::fetch($this->connection, $this::API_PATH.$respKey, $id,
                                    ['select' => $select, 'include' => $include]);
         if ($response->result) {
@@ -554,7 +554,7 @@ abstract class AbstractResource extends AbstractEntity
         // @todo Validate all the properties being sent match their valid datatypes as defined in the class requirements
         // Only create this object if it DOES NOT have an id set
         if ($continueCreate && !isset($createWith['id']) || $createWith['id'] < 1) {
-            $respKey = $this::API_RESPONSE_KEY ? ':'.$this::API_RESPONSE_KEY : '';
+            $respKey = $this->getResponseKey($this);
             $response = Request::create($this->connection, $this::API_PATH.$respKey, $createWith);
             if ($response->result) {
                 $this->_hydrate($response->result);
@@ -659,7 +659,7 @@ abstract class AbstractResource extends AbstractEntity
             if (!$checkId) {
                 $id = -1;
             }
-            $respKey = $this::API_RESPONSE_KEY ? ':'.$this::API_RESPONSE_KEY : '';
+            $respKey = $this->getResponseKey($this);
             $response = Request::update($this->connection, $this::API_PATH.$respKey, $id, $update);
             if ($response->result) {
                 $this->_hydrate($response->result);
@@ -715,7 +715,7 @@ abstract class AbstractResource extends AbstractEntity
             throw new Exception("Upload file not found at {$filepath}");
         }
         if (!$isPropKey || static::isProp(static::API_ENTITY, $propKey)) {
-            $respKey = static::API_RESPONSE_KEY ? ':'.static::API_RESPONSE_KEY : '';
+            $respKey = $this->getResponseKey($this);
             $response = Request::upload($this->connection, static::API_PATH.$respKey, $this->id, $propKey, $filepath);
             if ($response->result) {
                 $this->_hydrate($response->result);
