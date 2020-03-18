@@ -305,6 +305,16 @@
         "type": "collection",
         "resourceKey": "file",
         "collection": "Jcolombo\\PaymoApiPhp\\Entity\\Collection\\FileCollection"
+      },
+      "session": {
+        "type": "resource",
+        "resource": "Jcolombo\\PaymoApiPhp\\Entity\\Resource\\Session",
+        "collectionKey": "sessions"
+      },
+      "sessions": {
+        "type": "collection",
+        "resourceKey": "session",
+        "collection": true
       }
     }
   }
