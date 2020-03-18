@@ -6,7 +6,7 @@
  * .
  * MIT License
  * Copyright (c) 2020 - Joel Colombo <jc-dev@360psg.com>
- * Last Updated : 3/17/20, 4:12 PM
+ * Last Updated : 3/18/20, 1:25 PM
  * .
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -525,6 +525,8 @@ abstract class AbstractResource extends AbstractEntity
         $cancelReadonly = $options['cancelReadonly'] ?? true;
         $stripReadonly = $options['stripReadonly'] ?? false;
         $cascade = $options['cascade'] ?? true;
+        $dataMode = $options['dataMode'] ?? 'json';
+        $uploadProps = $options['uploadProps'] ?? [];
         $label = $this::LABEL;
         foreach ($this::REQUIRED_CREATE as $k) {
             $success = $this->_validateCreateRequirement($k);
@@ -554,8 +556,13 @@ abstract class AbstractResource extends AbstractEntity
         // @todo Validate all the properties being sent match their valid datatypes as defined in the class requirements
         // Only create this object if it DOES NOT have an id set
         if ($continueCreate && !isset($createWith['id']) || $createWith['id'] < 1) {
+            $uploads = [];
+            foreach ($uploadProps as $p) {
+                $uploads[$p] = $this->props[$p];
+                unset($createWith[$p]);
+            }
             $respKey = $this->getResponseKey($this);
-            $response = Request::create($this->connection, $this::API_PATH.$respKey, $createWith);
+            $response = Request::create($this->connection, $this::API_PATH.$respKey, $createWith, $uploads, $dataMode);
             if ($response->result) {
                 $this->_hydrate($response->result);
                 // @todo Populate a response summary of data on the object (like if it came from live, timestamp of request, timestamp of data retrieved/cache, etc

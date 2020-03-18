@@ -6,7 +6,7 @@
  * .
  * MIT License
  * Copyright (c) 2020 - Joel Colombo <jc-dev@360psg.com>
- * Last Updated : 3/11/20, 3:49 PM
+ * Last Updated : 3/18/20, 1:25 PM
  * .
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -43,6 +43,13 @@ class RequestAbstraction
      * @var string
      */
     public $method = 'GET';
+
+    /**
+     * Whether to send all the post data as JSON or MULTIPART, will change to multipart
+     *
+     * @var string
+     */
+    public $mode = 'json';  //json OR multipart
 
     /**
      * The path of the resource to tack on to the end of the connections base URL.

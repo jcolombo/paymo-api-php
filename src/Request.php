@@ -6,7 +6,7 @@
  * .
  * MIT License
  * Copyright (c) 2020 - Joel Colombo <jc-dev@360psg.com>
- * Last Updated : 3/15/20, 11:31 PM
+ * Last Updated : 3/18/20, 1:25 PM
  * .
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -180,17 +180,26 @@ class Request
      * @param Paymo  $connection A valid Paymo Connection object instance
      * @param string $objectKey  The API path tacked on to connections base URL
      * @param array  $data       The raw data to create the new entry with
+     * @param array  $uploads    An associative array of files to be uploaded (key => filepath)
+     * @param string $mode       Either json or multipart to tell the request how to upload the data
      *
      * @throws GuzzleException
      * @return RequestResponse
      */
-    public static function create(Paymo $connection, $objectKey, $data)
+    public static function create(Paymo $connection, $objectKey, $data, $uploads=[], $mode='json')
     {
+        $useMode = $mode==='multipart' ? $mode : 'json';
         [$pathKey, $responseKey] = static::getObjectReponseKeys($objectKey);
         $request = new RequestAbstraction();
         $request->method = 'POST';
         $request->resourceUrl = $pathKey;
         $request->data = $data;
+        if ($uploads && is_array($uploads) && count($uploads) > 0) {
+            $request->mode = 'multipart';
+            $request->files = $uploads;
+        } else {
+            $request->mode = $useMode;
+        }
         $response = $connection->execute($request);
         if ($response->body && $response->validBody($responseKey, 1)) {
             $response->result = $response->body->$responseKey[0];

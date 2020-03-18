@@ -295,6 +295,16 @@
         "type": "collection",
         "resourceKey": "estimateitem",
         "collection": "Jcolombo\\PaymoApiPhp\\Entity\\Collection\\EstimateItemCollection"
+      },
+      "file": {
+        "type": "resource",
+        "resource": "Jcolombo\\PaymoApiPhp\\Entity\\Resource\\File",
+        "collectionKey": "files"
+      },
+      "files": {
+        "type": "collection",
+        "resourceKey": "file",
+        "collection": "Jcolombo\\PaymoApiPhp\\Entity\\Collection\\FileCollection"
       }
     }
   }

@@ -6,7 +6,7 @@
  * .
  * MIT License
  * Copyright (c) 2020 - Joel Colombo <jc-dev@360psg.com>
- * Last Updated : 3/12/20, 9:13 AM
+ * Last Updated : 3/18/20, 1:25 PM
  * .
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -200,10 +200,10 @@ class Paymo
         if (count($query) > 0) {
             $props['query'] = $query;
         }
-        if (($request->method == 'POST' || $request->method == 'PUT') && !is_null($request->data) && is_array($request->data) && count($request->data) > 0) {
+        if ($request->mode == 'json' && ($request->method == 'POST' || $request->method == 'PUT') && !is_null($request->data) && is_array($request->data) && count($request->data) > 0) {
             $props['json'] = $request->data;
         }
-        if ($request->method == 'POST' && !is_null($request->files) && is_array($request->files) && count($request->files) > 0) {
+        if ($request->mode == 'multipart' || ($request->method == 'POST' && !is_null($request->files) && is_array($request->files) && count($request->files) > 0)) {
             $props['multipart'] = [];
             $openFiles = [];
             foreach ($request->files as $k => $file) {
@@ -211,10 +211,15 @@ class Paymo
                 $openFiles[] = $fHandler;
                 $props['multipart'][] = ['name' => $k, 'contents' => $fHandler];
             }
+            if ($request->data && is_array($request->data)) {
+                foreach($request->data as $k=>$v) {
+                    $props['multipart'][] = ['name' => $k, 'contents' => $v];
+                }
+            }
         }
 
-        //var_dump($props); //exit;
-        //var_dump($request); exit;
+//        var_dump($props); //exit;
+//        var_dump($request); exit;
 
         // Run the GUZZLE request to the live API
         $request_start = microtime(true);
