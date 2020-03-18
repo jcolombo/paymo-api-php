@@ -275,6 +275,26 @@
         "type": "collection",
         "resourceKey": "estimatetemplate",
         "collection": true
+      },
+      "estimate": {
+        "type": "resource",
+        "resource": "Jcolombo\\PaymoApiPhp\\Entity\\Resource\\Estimate",
+        "collectionKey": "estimates"
+      },
+      "estimates": {
+        "type": "collection",
+        "resourceKey": "estimate",
+        "collection": true
+      },
+      "estimateitem": {
+        "type": "resource",
+        "resource": "Jcolombo\\PaymoApiPhp\\Entity\\Resource\\EstimateItem",
+        "collectionKey": "estimateitems"
+      },
+      "estimateitems": {
+        "type": "collection",
+        "resourceKey": "estimateitem",
+        "collection": "Jcolombo\\PaymoApiPhp\\Entity\\Collection\\EstimateItemCollection"
       }
     }
   }
