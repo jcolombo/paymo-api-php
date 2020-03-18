@@ -6,7 +6,7 @@
  * .
  * MIT License
  * Copyright (c) 2020 - Joel Colombo <jc-dev@360psg.com>
- * Last Updated : 3/17/20, 4:12 PM
+ * Last Updated : 3/17/20, 8:48 PM
  * .
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -131,7 +131,8 @@ class EstimateTemplateGallery extends AbstractResource
      * @throws Exception
      * @return void
      */
-    public function update($options=[]) {
+    public function update($options = [])
+    {
         throw new Exception("Estimate Template Gallery resources cannot be updated");
     }
 
@@ -140,7 +141,8 @@ class EstimateTemplateGallery extends AbstractResource
      *
      * @return string
      */
-    protected function getResponseKey($objClass) {
+    protected function getResponseKey($objClass)
+    {
         return ':estimatetemplates';
     }
 }
