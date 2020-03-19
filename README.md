@@ -1,9 +1,9 @@
 #PaymoApp API for PHP
 A Robust PHP implementation of the Paymo App API
 
-![](https://img.shields.io/badge/Status-Not%20Usable-red)
+![](https://img.shields.io/badge/Status-Unstable-red)
 ![](https://img.shields.io/badge/Stable-None-blue)
-![](https://img.shields.io/badge/Latest-0.0.1-red)
+![](https://img.shields.io/badge/Latest-0.5.0-orange)
 ![](https://img.shields.io/badge/PHP->=7.1-green)
 ![](https://img.shields.io/github/license/jcolombo/paymo-api-php)
 ![](https://img.shields.io/github/issues/jcolombo/paymo-api-php)
@@ -22,21 +22,22 @@ The officially published REST api documentation can be found here:
 https://github.com/paymoapp/api
 
 ***
- NOT RELEASED YET (@dev package only, changes daily)
+ UNSTABLE RELEASE 0.5 (use @dev package for latest, changes daily)
  
- This Package is completely unstable and in active initial development as of March 1st, 2020.
+ This Package is unstable and in active development but mostly usable as of March 18th, 2020.
  The planned 1.0.0 release is expected by April 2020. And is being built and supported by the development team at 360 PSG, Inc. released under the MIT License for all to use. Give us a little time to get it stable and finished.
+ Assume that anything could change with breaking updates prior to release 1.0.0.
 ***
 
 ## Package Features
 
 - Object-Oriented Fetch, Create, Update and Delete classes for ALL Paymo objects
-- Strict Type checking to insure proper data types are being used for each object type
+- [Partial] Strict Type checking to insure proper data types are being used for each object type
 - Select deep level relationships with a single call
 - Easily upload and attach local image files for objects that have images (client logos, users, etc)
 - Ability to extend and overload package objects with your own extensions
-- Local file caching to avoid unneeded repeat calls to the API (helping avoid rate limits)
-- Deep logging tools for debugging during integration and development
+- [ToDo] Local file caching to avoid unneeded repeat calls to the API (helping avoid rate limits)
+- [ToDo] Deep logging tools for debugging during integration and development
 
 ## Requirements
 
@@ -67,12 +68,25 @@ $paymo = Paymo::connect('YOUR_API_KEY');
 // Load a specific project by its ID
 $project = new Project();
 $project -> fetch(12345);
+// OR
+$project = Project::new()->fetch(12345);
 // $project is now fully populated with the data from the matching Paymo project
 
 // Load a project with all the client details attached to it
 $project -> fetch(12345, ['client']);
+// OR
+$project = Project::new()->fetch(12345, ['client']);
 
 // Load a list of all projects the API key can see
 $projects = Project::list()->fetch();
+
+// Creating a new Project
+$project = new Project();
+$project -> name = "My Fake Project";
+$project -> create();
+// $project exists now in paymo, object is populated with full project data from response
+// Alternative create with chaining
+
+$project = Project::new()->set(['name'=>'My Fake Project'])->create();
 
 ```
