@@ -6,7 +6,7 @@
  * .
  * MIT License
  * Copyright (c) 2020 - Joel Colombo <jc-dev@360psg.com>
- * Last Updated : 3/18/20, 1:25 PM
+ * Last Updated : 3/18/20, 9:23 PM
  * .
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -31,6 +31,11 @@ namespace Jcolombo\PaymoApiPhp\Entity\Collection;
 
 use Exception;
 
+/**
+ * Class FileCollection
+ *
+ * @package Jcolombo\PaymoApiPhp\Entity\Collection
+ */
 class FileCollection extends EntityCollection
 {
 
@@ -50,7 +55,7 @@ class FileCollection extends EntityCollection
         }
         if (!$foundOne) {
             throw new Exception("File collections require one of the following be set as a filter : ".implode(', ',
-                                                                                                                             $needOne));
+                                                                                                              $needOne));
         }
 
         return parent::validateFetch($fields, $where);

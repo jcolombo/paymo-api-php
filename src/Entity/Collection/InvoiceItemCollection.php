@@ -6,7 +6,7 @@
  * .
  * MIT License
  * Copyright (c) 2020 - Joel Colombo <jc-dev@360psg.com>
- * Last Updated : 3/18/20, 8:42 PM
+ * Last Updated : 3/18/20, 9:23 PM
  * .
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -31,6 +31,11 @@ namespace Jcolombo\PaymoApiPhp\Entity\Collection;
 
 use Exception;
 
+/**
+ * Class InvoiceItemCollection
+ *
+ * @package Jcolombo\PaymoApiPhp\Entity\Collection
+ */
 class InvoiceItemCollection extends EntityCollection
 {
 

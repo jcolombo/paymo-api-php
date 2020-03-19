@@ -6,7 +6,7 @@
  * .
  * MIT License
  * Copyright (c) 2020 - Joel Colombo <jc-dev@360psg.com>
- * Last Updated : 3/18/20, 1:25 PM
+ * Last Updated : 3/18/20, 9:23 PM
  * .
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -186,9 +186,9 @@ class Request
      * @throws GuzzleException
      * @return RequestResponse
      */
-    public static function create(Paymo $connection, $objectKey, $data, $uploads=[], $mode='json')
+    public static function create(Paymo $connection, $objectKey, $data, $uploads = [], $mode = 'json')
     {
-        $useMode = $mode==='multipart' ? $mode : 'json';
+        $useMode = $mode === 'multipart' ? $mode : 'json';
         [$pathKey, $responseKey] = static::getObjectReponseKeys($objectKey);
         $request = new RequestAbstraction();
         $request->method = 'POST';

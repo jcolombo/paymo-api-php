@@ -6,7 +6,7 @@
  * .
  * MIT License
  * Copyright (c) 2020 - Joel Colombo <jc-dev@360psg.com>
- * Last Updated : 3/17/20, 8:48 PM
+ * Last Updated : 3/18/20, 9:23 PM
  * .
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -523,6 +523,13 @@ abstract class AbstractEntity
         ];
     }
 
+    /**
+     * Get an alternative "response" key to process the results if they dont match the original request key
+     *
+     * @param string|AbstractResource $objClass Either an instance or a string class name to check the class constants
+     *
+     * @return string Either an empty string or an appended alternative resource key
+     */
     protected function getResponseKey($objClass)
     {
         return $objClass::API_RESPONSE_KEY ? ':'.$objClass::API_RESPONSE_KEY : '';

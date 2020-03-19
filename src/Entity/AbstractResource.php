@@ -6,7 +6,7 @@
  * .
  * MIT License
  * Copyright (c) 2020 - Joel Colombo <jc-dev@360psg.com>
- * Last Updated : 3/18/20, 4:05 PM
+ * Last Updated : 3/18/20, 9:23 PM
  * .
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -579,6 +579,13 @@ abstract class AbstractResource extends AbstractEntity
         return $this;
     }
 
+    /**
+     * Check the custom creation requirement rules, with OR and AND logic
+     *
+     * @param string $key The key to process for possible logic operators
+     *
+     * @return bool Returns a success or fail boolean based on if the creation key rule is met
+     */
     protected function _validateCreateRequirement($key)
     {
         $success = false;

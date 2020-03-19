@@ -6,7 +6,7 @@
  * .
  * MIT License
  * Copyright (c) 2020 - Joel Colombo <jc-dev@360psg.com>
- * Last Updated : 3/18/20, 1:25 PM
+ * Last Updated : 3/18/20, 9:23 PM
  * .
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -150,6 +150,7 @@ class File extends AbstractResource
 
         $options['dataMode'] = 'multipart';
         $options['uploadProps'] = ['file'];
+
         return parent::create($options);
     }
 
