@@ -6,7 +6,7 @@
  * .
  * MIT License
  * Copyright (c) 2020 - Joel Colombo <jc-dev@360psg.com>
- * Last Updated : 3/18/20, 9:23 PM
+ * Last Updated : 3/18/20, 10:48 PM
  * .
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -30,7 +30,6 @@
 namespace Jcolombo\PaymoApiPhp\Entity;
 
 use Exception;
-use GuzzleHttp\Exception\GuzzleException;
 use Jcolombo\PaymoApiPhp\Configuration;
 use Jcolombo\PaymoApiPhp\Entity\Collection\EntityCollection;
 use Jcolombo\PaymoApiPhp\Paymo;
@@ -228,7 +227,6 @@ abstract class AbstractResource extends AbstractEntity
      *                                             another entitied getConfiguration call), or null to get first
      *                                             connection available
      *
-     * @throws GuzzleException
      * @throws Exception
      * @return AbstractResource | null
      */
@@ -249,9 +247,6 @@ abstract class AbstractResource extends AbstractEntity
      * Delete a resource of this class type with the either the ID passed to the method OR the id set on this objects
      * props Clears the object back to a reset fresh state after successfully deleting it.
      *
-     * @param null $id The ID to perform the delete on
-     *
-     * @throws GuzzleException
      * @throws Exception
      * @return AbstractResource
      */
@@ -362,7 +357,6 @@ abstract class AbstractResource extends AbstractEntity
      * @param string[]   $fields     An array of string props and/or include entities to get from the API call
      *
      * @throws Exception
-     * @throws GuzzleException
      * @return AbstractResource Returns the instance of itself for chaining method potential
      */
     public function fetch($id = null, $fields = [])
@@ -499,7 +493,7 @@ abstract class AbstractResource extends AbstractEntity
         } else {
             /** @var AbstractResource $result */
             $result = new $className($this->getConfiguration());
-            $result->_hydrate($object, $object->id);
+            $result->_hydrate($object, $object->get('id'));
         }
         $this->included[$entityKey] = $result;
     }
@@ -517,7 +511,6 @@ abstract class AbstractResource extends AbstractEntity
      *                       ID)
      *
      * @throws Exception
-     * @throws GuzzleException
      * @return AbstractResource Returns itself fully hydrated with the results from the API.
      */
     public function create($options = [])
@@ -543,7 +536,7 @@ abstract class AbstractResource extends AbstractEntity
         $continueCreate = true;
         if ($stripReadonly || $cancelReadonly) {
             foreach ($createWith as $p => $value) {
-                $isNewCreatable = (!$this->id && in_array($p, static::CREATEONLY));
+                $isNewCreatable = (!$this->get('id') && in_array($p, static::CREATEONLY));
                 if (isset(static::READONLY[$p]) && !$isNewCreatable) {
                     if ($cancelReadonly) {
                         $continueCreate = false;
@@ -633,6 +626,78 @@ abstract class AbstractResource extends AbstractEntity
     }
 
     /**
+     * Get one or more values from the magic methods by passing a key or an string array of keys
+     *
+     * @param string|string[] $key An array or a single key to get the value for
+     *
+     * @throws Exception
+     * @return mixed|null Either the value of a single key or if an array of keys is passed, an associative array is
+     *                    sent pack with a value for each string key
+     */
+    public function get($key)
+    {
+        if (is_string($key)) {
+            return $this->__get($key);
+        } elseif (is_array($key)) {
+            $values = [];
+            foreach ($key as $v) {
+                if (is_string($v)) {
+                    $values[$v] = $this->get($v);
+                }
+            }
+
+            return $values;
+        }
+
+        return null;
+    }
+
+    /**
+     * Magic getter method
+     * Will check the class props, unlisted and included object properties
+     *
+     * @param string $name Object property getter key
+     *
+     * @return mixed | null
+     */
+    public function __get($name)
+    {
+        if (key_exists($name, $this::PROP_TYPES)) {
+            return isset($this->props[$name]) ? $this->props[$name] : null;
+        } elseif (key_exists($name, $this->unlisted)) {
+            return $this->unlisted[$name];
+        } elseif (key_exists($name, $this->included)) {
+            return $this->included[$name];
+        }
+
+        return null;
+    }
+
+    /**
+     * Magic setter method
+     * If the setter cannot find the key in the valid props, it will add the value to the "unlisted" array
+     *
+     * @param string $name  Object property to attempt magic setting
+     * @param mixed  $value The value to attempt to set
+     *
+     * @throws Exception
+     * @return void
+     */
+    public function __set($name, $value)
+    {
+        if ($this::isProp($this::API_ENTITY, $name)) {
+            $noIdCreateOnly = (!$this->get('id') && in_array($name, $this::CREATEONLY));
+            $canSet = ($this->hydrationMode || !in_array($name, $this::READONLY) || $noIdCreateOnly);
+            if ($canSet) {
+                $this->props[$name] = $value;
+            }
+        } else {
+            $this->unlisted[$name] = $value;
+        }
+        // allow setting of a child included value
+    }
+
+    /**
      * Make an update request to the API to update data for a specific resource, requires an ID be set on the object
      * and have at least one dirtty non-ID prop (or dirty children if option is set)
      *
@@ -643,7 +708,6 @@ abstract class AbstractResource extends AbstractEntity
      *                       if they do not yet have ids
      *
      * @throws Exception
-     * @throws GuzzleException
      * @return $this
      */
     public function update($options = [])
@@ -698,7 +762,6 @@ abstract class AbstractResource extends AbstractEntity
      * @param bool   $isPropKey Determine if this is supposed to be checked against the prop list on the resource or
      *                          not
      *
-     * @throws GuzzleException
      * @throws Exception
      * @return $this Return the object itself for chaining
      */
@@ -716,7 +779,6 @@ abstract class AbstractResource extends AbstractEntity
      * @param bool   $isPropKey Determine if this is supposed to be checked against the prop list on the resource or
      *                          not
      *
-     * @throws GuzzleException
      * @throws Exception
      * @return $this Return the object itself for chaining
      * @todo Refactor to allow for image uploads in the same call (means sending the data combined with file in
@@ -725,7 +787,7 @@ abstract class AbstractResource extends AbstractEntity
     protected function upload($filepath, $propKey, $isPropKey = true)
     {
         // If there is no valid prop for the image, ignore this method
-        if (!$this->id || $this->id < 1) {
+        if (!$this->get('id') || $this->get('id') < 1) {
             throw new Exception("File [{$propKey}] for {static::API_ENTITY} requires an ID be set for uploading");
         }
         if (!file_exists($filepath)) {
@@ -733,7 +795,8 @@ abstract class AbstractResource extends AbstractEntity
         }
         if (!$isPropKey || static::isProp(static::API_ENTITY, $propKey)) {
             $respKey = $this->getResponseKey($this);
-            $response = Request::upload($this->connection, static::API_PATH.$respKey, $this->id, $propKey, $filepath);
+            $response = Request::upload($this->connection, static::API_PATH.$respKey, $this->get('id'), $propKey,
+                                        $filepath);
             if ($response->result) {
                 $this->_hydrate($response->result);
                 // @todo Populate a response summary of data on the object (like if it came from live, timestamp of request, timestamp of data retrieved/cache, etc
@@ -753,7 +816,6 @@ abstract class AbstractResource extends AbstractEntity
      * @param bool   $isPropKey Determine if this is supposed to be checked against the prop list on the resource or
      *                          not
      *
-     * @throws GuzzleException
      * @throws Exception
      * @return $this Return the object itself for chaining
      */
@@ -840,51 +902,6 @@ abstract class AbstractResource extends AbstractEntity
         }
 
         return $response;
-    }
-
-    /**
-     * Magic getter method
-     * Will check the class props, unlisted and included object properties
-     *
-     * @param string $name Object property getter key
-     *
-     * @return mixed | null
-     */
-    public function __get($name)
-    {
-        if (key_exists($name, $this::PROP_TYPES)) {
-            return isset($this->props[$name]) ? $this->props[$name] : null;
-        } elseif (key_exists($name, $this->unlisted)) {
-            return $this->unlisted[$name];
-        } elseif (key_exists($name, $this->included)) {
-            return $this->included[$name];
-        }
-
-        return null;
-    }
-
-    /**
-     * Magic setter method
-     * If the setter cannot find the key in the valid props, it will add the value to the "unlisted" array
-     *
-     * @param string $name  Object property to attempt magic setting
-     * @param mixed  $value The value to attempt to set
-     *
-     * @throws Exception
-     * @return void
-     */
-    public function __set($name, $value)
-    {
-        if ($this::isProp($this::API_ENTITY, $name)) {
-            $noIdCreateOnly = (!$this->id && in_array($name, $this::CREATEONLY));
-            $canSet = ($this->hydrationMode || !in_array($name, $this::READONLY) || $noIdCreateOnly);
-            if ($canSet) {
-                $this->props[$name] = $value;
-            }
-        } else {
-            $this->unlisted[$name] = $value;
-        }
-        // allow setting of a child included value
     }
 
 }

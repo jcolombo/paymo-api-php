@@ -6,7 +6,7 @@
  * .
  * MIT License
  * Copyright (c) 2020 - Joel Colombo <jc-dev@360psg.com>
- * Last Updated : 3/18/20, 9:23 PM
+ * Last Updated : 3/18/20, 10:48 PM
  * .
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -31,7 +31,6 @@ namespace Jcolombo\PaymoApiPhp;
 
 use Adbar\Dot;
 use Exception;
-use GuzzleHttp\Exception\GuzzleException;
 use Jcolombo\PaymoApiPhp\Utility\Converter;
 use Jcolombo\PaymoApiPhp\Utility\RequestAbstraction;
 use Jcolombo\PaymoApiPhp\Utility\RequestCondition;
@@ -60,7 +59,6 @@ class Request
      *                           [where] = RequestCondition[] : A set of request conditions for filtering lists
      *                           excess response properties (in case API response added more than was requested)
      *
-     * @throws GuzzleException
      * @throws Exception
      * @return RequestResponse Returns an object on success or a boolean FALSE on failure to load entity
      */
@@ -183,7 +181,6 @@ class Request
      * @param array  $uploads    An associative array of files to be uploaded (key => filepath)
      * @param string $mode       Either json or multipart to tell the request how to upload the data
      *
-     * @throws GuzzleException
      * @return RequestResponse
      */
     public static function create(Paymo $connection, $objectKey, $data, $uploads = [], $mode = 'json')
@@ -219,7 +216,6 @@ class Request
      * @param array  $data       The raw data to update the entity with ID
      *
      * @throws Exception
-     * @throws GuzzleException
      * @return RequestResponse
      */
     public static function update(Paymo $connection, $objectKey, $id, $data)
@@ -249,7 +245,6 @@ class Request
      * @param string $filepath   An existing full file path that can be read by PHP on the filesystem
      *
      * @throws Exception
-     * @throws GuzzleException
      * @return RequestResponse
      */
     public static function upload(Paymo $connection, $objectKey, $id, $prop, $filepath)
@@ -279,7 +274,6 @@ class Request
      * @param string $objectKey  The API path tacked on to connections base URL
      * @param int    $id         The ID of the entity to delete
      *
-     * @throws GuzzleException
      * @throws Exception
      * @return RequestResponse
      */
@@ -303,7 +297,6 @@ class Request
      * @param string $objectKey  The resource path to attach to the end of the base URL for the request
      * @param array  $options    {@see fetch}
      *
-     * @throws GuzzleException
      * @return RequestResponse Returns an object on success or a boolean FALSE on failure to load list of entities
      */
     public static function list(Paymo $connection, $objectKey, $options)

@@ -6,7 +6,7 @@
  * .
  * MIT License
  * Copyright (c) 2020 - Joel Colombo <jc-dev@360psg.com>
- * Last Updated : 3/18/20, 9:23 PM
+ * Last Updated : 3/18/20, 10:48 PM
  * .
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -165,7 +165,6 @@ class Paymo
      *                                    request
      * @param array              $options Set of options to configure request and response handling
      *
-     * @throws GuzzleException
      * @return RequestResponse
      */
     public function execute(RequestAbstraction $request, $options = [])
@@ -223,9 +222,9 @@ class Paymo
 
         // Run the GUZZLE request to the live API
         $request_start = microtime(true);
+        $response = new RequestResponse();
+        $response->request = $request;
         try {
-            $response = new RequestResponse();
-            $response->request = $request;
             $guzzleResponse = $client->request(
                 $request->method,
                 $request->resourceUrl,

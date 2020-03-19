@@ -6,7 +6,7 @@
  * .
  * MIT License
  * Copyright (c) 2020 - Joel Colombo <jc-dev@360psg.com>
- * Last Updated : 3/10/20, 1:32 PM
+ * Last Updated : 3/18/20, 10:48 PM
  * .
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -28,6 +28,8 @@
  */
 
 namespace Jcolombo\PaymoApiPhp\Utility;
+
+use stdClass;
 
 /**
  * Class RequestResponse
@@ -52,6 +54,13 @@ class RequestResponse
      * @var stdClass[] | null
      */
     public $body = null;
+
+    /**
+     * Associative array of response headers from the API request
+     *
+     * @var array|null
+     */
+    public $headers = null;
 
     /**
      * The response code from the API remote call (Will be 200 on normal success)

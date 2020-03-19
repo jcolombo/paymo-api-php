@@ -6,7 +6,7 @@
  * .
  * MIT License
  * Copyright (c) 2020 - Joel Colombo <jc-dev@360psg.com>
- * Last Updated : 3/17/20, 4:12 PM
+ * Last Updated : 3/18/20, 10:48 PM
  * .
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -31,7 +31,6 @@ namespace Jcolombo\PaymoApiPhp\Entity;
 
 use ArrayAccess;
 use Exception;
-use GuzzleHttp\Exception\GuzzleException;
 use Iterator;
 use Jcolombo\PaymoApiPhp\Paymo;
 use Jcolombo\PaymoApiPhp\Request;
@@ -127,7 +126,6 @@ abstract class AbstractCollection extends AbstractEntity implements Iterator, Ar
      * @param RequestCondition[] $where  Optional set of conditions to limit the result set to (via API where or post
      *                                   processing HAS clauses)
      *
-     * @throws GuzzleException
      * @throws Exception
      * @return AbstractCollection $this Returns itself for chaining methods. The object will be populated with the
      *                            collection of resources before returning itself
