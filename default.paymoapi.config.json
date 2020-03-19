@@ -355,6 +355,16 @@
         "type": "collection",
         "resourceKey": "invoiceitem",
         "collection": "Jcolombo\\PaymoApiPhp\\Entity\\Collection\\InvoiceItemCollection"
+      },
+      "invoicepayment": {
+        "type": "resource",
+        "resource": "Jcolombo\\PaymoApiPhp\\Entity\\Resource\\InvoicePayment",
+        "collectionKey": "invoicepayments"
+      },
+      "invoicepayments": {
+        "type": "collection",
+        "resourceKey": "invoicepayment",
+        "collection": true
       }
     }
   }
