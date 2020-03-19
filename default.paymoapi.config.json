@@ -335,6 +335,26 @@
         "type": "collection",
         "resourceKey": "invoicetemplate",
         "collection": true
+      },
+      "invoice": {
+        "type": "resource",
+        "resource": "Jcolombo\\PaymoApiPhp\\Entity\\Resource\\Invoice",
+        "collectionKey": "invoices"
+      },
+      "invoices": {
+        "type": "collection",
+        "resourceKey": "invoice",
+        "collection": true
+      },
+      "invoiceitem": {
+        "type": "resource",
+        "resource": "Jcolombo\\PaymoApiPhp\\Entity\\Resource\\InvoiceItem",
+        "collectionKey": "invoiceitems"
+      },
+      "invoiceitems": {
+        "type": "collection",
+        "resourceKey": "invoiceitem",
+        "collection": "Jcolombo\\PaymoApiPhp\\Entity\\Collection\\InvoiceItemCollection"
       }
     }
   }
