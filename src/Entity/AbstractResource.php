@@ -493,7 +493,7 @@ abstract class AbstractResource extends AbstractEntity
         } else {
             /** @var AbstractResource $result */
             $result = new $className($this->getConfiguration());
-            $result->_hydrate($object, $object->get('id'));
+            $result->_hydrate($object, $object->id);
         }
         $this->included[$entityKey] = $result;
     }
