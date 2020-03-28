@@ -65,7 +65,8 @@ class TimeEntry extends AbstractResource
      */
     public const READONLY = ['id', 'created_on', 'updated_on', 'project_id',
         'is_bulk', // Probably should be readonly as it is based on entry type, not manually set
-        'time_interval' // Appears to be used for WHERE filtering only (not actually readable?)
+        'time_interval', // Appears to be used for WHERE filtering only (not actually readable?)
+        'client_id'
     ];
 
     /**
@@ -104,6 +105,7 @@ class TimeEntry extends AbstractResource
         'billed' => 'boolean',
         'invoice_item_id' => 'resource:invoiceitem',
         // Undocumented Props
+        'client_id' => 'resource:client',
         'time_interval' => 'datetime[]'   // Special property type for non-existant property insures WHERE is left as string
     ];
 
