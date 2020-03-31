@@ -68,7 +68,7 @@ class Tasklist extends AbstractResource
      * An array of properties from the readonly array that can be set during creation but not after
      * (This array is checked so long as the resource entity DOES NOT already have an ID set)
      */
-    public const CREATEONLY = [];
+    public const CREATEONLY = ['project_id'];
 
     /**
      * Valid relationship entities that can be loaded or attached to this entity
