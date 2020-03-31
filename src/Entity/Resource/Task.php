@@ -112,7 +112,7 @@ class Task extends AbstractResource
         'price_per_hour' => 'decimal',
         'budget_hours' => 'decimal',
         'estimated_price' => 'decimal',
-        'invoived' => 'boolean',
+        'invoiced' => 'boolean',
         'invoice_item_id' => 'resource:invoiceitem',
         'priority' => 'intEnum:25|50|75|100',
         'status_id' => 'resource:workflowstatus',
@@ -121,7 +121,6 @@ class Task extends AbstractResource
         'completed_by' => 'resource:user',
         'cover_file_id' => 'resource:file',
         'price' => 'decimal',
-        'invoiced' => 'boolean',
         'start_date' => 'date',
         'recurring_profile_id' => 'integer', // What is a recurring profile object? Not documented?
         'billing_type' => 'text'
