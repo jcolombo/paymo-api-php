@@ -846,12 +846,17 @@ abstract class AbstractResource extends AbstractEntity
     {
         $props = $this->props;
         if ($includeAll) {
-            $diff = array_diff_key($this::PROP_TYPES, $props);
-            foreach ($diff as $k) {
+            foreach($this::PROP_TYPES as $k => $t) {
                 if (!isset($props[$k])) {
                     $props[$k] = null;
                 }
             }
+//            $diff = array_diff_key($this::PROP_TYPES, $props);
+//            foreach ($diff as $k) {
+//                if (!isset($props[$k])) {
+//                    $props[$k] = null;
+//                }
+//            }
         }
 
         return $props;
