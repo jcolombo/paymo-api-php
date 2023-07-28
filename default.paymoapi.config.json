@@ -3,7 +3,7 @@
     "url": "https://app.paymoapp.com/api/",
     "defaultName": "PaymoApiConnection",
     "verify": false,
-    "timeout": 5.0
+    "timeout": 15.0
   },
   "path": {
     "cache": null,
@@ -15,16 +15,8 @@
   },
   "devMode": false,
   "errors": {
-    "4xx": [
-      "log",
-      "echo",
-      "exit"
-    ],
-    "5xx": [
-      "log",
-      "echo",
-      "exit"
-    ]
+    "4xx": ["log", "echo", "exit"],
+    "5xx": ["log", "echo", "exit"]
   },
   "randomColor": {
     "workflowstatus": true
