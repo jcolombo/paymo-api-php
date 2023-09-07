@@ -34,6 +34,7 @@ use GuzzleHttp\Client as PaymoGuzzleClient;
 use GuzzleHttp\Exception\ClientException;
 use GuzzleHttp\Exception\GuzzleException;
 use GuzzleHttp\Exception\ServerException;
+use Jcolombo\PaymoApiPhp\Cache\Cache;
 use Jcolombo\PaymoApiPhp\Utility\RequestAbstraction;
 use Jcolombo\PaymoApiPhp\Utility\RequestResponse;
 
@@ -131,7 +132,8 @@ class Paymo
                 throw new Exception("'NULL API KEY : Cannot get connection that has not been established yet. Please insure at least one API KEY connection has been established first.'");
             }
             // If key was not sent, default to using the first connection that exists
-            $apiKey = array_shift(array_keys(self::$connections));
+            $connectionKeys = array_keys(self::$connections);
+            $apiKey = array_shift($connectionKeys);
         }
         if (!isset(self::$connections) || !is_array(self::$connections)) {
             self::$connections = [];
@@ -171,6 +173,15 @@ class Paymo
     {
         // @todo Handle CACHE checks and return here before making an actual API call
         // Response will include extra info about the cache from the loaded version of the cache
+        if ($this->useCache) {
+          $cacheKey = $request->makeCacheKey()->cacheKey;
+          if ($cacheKey) {
+            $cachedResponse = Cache::fetch($cacheKey);
+            if ($cachedResponse) {
+              return $cachedResponse;
+            }
+          }
+        }
 
         $client = new PaymoGuzzleClient([
                                             'base_uri' => $this->connectionUrl,
@@ -271,6 +282,9 @@ class Paymo
 
             // @todo If cache is enabled, store the cache with the request cachekey and the response
             // Response will include an extra parameter related to the cache info itself
+            if ($this->useCache && $response->success && $cacheKey) {
+              Cache::store($cacheKey, $response);
+            }
 
             if (!$response->success) {
                 var_dump($response);

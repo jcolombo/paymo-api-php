@@ -38,6 +38,21 @@ use stdClass;
  */
 class RequestResponse
 {
+
+    public function hydrateData($cacheKey, object $rawResponseObject) {
+      $this->success = $rawResponseObject->success ?? false;
+      $this->body = $rawResponseObject->body ?? null;
+      $this->headers = (array) $rawResponseObject->headers ?? null;
+      $this->responseCode = $rawResponseObject->responseCode ?? null;
+      $this->responseReason = $rawResponseObject->responseReason ?? null;
+      $this->responseTime = $rawResponseObject->responseTime ?? null;
+      $this->request = (object) $rawResponseObject->request ?? null;
+      $this->result = $rawResponseObject->result ?? null;
+      $this->fromCacheKey = $cacheKey;
+    }
+
+    public $fromCacheKey =  null;
+
     /**
      * If the API request was successful or not (could be from cache or live, etc) but it came back with a valid result
      * that can be processed by the package
@@ -72,7 +87,7 @@ class RequestResponse
     /**
      * The plain text response text for the particular responseCode sent back (Will be "OK" on a normal success)
      *
-     * @var null
+     * @var string | null
      */
     public $responseReason = null;
 

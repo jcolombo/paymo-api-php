@@ -37,55 +37,73 @@ namespace Jcolombo\PaymoApiPhp\Utility;
 class RequestAbstraction
 {
 
-    /**
-     * The HTTP method used in the API remote call. Valid values are GET, POST, PUT, DELETE
-     *
-     * @var string
-     */
-    public $method = 'GET';
+  /**
+   * A unique key used for the caching mechanism. Use the ->makeCacheKey() after all other properties are set
+   * That call will consistently generate the same key with the same property values each time
+   * If value is null, it is not a cachable request
+   *
+   * @var string | null
+   */
+  public $cacheKey = null;
 
-    /**
-     * Whether to send all the post data as JSON or MULTIPART, will change to multipart
-     *
-     * @var string
-     */
-    public $mode = 'json';  //json OR multipart
+  /**
+   * The HTTP method used in the API remote call. Valid values are GET, POST, PUT, DELETE
+   *
+   * @var string
+   */
+  public $method = 'GET';
 
-    /**
-     * The path of the resource to tack on to the end of the connections base URL.
-     * For example if 'projects' is passed... it will end up calling https://www.paymoapp.com/api/projects
-     * Do not include anything after the path string. Those values are added by the application
-     *
-     * @var string | null
-     */
-    public $resourceUrl = null;
+  /**
+   * Whether to send all the post data as JSON or MULTIPART, will change to multipart
+   *
+   * @var string
+   */
+  public $mode = 'json';  //json OR multipart
 
-    /**
-     * An associative array of data to be sent in a POST or PUT request (for creation or updating of the entity)
-     * If left NULL, the request will not go through successfully if trying to POST or PUT
-     *
-     * @var array | null
-     */
-    public $data = null;
+  /**
+   * The path of the resource to tack on to the end of the connections base URL.
+   * For example if 'projects' is passed... it will end up calling https://www.paymoapp.com/api/projects
+   * Do not include anything after the path string. Those values are added by the application
+   *
+   * @var string | null
+   */
+  public $resourceUrl = null;
 
-    /**
-     * The string property of all the pre-scrubbed ?include= parameter that will be passed to the API
-     *
-     * @var string | null
-     */
-    public $include = null;
+  /**
+   * An associative array of data to be sent in a POST or PUT request (for creation or updating of the entity)
+   * If left NULL, the request will not go through successfully if trying to POST or PUT
+   *
+   * @var array | null
+   */
+  public $data = null;
 
-    /**
-     * The string property of all the pre-scrubbed ?where= parameter that will be passed to the API
-     *
-     * @var string | null
-     */
-    public $where = null;
+  /**
+   * The string property of all the pre-scrubbed ?include= parameter that will be passed to the API
+   *
+   * @var string | null
+   */
+  public $include = null;
 
-    /**
-     * A possible array of files to upload to the entity. Array[propKey=>filePath]. Must use POST method when set.
-     *
-     * @var string[] | null
-     */
-    public $files = null;
+  /**
+   * The string property of all the pre-scrubbed ?where= parameter that will be passed to the API
+   *
+   * @var string | null
+   */
+  public $where = null;
+
+  /**
+   * A possible array of files to upload to the entity. Array[propKey=>filePath]. Must use POST method when set.
+   *
+   * @var string[] | null
+   */
+  public $files = null;
+
+  public function makeCacheKey($force=true) : RequestAbstraction {
+    if ($this->method==='GET') {
+      if (!$force && !is_null($this->cacheKey)) { return $this; }
+      $this->cacheKey = 'paymoapi-'.md5($this->resourceUrl.':include='.$this->include.'&where='.$this->where);
+    }
+    return $this;
+  }
+
 }
