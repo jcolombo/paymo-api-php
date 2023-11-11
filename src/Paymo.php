@@ -166,6 +166,7 @@ class Paymo
      * @param RequestAbstraction $request An instance of the standardized object to insure all values exist for proper
      *                                    request
      * @param array              $options Set of options to configure request and response handling
+     *                                    [skipCache] = boolean : If set to true, will NEVER check cache and force API call
      *
      * @return RequestResponse
      */
@@ -173,9 +174,10 @@ class Paymo
     {
         // @todo Handle CACHE checks and return here before making an actual API call
         // Response will include extra info about the cache from the loaded version of the cache
+        $skipCache = isset($options['skipCache']) && !!$options['skipCache'];
         if ($this->useCache) {
           $cacheKey = $request->makeCacheKey()->cacheKey;
-          if ($cacheKey) {
+          if ($cacheKey && !$skipCache) {
             $cachedResponse = Cache::fetch($cacheKey);
             if ($cachedResponse) {
               return $cachedResponse;

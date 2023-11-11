@@ -58,6 +58,7 @@ class Request
      *                           [scrub] = bool : Manually process the result through the clean up utility to strip any
      *                           [where] = RequestCondition[] : A set of request conditions for filtering lists
      *                           excess response properties (in case API response added more than was requested)
+     *                           [skipCache] = boolean : If set to true, will NEVER check cache and force API call
      *
      * @throws Exception
      * @return RequestResponse Returns an object on success or a boolean FALSE on failure to load entity
@@ -82,7 +83,8 @@ class Request
         $request->method = 'GET';
         $request->resourceUrl = $id > 0 ? $pathKey."/{$id}" : $pathKey;
         $request->include = Request::compileIncludeParameter(array_merge($select, $include));
-        $response = $connection->execute($request);
+        $skipCache = isset($options['skipCache']) && !!$options['skipCache'];
+        $response = $connection->execute($request, ['skipCache'=>$skipCache]);
         if ($response->body && $response->validBody($responseKey, 1)) {
             $object = is_array($response->body->$responseKey) ? $response->body->$responseKey[0] : $response->body->$responseKey;
             $response->result = $scrub ? self::scrubBody($object, $select, $include) : $object;

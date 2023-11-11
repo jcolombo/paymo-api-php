@@ -355,11 +355,13 @@ abstract class AbstractResource extends AbstractEntity
      * @param int | null $id         The ID to use to populate this object. If null, it uses the existing prop ID, if
      *                               still no value... will throw an Exception
      * @param string[]   $fields     An array of string props and/or include entities to get from the API call
+     * @param array      $options    The set of options for this request
+     *                               [skipCache] = boolean : If set to true, will NEVER check cache and force API call
      *
      * @throws Exception
      * @return AbstractResource Returns the instance of itself for chaining method potential
      */
-    public function fetch($id = null, $fields = [])
+    public function fetch($id = null, $fields = [], $options = [])
     {
         $checkId = in_array($this::API_ENTITY, static::SKIP_ID_FETCH_UPDATE) ? false : true;
         if (is_null($id) && isset($this->props['id'])) {
@@ -381,9 +383,10 @@ abstract class AbstractResource extends AbstractEntity
         if (!$checkId) {
             $id = -1;
         }
+        $skipCache = isset($options['skipCache']) && !!$options['skipCache'];
         $respKey = $this->getResponseKey($this);
         $response = Request::fetch($this->connection, $this::API_PATH.$respKey, $id,
-                                   ['select' => $select, 'include' => $include]);
+                                   ['select' => $select, 'include' => $include, 'skipCache'=>$skipCache]);
         if ($response->result) {
             $this->_hydrate($response->result, $id);
             // @todo Populate a response summary of data on the object (like if it came from live, timestamp of request, timestamp of data retrieved/cache, etc
