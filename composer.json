@@ -1,26 +1,34 @@
 {
-    "name": "jcolombo/paymo-api-php",
-    "description": "PHP implementation of the Paymo App API",
-    "type": "library",
-    "license": "MIT",
-    "authors": [
-        {
-            "name": "Joel Colombo",
-            "email": "jc-dev@360psg.com"
-        }
-    ],
-    "keywords": ["paymo", "paymo app", "paymo php"],
-    "require": {
-		"php": ">=7.2",
-        "ext-json": "*",
-        "guzzlehttp/guzzle": "~6.0",
-        "hassankhan/config": "~2.1",
-        "adbario/php-dot-notation": "^2.2"
-    },
-    "autoload": {
-        "psr-4": { "Jcolombo\\PaymoApiPhp\\": "src" }
-    },
-    "autoload-dev": {
-        "psr-4": { "Jcolombo\\PaymoApiPhp\\": "src" }
+  "name": "jcolombo/paymo-api-php",
+  "description": "PHP implementation of the Paymo App API",
+  "type": "library",
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "Joel Colombo",
+      "email": "jc-dev@360psg.com"
     }
+  ],
+  "keywords": [
+    "paymo",
+    "paymo app",
+    "paymo php"
+  ],
+  "require": {
+    "php": ">=7.2",
+    "ext-json": "*",
+    "guzzlehttp/guzzle": "~7.8",
+    "hassankhan/config": "~2.1",
+    "adbario/php-dot-notation": "^2.2"
+  },
+  "autoload": {
+    "psr-4": {
+      "Jcolombo\\PaymoApiPhp\\": "src"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "Jcolombo\\PaymoApiPhp\\": "src"
+    }
+  }
 }
