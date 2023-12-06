@@ -453,7 +453,7 @@ abstract class AbstractEntity
         }
         $flipped = array_flip($realInclude);
         foreach ($realInclude as $i) {
-            $tmp = substr($i, count($i) - 4, 3) === '.id' ? substr($i, 0, count($i) - 4) : null;
+            $tmp = substr($i, strlen($i) - 4, 3) === '.id' ? substr($i, 0, strlen($i) - 4) : null;
             if (!is_null($tmp) && isset($flipped[$tmp])) {
                 unset($flipped[$i]);
             }
