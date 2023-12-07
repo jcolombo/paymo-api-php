@@ -445,7 +445,7 @@ abstract class AbstractEntity
                         }
                     }
                     $tmp = "{$parts[0]}.id";
-                    if (!in_array($tmp, $parts[0]) && !in_array($tmp, $realInclude)) {
+                    if (!in_array($tmp, $realInclude)) {
                         $realInclude[] = $tmp;
                     }
                 }
