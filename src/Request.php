@@ -126,9 +126,10 @@ class Request
         if (!$include || !is_array($include) || count($include) < 1) {
             return null;
         }
-        sort(array_unique($include));
+      $array_unique = array_unique($include);
+      sort($array_unique);
 
-        return join(',', $include);
+        return join(',', $array_unique);
     }
 
     /**
@@ -323,7 +324,10 @@ class Request
         //var_dump($where);
         //var_dump($request); //exit;
 
-        $response = $connection->execute($request);
+        // Options
+        $skipCache = isset($options['skipCache']) && !!$options['skipCache'];
+
+        $response = $connection->execute($request, ['skipCache'=>$skipCache]);
 
         if ($response->body && $response->validBody($responseKey, 0)) {
             $response->body->$responseKey = self::postResponseFilter($response->body->$responseKey, $where);

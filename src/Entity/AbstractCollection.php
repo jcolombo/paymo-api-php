@@ -80,6 +80,14 @@ abstract class AbstractCollection extends AbstractEntity implements Iterator, Ar
     private $data = [];
 
     /**
+     * The storage for global options that are passed into requests
+     * - skipCache : Do not load any requests from cache, always call the live API results
+     *
+     * @var mixed[]
+     */
+    protected $options = [];
+
+    /**
      * EntityCollection constructor.
      *
      * @param string                        $entityKey The entity key from the entityMap to indicate what type of
@@ -119,18 +127,106 @@ abstract class AbstractCollection extends AbstractEntity implements Iterator, Ar
     }
 
     /**
+     * Set the options for the application.
+     *
+     * @param array $options The array of options to set for the application. Default is an empty array.
+     *
+     * @return $this The current instance of the application.
+     */
+    public function options($options = []) {
+        $this->options = $this->validateOptions($options);
+        return $this;
+      }
+
+    /**
+     * Merge options with the existing options.
+     *
+     * @param array ...$arrays The array(s) to merge with the existing options
+     *
+     * @return array The combined options
+     */
+    public function mergeOptions() {
+        $arrays = func_get_args();
+        $combinedOptions = $this->options;
+        foreach ($arrays as $array) {
+          $combinedOptions = array_merge($combinedOptions, $array);
+        }
+
+        return $combinedOptions;
+      }
+
+    /**
+     * Validates and returns an array of validated options based on a given schema.
+     *
+     * @param array $options The options to validate.
+     *
+     * @return array The validated options.
+     */
+    private function validateOptions($options) {
+        // Define the validation schema
+        $schema = [
+          'skipCache' => 'boolean',
+          // Add new options here as needed
+          // 'anotherOption' => 'string',
+          // 'yetAnotherOption' => 'integer',
+        ];
+
+        // Initialize an array to store validated options
+        $validatedOptions = [];
+
+        // Iterate over the provided options
+        foreach ($options as $key => $value) {
+          // Check if the option exists in the schema
+          if (array_key_exists($key, $schema)) {
+            // Validate the option based on its expected type
+            $expectedType = $schema[$key];
+            if ($this->isValidType($value, $expectedType)) {
+              $validatedOptions[$key] = $value;
+            }
+          }
+        }
+
+        return $validatedOptions;
+      }
+
+    /**
+     * Check whether a value matches the expected type.
+     *
+     * @param mixed  $value        The value to check.
+     * @param string $expectedType The expected type.
+     *
+     * @return bool Returns true if the value matches the expected type, false otherwise.
+     */
+    private function isValidType($value, $expectedType) {
+        switch ($expectedType) {
+          case 'boolean':
+            return is_bool($value);
+          case 'string':
+            return is_string($value);
+          case 'integer':
+            return is_int($value);
+          case 'array':
+            return is_array($value);
+          // Add other type checks as needed
+          default:
+            return false;
+        }
+      }
+
+    /**
      * Fetch the list of a specific resource with requested fields, includes, and conditional limits
      *
      * @param string[]           $fields A list of props and includes to return from the API call. An empty[] simply
      *                                   returns all props for the list of base resources
      * @param RequestCondition[] $where  Optional set of conditions to limit the result set to (via API where or post
      *                                   processing HAS clauses)
+     * @param array             $options Additional options for the request.
      *
      * @throws Exception
      * @return AbstractCollection $this Returns itself for chaining methods. The object will be populated with the
      *                            collection of resources before returning itself
      */
-    public function fetch($fields = [], $where = [])
+    public function fetch($fields = [], $where = [], $options = [])
     {
         if (!is_array($fields)) {
             $fields = [$fields];
@@ -147,8 +243,9 @@ abstract class AbstractCollection extends AbstractEntity implements Iterator, Ar
         }
         $respKey = $this->getResponseKey($resClass);
         [$select, $include, $where] = static::cleanupForRequest($resClass::API_ENTITY, $fields, $where);
+
         $response = Request::list($this->connection, $resClass::API_PATH.$respKey,
-                                  ['select' => $select, 'include' => $include, 'where' => $where]);
+                                  $this->mergeOptions(['select' => $select, 'include' => $include, 'where' => $where], $options));
         if ($response->result) {
             $this->_hydrate($response->result);
             // @todo Populate a response summary of data on the object (like if it came from live, timestamp of request, timestamp of data retrieved/cache, etc
@@ -201,7 +298,12 @@ abstract class AbstractCollection extends AbstractEntity implements Iterator, Ar
         $this->data = [];
     }
 
-    public function sort($sortBy = [])
+  /**
+   * @param $sortBy
+   *
+   * @return void
+   */
+  public function sort($sortBy = [])
     {
         // @todo Add a sort by system similar to the WHERE calls that will post-process sort the list
         // Resource::sort('prop', 'direction=ASC') calls to CollectionSort::sort(...)
