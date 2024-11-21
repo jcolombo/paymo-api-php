@@ -155,7 +155,7 @@ class Paymo
         self::$connections[$apiKey]->useLogging = !!$useLogging;
       }
       self::$connections[$apiKey]->useCache = !!Configuration::get('enabled.cache');
-      Log::getLog()->log(self::$connections[$apiKey], Log::obj('NEW_CONNECTION', null));
+      Log::getLog()->onlyIf(Configuration::get('log.connections'))->log(self::$connections[$apiKey], Log::obj('NEW_CONNECTION', null));
       if (Configuration::get('connection.verify')) {
         // @todo Run connection check call to API to test credentials and API up-status, throw error on fail
         // Run a simple call to the API to get a valid response
@@ -166,7 +166,7 @@ class Paymo
       // Mixed with configuration options to customize logging rules and format, etc.
     }
 
-    Log::getLog()->log(self::$connections[$apiKey], Log::obj('USE_CONNECTION', null));
+    Log::getLog()->onlyIf(Configuration::get('log.connections'))->log(self::$connections[$apiKey], Log::obj('USE_CONNECTION', null));
 
     return self::$connections[$apiKey];
   }

@@ -13,6 +13,10 @@
     "cache": false,
     "logging": false
   },
+  "log": {
+    "connections": false,
+    "requests": true
+  },
   "devMode": false,
   "errors": {
     "4xx": ["log", "echo", "exit"],

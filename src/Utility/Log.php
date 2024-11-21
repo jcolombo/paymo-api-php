@@ -75,6 +75,11 @@ class Log
   public $inDevMode = false;
 
   /**
+   * @var bool Indicator to determine if logging should be done on the next call to log or blank methods
+   */
+  public $logNext = true;
+
+  /**
    * @const string A separator bar used in log entries.
    */
   const BAR = "=======================================================================================\n";
@@ -117,16 +122,30 @@ class Log
   }
 
   /**
+   * Sets the internal logNext property and returns the current instance.
+   *
+   * @param bool $booleanCheck A flag indicating whether to log next actions.
+   *
+   * @return self The current instance for method chaining.
+   */
+  public function onlyIf($booleanCheck=true) {
+    $this->logNext = $booleanCheck;
+    return $this;
+  }
+
+  /**
    * Writes a blank line to the log file if logging is enabled.
    *
    * @param Paymo|null $paymo The Paymo instance.
    *
-   * @return void
+   * @return Log
    */
   public function blank(?Paymo $paymo) {
     if (Log::enabled($paymo)) {
+      if (!$this->logNext) { $this->logNext = true; return $this; }
       $this->write('', true);
     }
+    return $this;
   }
 
   /**
@@ -137,9 +156,10 @@ class Log
    * @param string|null $prefix Optional prefix for the log message.
    * @param string|null $suffix Optional suffix for the log message.
    *
-   * @return void
+   * @return Log
    */
   public function log(?Paymo $paymo, $msg, $prefix = null, $suffix = null) {
+    if (!$this->logNext) { $this->logNext = true; return $this; }
     if ($prefix === true) {
       $prefix = Log::BAR;
     }
@@ -190,7 +210,7 @@ class Log
               break;
           }
 
-          return;
+          return $this;
         } else {
           $this->write($line_prefix, true);
           $this->write($msg, true);
@@ -200,6 +220,7 @@ class Log
         $this->write($suffix);
       }
     }
+    return $this;
   }
 
   /**
@@ -268,6 +289,8 @@ class Log
    * @return void
    */
   protected function logStartRequest($obj) {
+    $this->write('', true);
+    $this->write($obj->prefix.'------------ Start New Request ------------', true);
     $this->write($obj->prefix."{$obj->data->method} {$obj->data->mode} /{$obj->data->resourceUrl}", true);
     if ($obj->data->data) {
       $this->write($obj->spacer."DATA: ".json_encode($obj->data->data, JSON_UNESCAPED_SLASHES), true);
