@@ -35,6 +35,7 @@ use GuzzleHttp\Exception\ClientException;
 use GuzzleHttp\Exception\GuzzleException;
 use GuzzleHttp\Exception\ServerException;
 use Jcolombo\PaymoApiPhp\Cache\Cache;
+use Jcolombo\PaymoApiPhp\Utility\Log;
 use Jcolombo\PaymoApiPhp\Utility\RequestAbstraction;
 use Jcolombo\PaymoApiPhp\Utility\RequestResponse;
 
@@ -121,6 +122,8 @@ class Paymo
       if (count($apiKeyUser) === 2) {
         $apiKey = "{$apiKeyUser[0]}::{$apiKeyUser[1]}";
       } else {
+        Log::getLog()->log(null,
+                           'ERROR: API Connection attempted user/pass key that did not contain exactly two elements');
         throw new Exception("An invalid username/password array was sent to the connection");
       }
     } else {
@@ -128,6 +131,7 @@ class Paymo
     }
     if (is_null($apiKey)) {
       if (count(self::$connections) < 1) {
+        Log::getLog()->log(null, 'ERROR: API Key was NULL and could not be established');
         throw new Exception("'NULL API KEY : Cannot get connection that has not been established yet. Please insure at least one API KEY connection has been established first.'");
       }
       // If key was not sent, default to using the first connection that exists
@@ -141,11 +145,17 @@ class Paymo
       $connectionUrl = Configuration::get('connection.url');
     }
     if (is_null($connectionName)) {
-      $connectionName = Configuration::get('connection.defaultName').'-'.rand(100000, 999999).'-'.microtime(true);
+      $connectionSuffix = '***'.substr($apiKey, -5, 5).'-#'.rand(100000, 999999);
+      $connectionName = Configuration::get('connection.defaultName').'-'.$connectionSuffix;
     }
     if (!isset(self::$connections[$apiKey])) {
       self::$connections[$apiKey] = new static($apiKey, $connectionUrl, $connectionName);
-      self::$connections[$apiKey]->useLogging = !!$useLogging;
+      self::$connections[$apiKey]->useLogging = !!Configuration::get('enabled.logging');
+      if (!is_null($useLogging)) {
+        self::$connections[$apiKey]->useLogging = !!$useLogging;
+      }
+      self::$connections[$apiKey]->useCache = !!Configuration::get('enabled.cache');
+      Log::getLog()->log(self::$connections[$apiKey], Log::obj('NEW_CONNECTION', null));
       if (Configuration::get('connection.verify')) {
         // @todo Run connection check call to API to test credentials and API up-status, throw error on fail
         // Run a simple call to the API to get a valid response
@@ -155,6 +165,8 @@ class Paymo
       // @todo Implement logging if its enabled in the connection, special logging class will handle what to do
       // Mixed with configuration options to customize logging rules and format, etc.
     }
+
+    Log::getLog()->log(self::$connections[$apiKey], Log::obj('USE_CONNECTION', null));
 
     return self::$connections[$apiKey];
   }
@@ -171,15 +183,28 @@ class Paymo
    * @return RequestResponse
    */
   public function execute(RequestAbstraction $request, $options = []) {
+    Log::getLog()->log($this, Log::obj('START_REQUEST', $request));
+
     // @todo Handle CACHE checks and return here before making an actual API call
     // Response will include extra info about the cache from the loaded version of the cache
     $skipCache = isset($options['skipCache']) && !!$options['skipCache'];
     if ($this->useCache) {
       $cacheKey = $request->makeCacheKey()->cacheKey;
       if ($cacheKey && !$skipCache) {
+        Log::getLog()->log($this, 'CHECK CACHE KEY: '.$cacheKey);
         $cachedResponse = Cache::fetch($cacheKey);
         if ($cachedResponse) {
+          if (is_object($cachedResponse) && $cachedResponse->isCacheMeta) {
+            $timeLeft = Cache::formatDuration($cachedResponse->lifeLeft);
+            Log::getLog()->log($this, "-- RETURN VALID CACHE (Still Good For {$timeLeft})");
+
+            return $cachedResponse->content;
+          }
+          Log::getLog()->log($this, '-- RETURN VALID CACHE');
+
           return $cachedResponse;
+        } else {
+          Log::getLog()->log($this, '-- NO CACHE FOUND');
         }
       }
     }
@@ -260,6 +285,7 @@ class Paymo
       $response->responseReason = $msg;
       $response->headers = $e->getResponse()->getHeaders();
     } catch (GuzzleException $e) {
+      Log::getLog()->log($this, Log::obj('GUZZLE_ERROR', $e));
       // @todo Handle better with an error handler class
       echo "UNKNOWN EXCEPTION...\n";
       var_dump($e);
@@ -276,6 +302,13 @@ class Paymo
       $response->result = null;
       $response->success = ($response->responseCode >= 200 && $response->responseCode <= 299);
 
+      Log::getLog()->log($this, Log::obj('RESPONSE_DONE', [
+        'code'    => $response->responseCode,
+        'reason'  => $response->responseReason,
+        'time'    => $response->responseTime,
+        'headers' => json_encode($response->headers, JSON_UNESCAPED_SLASHES),
+      ]));
+
       //var_dump($response); exit;
 
       // @todo Handle errors with error handler class and configuration rules
@@ -288,6 +321,7 @@ class Paymo
       // @todo If cache is enabled, store the cache with the request cachekey and the response
       // Response will include an extra parameter related to the cache info itself
       if ($this->useCache && $response->success && $cacheKey) {
+        Log::getLog()->log($this, '-- STORE VALID CACHE');
         Cache::store($cacheKey, $response);
       }
 
@@ -305,6 +339,10 @@ class Paymo
 
     //$body = json_decode($response->getBody()->getContents());
     //var_dump($body);
+  }
+
+  protected function __destruct() {
+    Log::getLog()->log($this, Log::obj('KILL_CONNECTION', null));
   }
 
 }

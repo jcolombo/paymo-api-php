@@ -1,7 +1,7 @@
 {
   "connection": {
     "url": "https://app.paymoapp.com/api/",
-    "defaultName": "PaymoApiConnection",
+    "defaultName": "PaymoApi",
     "verify": false,
     "timeout": 15.0
   },
