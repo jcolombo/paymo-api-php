@@ -290,7 +290,7 @@ class Log
    */
   protected function logStartRequest($obj) {
     $this->write('', true);
-    $this->write($obj->prefix.'------------ Start New Request ------------', true);
+    $this->write('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> ------------ Start New Request ------------ <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<', true);
     $this->write($obj->prefix."{$obj->data->method} {$obj->data->mode} /{$obj->data->resourceUrl}", true);
     if ($obj->data->data) {
       $this->write($obj->spacer."DATA: ".json_encode($obj->data->data, JSON_UNESCAPED_SLASHES), true);
