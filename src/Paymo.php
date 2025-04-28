@@ -326,6 +326,7 @@ class Paymo
       }
 
       if (!$response->success) {
+        echo "FAILED PAYMO RESPONSE...\n";
         var_dump($response);
       }
 

@@ -18,9 +18,19 @@
     "requests": true
   },
   "devMode": false,
-  "errors": {
-    "4xx": ["log", "echo", "exit"],
-    "5xx": ["log", "echo", "exit"]
+  "error": {
+    "enabled": true,
+    "handlers": {
+      "notice": ["log"],
+      "warn": ["log"],
+      "fatal": ["log", "echo"]
+    },
+    "logFilename": "paymo-error.log",
+    "triggerPhpErrors": false,
+    "formatting": {
+      "logFormat": "[%timestamp%] %severity%: %message% | Code: %code% | URL: %url%",
+      "echoFormat": "[%timestamp%] %severity%: %message% | Code: %code% | URL: %url%"
+    }
   },
   "randomColor": {
     "workflowstatus": true

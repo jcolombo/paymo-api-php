@@ -4,7 +4,7 @@ A Robust PHP implementation of the Paymo App API
 ![](https://img.shields.io/badge/Status-Unstable-red)
 ![](https://img.shields.io/badge/Stable-None-blue)
 ![](https://img.shields.io/badge/Latest-0.5.0-orange)
-![](https://img.shields.io/badge/PHP->=7.1-green)
+![](https://img.shields.io/badge/PHP->=7.4-green)
 ![](https://img.shields.io/github/license/jcolombo/paymo-api-php)
 ![](https://img.shields.io/github/issues/jcolombo/paymo-api-php)
 ![](https://img.shields.io/github/forks/jcolombo/paymo-api-php)
@@ -42,7 +42,7 @@ https://github.com/paymoapp/api
 ## Requirements
 
 - An active PaymoApp account (www.paymoapp.com)
-- PHP 7.1 or higher
+- PHP 7.4 or higher
 - Composer (for easy install) or the ability to install from this source
 
 ## Installation
