@@ -98,7 +98,7 @@ class InvoiceItem extends AbstractResource
         'seq' => 'integer',
         'expense_id' => 'resource:expense',
         // Undocumented Props
-        //'invoice_id' => 'resource:invoice'
+        'invoice_id' => 'resource:invoice'
     ];
 
     /**

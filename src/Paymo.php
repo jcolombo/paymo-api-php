@@ -342,7 +342,7 @@ class Paymo
     //var_dump($body);
   }
 
-  protected function __destruct() {
+  public function __destruct() {
     Log::getLog()->log($this, Log::obj('KILL_CONNECTION', null));
   }
 

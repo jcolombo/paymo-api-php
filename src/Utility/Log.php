@@ -402,7 +402,7 @@ class Log
    * Closes the log file if it is open.
    */
   public function __destruct() {
-    if (!is_null($this->log_file)) {
+    if (!is_null($this->log_file) && is_resource($this->log_file)) {
       fclose($this->log_file);
     }
   }

@@ -70,7 +70,7 @@ class Request
         if ($checkId && (int) $id < 1) {
             throw new Exception("Attempting to fetch a resource without an integer ID");
         }
-        $scrub = !!$options['scrub'];
+        $scrub = isset($options['scrub']) ? !!$options['scrub'] : false;
         $select = $options['select'] ?? [];
         $include = $options['include'] ?? [];
         if (!is_array($select)) {
@@ -305,7 +305,7 @@ class Request
     public static function list(Paymo $connection, $objectKey, $options)
     {
         [$pathKey, $responseKey] = static::getObjectReponseKeys($objectKey);
-        $scrub = !!$options['scrub'];
+        $scrub = isset($options['scrub']) ? !!$options['scrub'] : false;
         $select = $options['select'] ?? [];
         $include = $options['include'] ?? [];
         $where = $options['where'] ?? [];
