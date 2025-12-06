@@ -420,7 +420,7 @@ class Company extends AbstractResource
       'trial_ends_on'                       => 'datetime',
       'default_invoice_template'            => 'integer',
       'default_estimate_template'           => 'integer',
-      'max_estimates'                       => 'interger',
+      'max_estimates'                       => 'integer',
       'max_recurring_profiles'              => 'integer',
       'max_expenses'                        => 'integer',
       'current_estimates'                   => 'integer',

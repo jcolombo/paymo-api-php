@@ -773,9 +773,9 @@ Add automatic rate limit handling with retry logic.
 1. [x] Create `RecurringProfile` resource (Invoice recurring) - ✅ COMPLETED v0.6.0
 2. [x] Create `Subtask` resource - ✅ COMPLETED v0.6.0
 3. [x] Create `Webhook` resource - ✅ COMPLETED v0.6.0
-4. [ ] Fix `workflow_id` type in Project (currently `resource:milestone`)
-5. [ ] Fix typo `miletstone` -> `milestone` in Tasklist
-6. [ ] Fix typo `interger` -> `integer` in Company
+4. [x] Fix `workflow_id` type in Project (currently `resource:milestone`) - ✅ FIXED v0.6.0
+5. [x] Fix typo `miletstone` -> `milestone` in Tasklist - ✅ FIXED v0.6.0
+6. [x] Fix typo `interger` -> `integer` in Company - ✅ FIXED v0.6.0
 
 ### Short Term (Medium Priority)
 7. [x] Create `TaskRecurringProfile` resource - ✅ COMPLETED v0.6.0

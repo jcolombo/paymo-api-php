@@ -294,7 +294,7 @@ class Project extends AbstractResource
       'adjustable_hours'    => 'boolean',
       'invoiced'            => 'boolean',
       'invoice_item_id'     => 'resource:invoiceitem',
-      'workflow_id'         => 'resource:milestone',
+      'workflow_id'         => 'resource:workflow',
       'created_on'          => 'datetime',
       'updated_on'          => 'datetime',
         // Undocumented Props

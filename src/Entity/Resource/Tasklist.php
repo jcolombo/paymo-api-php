@@ -215,7 +215,7 @@ class Tasklist extends AbstractResource
      */
     public const INCLUDE_TYPES = [
       'project'    => false,
-      'miletstone' => false,
+      'milestone' => false,
       'tasks'      => true
     ];
 
