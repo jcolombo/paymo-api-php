@@ -30,6 +30,7 @@
 namespace Jcolombo\PaymoApiPhp\Utility;
 
 use Exception;
+use RuntimeException;
 use stdClass;
 
 /**
@@ -75,13 +76,25 @@ class MetaData
    */
   public function __set(string $name, $value) : void {
     if ($name === '_dataStore') {
-      throw new Exception('Cannot set private property _dataStore');
+      throw new RuntimeException('Cannot set private property _dataStore');
     }
     if ($this->_dataStore === null) {
       $this->_dataStore = new stdClass();
     }
     $this->_dataStore->$name = $value;
   }
+
+    /**
+     * Magic method for checking if a property exists.
+     *
+     * @param string $name The name of the property to check.
+     *
+     * @return bool True if the property exists, false otherwise.
+     */
+    public function __isset(string $name): bool
+    {
+        return isset($this->_dataStore->$name);
+    }
 
   /**
    * Clears the data in the singleton instance.
@@ -129,6 +142,6 @@ class MetaData
    * @throws Exception If attempting to unserialize the singleton instance.
    */
   public function __wakeup() {
-    throw new Exception("Cannot unserialize singleton");
+    throw new RuntimeException("Cannot unserialize singleton");
   }
 }

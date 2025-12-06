@@ -31,6 +31,7 @@ namespace Jcolombo\PaymoApiPhp\Utility;
 
 use Jcolombo\PaymoApiPhp\Configuration;
 use Jcolombo\PaymoApiPhp\Paymo;
+use JsonException;
 use stdClass;
 
 // **** Setting this variable globally right before running a PAYMO API request temporarily turns on logging
@@ -43,367 +44,411 @@ use stdClass;
  * Used for development environments for logging API requests and responses. The API key is removed from the requests
  * for security purposes unless the setting for key storage is enabled.
  *
- * @author Joel Colombo
+ * @author  Joel Colombo
  * @package Jcolombo\PaymoApiPhp\Utility
  */
 class Log
 {
 
-  /**
-   * @var Log|null Singleton instance of the Log class.
-   */
-  private static $log_instance = null;
+    /**
+     * @var Log|null Singleton instance of the Log class.
+     */
+    private static ?Log $log_instance = null;
 
-  /**
-   * @var string|null Path to the log file.
-   */
-  protected $log_file_path;
+    /**
+     * @var string|null Path to the log file.
+     */
+    protected ?string $log_file_path;
 
-  /**
-   * @var resource|null Pointer to the open log file.
-   */
-  protected $log_file = null;
+    /**
+     * @var resource|null Pointer to the open log file.
+     */
+    protected $log_file;
 
-  /**
-   * @var bool Indicates if logging is enabled.
-   */
-  public $enabled = false;
+    /**
+     * @var bool Indicates if logging is enabled.
+     */
+    public bool $enabled = false;
 
-  /**
-   * @var bool Indicates if the application is in development mode.
-   */
-  public $inDevMode = false;
+    /**
+     * @var bool Indicates if the application is in development mode.
+     */
+    public bool $inDevMode = false;
 
-  /**
-   * @var bool Indicator to determine if logging should be done on the next call to log or blank methods
-   */
-  public $logNext = true;
+    /**
+     * @var bool Indicator to determine if logging should be done on the next call to log or blank methods
+     */
+    public bool $logNext = true;
 
-  /**
-   * @const string A separator bar used in log entries.
-   */
-  const BAR = "=======================================================================================\n";
+    /**
+     * @const string A separator bar used in log entries.
+     */
+    public const BAR = "=======================================================================================\n";
 
-  /**
-   * Checks if logging is enabled for the given Paymo instance.
-   *
-   * @param Paymo|null $paymo The Paymo instance.
-   *
-   * @return bool True if logging is enabled, false otherwise.
-   */
-  public static function enabled(?Paymo $paymo = null) {
-    $log = Log::getLog();
-    $enabled = $log->enabled;
-    $log_it = is_null($paymo) || (is_object($paymo) && $paymo->useLogging);
-    $forced = (($log->inDevMode || PAYMO_DEVELOPMENT_MODE) && ($FORCE_PAYMOAPI_LOGGING ?? false));
-    if ($enabled && Log::path() && ($log_it || $forced)) {
-      return true;
+    /**
+     * Checks if logging is enabled for the given Paymo instance.
+     *
+     * @param Paymo|null $paymo The Paymo instance.
+     *
+     * @return bool True if logging is enabled, false otherwise.
+     */
+    public static function enabled(?Paymo $paymo = null) : bool
+    {
+        global $FORCE_PAYMOAPI_LOGGING;
+
+        $log = self::getLog();
+        $enabled = $log->enabled;
+        $log_it = is_null($paymo) || ($paymo->useLogging);
+        $forced = (($log->inDevMode || PAYMO_DEVELOPMENT_MODE) && ($FORCE_PAYMOAPI_LOGGING ?? false));
+
+        return $enabled && self::path() && ($log_it || $forced);
     }
 
-    return false;
-  }
-
-  /**
-   * Retrieves the path to the log file.
-   *
-   * @return string|null The log file path.
-   */
-  public static function path() {
-    return Log::getLog()->getLogFile();
-  }
-
-  /**
-   * Gets the log file pointer.
-   *
-   * @return resource|null The log file pointer.
-   */
-  public function getLogFile() {
-    return $this->log_file ?? null;
-  }
-
-  /**
-   * Sets the internal logNext property and returns the current instance.
-   *
-   * @param bool $booleanCheck A flag indicating whether to log next actions.
-   *
-   * @return self The current instance for method chaining.
-   */
-  public function onlyIf($booleanCheck=true) {
-    $this->logNext = $booleanCheck;
-    return $this;
-  }
-
-  /**
-   * Writes a blank line to the log file if logging is enabled.
-   *
-   * @param Paymo|null $paymo The Paymo instance.
-   *
-   * @return Log
-   */
-  public function blank(?Paymo $paymo) {
-    if (Log::enabled($paymo)) {
-      if (!$this->logNext) { $this->logNext = true; return $this; }
-      $this->write('', true);
+    /**
+     * Retrieves the path to the log file.
+     *
+     * @return resource|null The log file path.
+     */
+    public static function path()
+    {
+        return self::getLog()->getLogFile();
     }
-    return $this;
-  }
 
-  /**
-   * Logs a message to the log file if logging is enabled.
-   *
-   * @param Paymo|null  $paymo  The Paymo instance.
-   * @param mixed       $msg    The message to log.
-   * @param string|null $prefix Optional prefix for the log message.
-   * @param string|null $suffix Optional suffix for the log message.
-   *
-   * @return Log
-   */
-  public function log(?Paymo $paymo, $msg, $prefix = null, $suffix = null) {
-    if (!$this->logNext) { $this->logNext = true; return $this; }
-    if ($prefix === true) {
-      $prefix = Log::BAR;
+    /**
+     * Gets the log file pointer.
+     *
+     * @return resource|null The log file pointer.
+     */
+    public function getLogFile()
+    {
+        return $this->log_file ?? null;
     }
-    if ($suffix === true) {
-      $suffix = Log::BAR;
+
+    /**
+     * Sets the internal logNext property and returns the current instance.
+     *
+     * @param bool $booleanCheck A flag indicating whether to log next actions.
+     *
+     * @return self The current instance for method chaining.
+     */
+    public function onlyIf(bool $booleanCheck = true) : Log
+    {
+        $this->logNext = $booleanCheck;
+
+        return $this;
     }
-    if (Log::enabled($paymo)) {
-      if (is_null($msg)) {
+
+    /**
+     * Writes a blank line to the log file if logging is enabled.
+     *
+     * @param Paymo|null $paymo The Paymo instance.
+     *
+     * @return Log
+     */
+    public function blank(?Paymo $paymo) : Log
+    {
+        if (self::enabled($paymo)) {
+            if (!$this->logNext) {
+                $this->logNext = true;
+
+                return $this;
+            }
+            $this->write('', true);
+        }
+
+        return $this;
+    }
+
+    /**
+     * Logs a message to the log file if logging is enabled.
+     *
+     * @param Paymo|null       $paymo  The Paymo instance.
+     * @param mixed            $msg    The message to log.
+     * @param string|bool|null $prefix Optional prefix for the log message.
+     * @param string|bool|null $suffix Optional suffix for the log message.
+     *
+     * @throws JsonException
+     * @return Log
+     */
+    public function log(?Paymo $paymo, $msg, $prefix = null, $suffix = null) : Log
+    {
+        if (!$this->logNext) {
+            $this->logNext = true;
+
+            return $this;
+        }
+        if ($prefix === true) {
+            $prefix = self::BAR;
+        }
+        if ($suffix === true) {
+            $suffix = self::BAR;
+        }
+        if (self::enabled($paymo)) {
+            if (is_null($msg)) {
+                $this->write('', true);
+            }
+            $name = is_null($paymo) ? '* Not Connected *' : $paymo->connectionName;
+            $dt = date('Y-m-d H:i:s');
+            $line_prefix = "[$dt] $name : ";
+            if (!is_null($prefix) && $prefix !== '') {
+                $this->write($prefix);
+            }
+            if (is_string($msg)) {
+                $this->write($line_prefix.$msg, true);
+            }
+            if (is_array($msg)) {
+                foreach ($msg as $item) {
+                    $this->log($paymo, $item);
+                }
+            }
+            if (is_object($msg)) {
+                if (isset($msg->type)) {
+                    $msg->prefix = $line_prefix;
+                    $msg->spacer = str_repeat(' ', strlen($line_prefix));
+                    $msg->connectionName = $name;
+                    switch ($msg->type) {
+                        case('NEW_CONNECTION'):
+                            $this->logNewConnection($msg);
+                            break;
+                        case('USE_CONNECTION'):
+                            $this->logUseConnection($msg);
+                            break;
+                        case('KILL_CONNECTION'):
+                            $this->logKillConnection($msg);
+                            break;
+                        case('START_REQUEST'):
+                            $this->logStartRequest($msg);
+                            break;
+                        case('GUZZLE_ERROR'):
+                            $this->logGuzzleError($msg);
+                            break;
+                        case('RESPONSE_DONE'):
+                            $this->logResponseDone($msg);
+                            break;
+                    }
+
+                    return $this;
+                }
+
+                $this->write($line_prefix, true);
+                $this->write($msg, true);
+            }
+            if (!is_null($suffix) && $suffix !== '') {
+                $this->write($suffix);
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * Logs a new connection.
+     *
+     * @param stdClass $obj The connection object.
+     *
+     * @return void
+     */
+    protected function logNewConnection(stdClass $obj) : void
+    {
+        //$this->write(LOG::BAR);
+        $this->write($obj->prefix."****** Create Connection -- ".$obj->connectionName." ******", true);
+        if ($obj->data) {
+            $this->write($obj->data, true);
+        }
+        //$this->write(LOG::BAR);
+    }
+
+    /**
+     * Logs the use of a connection.
+     *
+     * @param stdClass $obj The connection object.
+     *
+     * @return void
+     */
+    protected function logUseConnection(stdClass $obj) : void
+    {
+        $this->write($obj->prefix."###### Use Connection -- ".$obj->connectionName." ######", true);
+        if ($obj->data) {
+            $this->write($obj->data, true);
+        }
+    }
+
+    /**
+     * Logs the termination of a connection.
+     *
+     * @param stdClass $obj The connection object.
+     *
+     * @return void
+     */
+    protected function logKillConnection(stdClass $obj) : void
+    {
+        $this->write($obj->prefix."XXXXXX End Connection -- ".$obj->connectionName." XXXXXX", true);
+        if ($obj->data) {
+            $this->write($obj->data, true);
+        }
+        //$this->write(LOG::BAR);
+    }
+
+    /**
+     * Logs a Guzzle error.
+     *
+     * @param stdClass $obj The error object.
+     *
+     * @return void
+     */
+    protected function logGuzzleError(stdClass $obj) : void
+    {
+        $this->write($obj->prefix."Guzzle Error...", true);
+        $this->write($obj->data, true);
+        //$this->write(LOG::BAR);
+    }
+
+    /**
+     * Logs the start of an API request.
+     *
+     * @param stdClass $obj The request object.
+     *
+     * @throws JsonException
+     * @return void
+     */
+    protected function logStartRequest(stdClass $obj) : void
+    {
         $this->write('', true);
-      }
-      $name = is_null($paymo) ? '* Not Connected *' : $paymo->connectionName;
-      $dt = date('Y-m-d H:i:s');
-      $line_prefix = "[{$dt}] {$name} : ";
-      if (!is_null($prefix) && $prefix !== '') {
-        $this->write($prefix);
-      }
-      if (is_string($msg)) {
-        $this->write($line_prefix.$msg, true);
-      }
-      if (is_array($msg)) {
-        foreach ($msg as $item) {
-          $this->log($paymo, $item);
+        $this->write(
+          '>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> ------------ Start New Request ------------ <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<',
+          true
+        );
+        $this->write($obj->prefix."{$obj->data->method} {$obj->data->mode} /{$obj->data->resourceUrl}", true);
+        if ($obj->data->data) {
+            $this->write(
+              $obj->spacer."DATA: ".json_encode(
+                $obj->data->data,
+                JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES
+              ),
+              true
+            );
         }
-      }
-      if (is_object($msg)) {
-        if (isset($msg->type)) {
-          $msg->prefix = $line_prefix;
-          $msg->spacer = str_repeat(' ', strlen($line_prefix));
-          $msg->connectionName = $name;
-          switch ($msg->type) {
-            case('NEW_CONNECTION'):
-              $this->logNewConnection($msg);
-              break;
-            case('USE_CONNECTION'):
-              $this->logUseConnection($msg);
-              break;
-            case('KILL_CONNECTION'):
-              $this->logKillConnection($msg);
-              break;
-            case('START_REQUEST'):
-              $this->logStartRequest($msg);
-              break;
-            case('GUZZLE_ERROR'):
-              $this->logGuzzleError($msg);
-              break;
-            case('RESPONSE_DONE'):
-              $this->logResponseDone($msg);
-              break;
-          }
-
-          return $this;
-        } else {
-          $this->write($line_prefix, true);
-          $this->write($msg, true);
+        if ($obj->data->include) {
+            $this->write($obj->spacer."INCLUDE: ".$obj->data->include, true);
         }
-      }
-      if (!is_null($suffix) && $suffix !== '') {
-        $this->write($suffix);
-      }
-    }
-    return $this;
-  }
-
-  /**
-   * Logs a new connection.
-   *
-   * @param stdClass $obj The connection object.
-   *
-   * @return void
-   */
-  protected function logNewConnection($obj) {
-    //$this->write(LOG::BAR);
-    $this->write($obj->prefix."****** Create Connection -- ".$obj->connectionName." ******", true);
-    if ($obj->data) {
-      $this->write($obj->data, true);
-    }
-    //$this->write(LOG::BAR);
-  }
-
-  /**
-   * Logs the use of a connection.
-   *
-   * @param stdClass $obj The connection object.
-   *
-   * @return void
-   */
-  protected function logUseConnection($obj) {
-    $this->write($obj->prefix."###### Use Connection -- ".$obj->connectionName." ######", true);
-    if ($obj->data) {
-      $this->write($obj->data, true);
-    }
-  }
-
-  /**
-   * Logs the termination of a connection.
-   *
-   * @param stdClass $obj The connection object.
-   *
-   * @return void
-   */
-  protected function logKillConnection($obj) {
-    $this->write($obj->prefix."XXXXXX End Connection -- ".$obj->connectionName." XXXXXX", true);
-    if ($obj->data) {
-      $this->write($obj->data, true);
-    }
-    //$this->write(LOG::BAR);
-  }
-
-  /**
-   * Logs a Guzzle error.
-   *
-   * @param stdClass $obj The error object.
-   *
-   * @return void
-   */
-  protected function logGuzzleError($obj) {
-    $this->write($obj->prefix."Guzzle Error...", true);
-    $this->write($obj->data, true);
-    //$this->write(LOG::BAR);
-  }
-
-  /**
-   * Logs the start of an API request.
-   *
-   * @param stdClass $obj The request object.
-   *
-   * @return void
-   */
-  protected function logStartRequest($obj) {
-    $this->write('', true);
-    $this->write('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> ------------ Start New Request ------------ <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<', true);
-    $this->write($obj->prefix."{$obj->data->method} {$obj->data->mode} /{$obj->data->resourceUrl}", true);
-    if ($obj->data->data) {
-      $this->write($obj->spacer."DATA: ".json_encode($obj->data->data, JSON_UNESCAPED_SLASHES), true);
-    }
-    if ($obj->data->include) {
-      $this->write($obj->spacer."INCLUDE: ".$obj->data->include, true);
-    }
-    if ($obj->data->where) {
-      $this->write($obj->spacer."WHERE: ".$obj->data->where, true);
-    }
-    if ($obj->data->files) {
-      $this->write($obj->spacer."FILES: ".json_encode($obj->data->files, JSON_UNESCAPED_SLASHES), true);
-    }
-  }
-
-  /**
-   * Logs the completion of an API response.
-   *
-   * @param stdClass $obj The response object.
-   *
-   * @return void
-   */
-  protected function logResponseDone($obj) {
-    $this->write($obj->prefix."RESPONSE: ", true);
-    $this->write($obj->data, false);
-    //$this->write(LOG::BAR);
-  }
-
-  /**
-   * Writes a log entry to the log file.
-   *
-   * @param mixed $content    The content to write.
-   * @param bool  $addNewline Whether to add a newline after the content.
-   *
-   * @return void
-   */
-  protected function write($content, $addNewline = false) {
-    if (is_bool($content)) {
-      $content = !!$content ? 'true' : 'false';
+        if ($obj->data->where) {
+            $this->write($obj->spacer."WHERE: ".$obj->data->where, true);
+        }
+        if ($obj->data->files) {
+            $this->write(
+              $obj->spacer."FILES: ".json_encode(
+                $obj->data->files,
+                JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES
+              ),
+              true
+            );
+        }
     }
 
-    if ($this->log_file && ($content === '' || $content)) {
-      if (is_string($content) || is_numeric($content)) {
-        $c = (string) $content;
-      } else {
-        $c = print_r($content, true);
-      }
-      fwrite($this->log_file, $c);
-      if ($addNewline) {
-        fwrite($this->log_file, "\n");
-      }
-    }
-  }
-
-  /**
-   * Creates a stdClass object with a type and data.
-   *
-   * @param string $type The type of the object.
-   * @param mixed  $data The data to include in the object.
-   *
-   * @return stdClass The created object.
-   */
-  public static function obj(
-    $type, $data
-  ) : stdClass {
-    $obj = new stdClass();
-    $obj->type = $type;
-    $obj->data = null;
-    if (!!$data) {
-      $obj->data = (object) $data;
+    /**
+     * Logs the completion of an API response.
+     *
+     * @param stdClass $obj The response object.
+     *
+     * @return void
+     */
+    protected function logResponseDone(stdClass $obj) : void
+    {
+        $this->write($obj->prefix."RESPONSE: ", true);
+        $this->write($obj->data);
+        //$this->write(LOG::BAR);
     }
 
-    return $obj;
-  }
+    /**
+     * Writes a log entry to the log file.
+     *
+     * @param mixed $content    The content to write.
+     * @param bool  $addNewline Whether to add a newline after the content.
+     *
+     * @return void
+     */
+    protected function write($content, bool $addNewline = false) : void
+    {
+        if (is_bool($content)) {
+            $content = $content ? 'true' : 'false';
+        }
 
-  /**
-   * Retrieves or creates the singleton log instance.
-   *
-   * @return Log The singleton log instance.
-   */
-  public static function getLog() {
-    if (!isset(self::$log_instance)) {
-      self::$log_instance = new static();
+        if ($this->log_file && ($content === '' || $content)) {
+            if (is_string($content) || is_numeric($content)) {
+                $c = (string)$content;
+            } else {
+                $c = print_r($content, true);
+            }
+            fwrite($this->log_file, $c);
+            if ($addNewline) {
+                fwrite($this->log_file, "\n");
+            }
+        }
     }
 
-    return self::$log_instance;
-  }
+    /**
+     * Creates a stdClass object with a type and data.
+     *
+     * @param string $type The type of the object.
+     * @param mixed  $data The data to include in the object.
+     *
+     * @return stdClass The created object.
+     */
+    public static function obj(
+      string $type,
+      $data
+    ) : stdClass {
+        $obj = new stdClass();
+        $obj->type = $type;
+        $obj->data = null;
+        if ($data) {
+            $obj->data = (object)$data;
+        }
 
-  /**
-   * Private constructor for the Log class.
-   * Initializes the log file and settings based on configuration.
-   */
-  private function __construct() {
-    $this->log_file = null;
-    $this->enabled = !!Configuration::get('enabled.logging');
-    $this->inDevMode = !!Configuration::get('devMode');
-    $logPath = Configuration::get('path.logs') ?? null;
-    $this->log_file_path = !!$logPath ? $logPath.DIRECTORY_SEPARATOR.'paymo-api.log' : null;
-    if ($this->log_file_path) {
-      $this->log_file = fopen($this->log_file_path, "a");
+        return $obj;
     }
-    if (!$this->log_file) {
-      $this->enabled = false;
-    }
-  }
 
-  /**
-   * Destructor for the Log class.
-   * Closes the log file if it is open.
-   */
-  public function __destruct() {
-    if (!is_null($this->log_file) && is_resource($this->log_file)) {
-      fclose($this->log_file);
+    /**
+     * Retrieves or creates the singleton log instance.
+     *
+     * @return Log The singleton log instance.
+     */
+    public static function getLog() : Log
+    {
+        if (!isset(self::$log_instance)) {
+            self::$log_instance = new static();
+        }
+
+        return self::$log_instance;
     }
-  }
+
+    /**
+     * Private constructor for the Log class.
+     * Initializes the log file and settings based on configuration.
+     */
+    private function __construct()
+    {
+        $this->log_file = null;
+        $this->enabled = (bool)Configuration::get('enabled.logging');
+        $this->inDevMode = (bool)Configuration::get('devMode');
+        $logPath = Configuration::get('path.logs');
+        $this->log_file_path = $logPath ? $logPath.DIRECTORY_SEPARATOR.'paymo-api.log' : null;
+        if ($this->log_file_path) {
+            $this->log_file = fopen($this->log_file_path, 'ab');
+        }
+        if (!$this->log_file) {
+            $this->enabled = false;
+        }
+    }
+
+    /**
+     * Destructor for the Log class.
+     * Closes the log file if it is open.
+     */
+    public function __destruct()
+    {
+        if (is_resource($this->log_file)) {
+            fclose($this->log_file);
+        }
+    }
 }

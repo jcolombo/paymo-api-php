@@ -44,22 +44,22 @@ class ScrubCache
      *
      * @var ScrubCache | null
      */
-    public static $instance = null;
+    public static ?ScrubCache $instance = null;
 
     /**
      * The in-memory storage array of the pre-cached validation of includes
      *
      * @var array
      */
-    protected $scrubs = [];
+    protected array $scrubs = [];
 
     /**
      * Attempt to retrieve the static instance of this class or create it if its the first call
      *
-     * @return ScrubCache|null
+     * @return ScrubCache
      * @todo : Allow for file based caching later (for now just stores scrub cache for a single PHP memory thread)
      */
-    public static function cache()
+    public static function cache() : ScrubCache
     {
         if (is_null(self::$instance)) {
             self::$instance = new static();
@@ -76,14 +76,11 @@ class ScrubCache
      *
      * @return string[] | null
      */
-    public function get($entity, $original_list)
+    public function get(string $entity, array $original_list) : ?array
     {
         $key = $this->key($entity, $original_list);
-        if (isset($this->scrubs[$key])) {
-            return $this->scrubs[$key];
-        }
 
-        return null;
+        return $this->scrubs[$key] ?? null;
     }
 
     /**
@@ -94,7 +91,7 @@ class ScrubCache
      *
      * @return string
      */
-    protected function key($entity, $list)
+    protected function key(string $entity, array $list) : string
     {
         sort($list);
 
@@ -109,7 +106,7 @@ class ScrubCache
      * @param string[] $final_list    The final already scrubbed list that should be returned when the original list is
      *                                asked for with the get() call
      */
-    public function push($entity, $original_list, $final_list)
+    public function push(string $entity, array $original_list, array $final_list) : void
     {
         $key = $this->key($entity, $original_list);
         $this->scrubs[$key] = $final_list;

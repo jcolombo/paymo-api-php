@@ -49,21 +49,22 @@ class Converter
      * @return string The PHP equivalent datatype for type checking (except timestamp which is a special type used in
      *                this package)
      */
-    public static function getPrimitiveType($type)
+    public static function getPrimitiveType(string $type) : string
     {
         $values = [];
-        if (is_array($type)) {
-            // @todo Handle an object type. Has keys with properties that have basic types as well
-        }
+//        if (is_array($type)) {
+//            // @todo Handle an object type. Has keys with properties that have basic types as well
+//        }
+        $arr = explode(':', $type, 2);
         if (strpos($type, 'resource:') !== false) {
             $type = 'integer';
         } elseif (strpos($type, 'collection:') !== false) {
             $type = 'integer';
         } elseif (strpos($type, 'enum:') !== false) {
-            $values = explode('|', array_pop(explode(':', $type, 2)));
+            $values = explode('|', array_pop($arr));
             $type = 'enum';
         } elseif (strpos($type, 'enumInt:') !== false) {
-            $values = explode('|', array_pop(explode(':', $type, 2)));
+            $values = explode('|', array_pop($arr));
             $type = 'enumInt';
         }
         switch ($type) {
@@ -108,7 +109,7 @@ class Converter
      *
      * @return string|null The valid where condition or NULL if it does not meet any valid operators
      */
-    public static function convertOperatorValue(RequestCondition $w)
+    public static function convertOperatorValue(RequestCondition $w) : ?string
     {
         $value = self::convertValueForFilter($w->dataType, $w->value);
         $ops = AbstractEntity::VALID_OPERATORS;
@@ -118,18 +119,15 @@ class Converter
                 case('range'):
                     $capOp = $value[2] ? '<=' : '<';
 
-                    return "{$w->prop}>={$value[0]} and {$w->prop}{$capOp}{$value[1]}";
-                    break;
+                    return "$w->prop>=$value[0] and $w->prop$capOp$value[1]";
                 case('in'):
                 case('not in'):
-                    $v = is_array($value) ? "{$value[0]},{$value[1]}" : $value;
+                    $v = is_array($value) ? "$value[0],$value[1]" : $value;
 
-                    return "{$w->prop} {$operator} ({$v})";
-                    break;
+                    return "$w->prop $operator ($v)";
                 case('like'):
                 case('not like'):
-                    return "{$w->prop} {$operator} \"{$value}\"";
-                    break;
+                    return "$w->prop $operator \"$value\"";
                 case('='):
                 case('<='):
                 case('<'):
@@ -137,8 +135,7 @@ class Converter
                 case('>'):
                 case('!='):
                 default:
-                    return "{$w->prop}{$operator}{$value}";
-                    break;
+                    return "$w->prop$operator$value";
             }
         }
 
@@ -154,7 +151,7 @@ class Converter
      * @return array|false|int|string Returns the typecasted value that gets plugged into the operation value position
      *                                when calling the convertOperatorValue call
      */
-    public static function convertValueForFilter($type, $value)
+    public static function convertValueForFilter(string $type, $value)
     {
         if (strpos($type, 'resource:') !== false) {
             $type = 'integer';
@@ -197,44 +194,44 @@ class Converter
 
         switch ($cast) {
             case('timestamp'):
-                $value = is_int($value) ? $value : strtotime((string) $value);
+                $value = is_int($value) ? $value : strtotime((string)$value);
                 break;
             case('timestamp[]'):
                 $value = [
-                    is_int($value[0]) ? $value : strtotime((string) $value[0]),
-                    is_int($value[1]) ? $value : strtotime((string) $value[1]),
-                    isset($value[2]) && is_bool($value[2]) ? $value[2] : false
+                  is_int($value[0]) ? $value : strtotime((string)$value[0]),
+                  is_int($value[1]) ? $value : strtotime((string)$value[1]),
+                  isset($value[2]) && is_bool($value[2]) && $value[2]
                 ];
                 break;
             case('date[]'):
-                array_walk($value, function (&$i) { $i = (string) $i; });
+                array_walk($value, static function (&$i) { $i = (string)$i; });
                 break;
             case('double[]'):
-                array_walk($value, function (&$i) { $i = (double) $i; });
+                array_walk($value, static function (&$i) { $i = (double)$i; });
                 $value = implode(',', $value);
                 break;
             case('integer[]'):
-                array_walk($value, function (&$i) { $i = (int) $i; });
+                array_walk($value, static function (&$i) { $i = (int)$i; });
                 $value = implode(',', $value);
                 break;
             case('datetime[]'):
             case('string[]'):
-                array_walk($value, function (&$i) { $i = (string) $i; });
+                array_walk($value, static function (&$i) { $i = (string)$i; });
                 $value = '"'.implode('","', $value).'"';
                 break;
             case('boolean'):
                 $value = $value !== false && $value !== 'false' ? 'true' : 'false';
                 break;
             case('double'):
-                $value = (double) $value;
+                $value = (double)$value;
                 break;
             case('integer'):
-                $value = (int) $value;
+                $value = (int)$value;
                 break;
             case('datetime'):
             case('string'):
             default:
-                $value = (string) $value;
+                $value = (string)$value;
                 break;
         }
 

@@ -1,23 +1,31 @@
 <?php
 /**
- * PHP SDK for the PaymoApp API
- * Package Source Code: https://github.com/jcolombo/paymo-api-php
- * Paymo API Documentation : https://github.com/paymoapp/api
- * .
+ * Paymo API PHP SDK
+ *
+ * A comprehensive PHP SDK for interacting with the Paymo project management API.
+ * This package provides an object-oriented interface for all Paymo API operations
+ * including projects, tasks, time entries, invoices, and more.
+ *
+ * @package    Jcolombo\PaymoApiPhp
+ * @author     Joel Colombo <jc-dev@360psg.com>
+ * @copyright  2020-2025 Joel Colombo / 360 PSG, Inc.
+ * @license    MIT License
+ * @version    0.5.6
+ * @link       https://github.com/jcolombo/paymo-api-php
+ * @see        https://github.com/paymoapp/api Official Paymo API Documentation
+ *
  * MIT License
- * Copyright (c) 2020 - Joel Colombo <jc-dev@360psg.com>
- * Last Updated : 3/18/20, 10:48 PM
- * .
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * .
+ *
  * The above copyright notice and this permission notice shall be included in all
  * copies or substantial portions of the Software.
- * .
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -38,93 +46,224 @@ use Jcolombo\PaymoApiPhp\Cache\Cache;
 use Jcolombo\PaymoApiPhp\Utility\Log;
 use Jcolombo\PaymoApiPhp\Utility\RequestAbstraction;
 use Jcolombo\PaymoApiPhp\Utility\RequestResponse;
+use JsonException;
+use RuntimeException;
 
 /**
- * When true, some additional development checks, validation, debugging output, etc will be enabled
- * This should be FALSE in production to avoid any accidental key exposure or lag/slowdown
+ * Global development mode flag.
+ *
+ * When set to TRUE, enables additional validation, debugging output, and development-only
+ * checks throughout the SDK. This should be set to FALSE in production environments to
+ * avoid performance overhead and prevent accidental exposure of sensitive information.
+ *
+ * @const bool PAYMO_DEVELOPMENT_MODE
  */
 define('PAYMO_DEVELOPMENT_MODE', true);
 
 /**
- *  Paymo
- *  Base class for connecting to the Paymo App API and managing the related objects/data
+ * Paymo Connection Manager
  *
- * @author Joel Colombo
+ * The primary entry point for the Paymo API PHP SDK. This class manages API connections
+ * and handles all HTTP communication with the Paymo REST API. It implements a singleton
+ * pattern per API key, allowing multiple connections to different Paymo accounts within
+ * the same application.
+ *
+ * ## Features
+ * - Singleton pattern per API key (prevents duplicate connections)
+ * - Support for API key and username/password authentication
+ * - Built-in request caching to reduce API calls
+ * - Comprehensive request/response logging
+ * - Automatic rate limiting (1-second delay between requests)
+ * - Guzzle HTTP client integration with proper error handling
+ *
+ * ## Basic Usage
+ *
+ * ```php
+ * use Jcolombo\PaymoApiPhp\Paymo;
+ * use Jcolombo\PaymoApiPhp\Entity\Resource\Project;
+ *
+ * // Establish a connection with your API key
+ * $paymo = Paymo::connect('your-api-key-here');
+ *
+ * // Now you can use entity classes to interact with the API
+ * $projects = Project::list()->fetch();
+ * ```
+ *
+ * ## Multiple Connections
+ *
+ * ```php
+ * // Connect to multiple Paymo accounts
+ * $account1 = Paymo::connect('api-key-for-account-1', null, 'Account1');
+ * $account2 = Paymo::connect('api-key-for-account-2', null, 'Account2');
+ *
+ * // Use specific connection for operations
+ * $project = new Project($account1);
+ * $project->fetch(12345);
+ * ```
+ *
+ * ## Authentication Methods
+ *
+ * ```php
+ * // Method 1: API Key (Recommended)
+ * $paymo = Paymo::connect('your-api-key');
+ *
+ * // Method 2: Username/Password (Not recommended for production)
+ * $paymo = Paymo::connect(['username@example.com', 'password']);
+ * ```
+ *
+ * @package Jcolombo\PaymoApiPhp
+ * @author  Joel Colombo <jc-dev@360psg.com>
+ * @since   0.1.0
  */
 class Paymo
 {
 
   /**
-   * @var array Singleton collection of established API connections (one per apiKey)
-   */
-  private static $connections = [];
-
-  /**
-   * @var bool
-   */
-  public $useCache = false;
-
-  /**
-   * @var bool
-   */
-  public $useLogging = false;
-
-  /**
-   * @var String|null
-   */
-  public $connectionName = null;
-
-  /**
-   * @var String|null
-   */
-  protected $apiKey = null;
-
-  /**
-   * @var String|null
-   */
-  protected $connectionUrl = null;
-
-  /**
-   * Private constructor for new connection instances from the singleton connect calls
+   * Singleton collection of established API connections.
    *
-   * @param string $apiKey         The API key for creating this connection instance
-   * @param string $connectionName The connection name
+   * Stores one Paymo connection instance per unique API key. This prevents
+   * creating duplicate connections to the same account and allows retrieval
+   * of existing connections without re-authentication.
+   *
+   * The array key is the API key (or "username::password" for user auth),
+   * and the value is the Paymo connection instance.
+   *
+   * @var array<string, Paymo> Associative array of API key => Paymo instance
+   */
+  private static array $connections = [];
+
+  /**
+   * Cache enablement flag for this connection.
+   *
+   * When TRUE and caching is enabled globally in configuration, API responses
+   * will be cached to reduce redundant API calls. Individual requests can
+   * override this with the 'skipCache' option.
+   *
+   * @var bool TRUE if caching should be used for this connection
+   * @see Cache For cache configuration and management
+   */
+  public bool $useCache = false;
+
+  /**
+   * Logging enablement flag for this connection.
+   *
+   * When TRUE and logging is enabled globally in configuration, API requests
+   * and responses will be logged for debugging and monitoring purposes.
+   *
+   * @var bool TRUE if logging should be used for this connection
+   * @see Log For logging configuration and output
+   */
+  public bool $useLogging = false;
+
+  /**
+   * Human-readable identifier for this connection.
+   *
+   * Used in logging output to distinguish between multiple connections.
+   * Auto-generated if not provided during connect(), using format:
+   * "PaymoApi-***{last5chars}-#{random6digits}"
+   *
+   * @var string|null The connection name or NULL if not set
+   */
+  public ?string $connectionName = null;
+
+  /**
+   * The API key used for authentication with Paymo.
+   *
+   * For API key auth: Contains the raw API key string.
+   * For user/pass auth: Contains "username::password" format.
+   *
+   * @var string|null The authentication credential string
+   */
+  protected ?string $apiKey = null;
+
+  /**
+   * The base URL for all API requests.
+   *
+   * Defaults to "https://app.paymoapp.com/api/" but can be overridden
+   * via configuration for testing or custom deployments.
+   *
+   * @var string|null The Paymo API base URL
+   */
+  protected ?string $connectionUrl = null;
+
+  /**
+   * Private constructor - use Paymo::connect() to create instances.
+   *
+   * Initializes a new Paymo connection with the provided credentials and configuration.
+   * This is called internally by the connect() method and should not be called directly.
+   *
+   * @param string $apiKey         The API key or "username::password" string
    * @param string $connectionUrl  The base URL for the Paymo API
+   * @param string $connectionName Human-readable name for this connection
    *
-   * @throws Exception
+   * @throws Exception If no connection URL is configured
+   *
+   * @internal Use Paymo::connect() instead of direct instantiation
    */
-  private function __construct($apiKey, $connectionUrl, $connectionName) {
+  private function __construct(string $apiKey, string $connectionUrl, string $connectionName) {
     if (!$connectionUrl) {
-      throw new Exception("No Paymo API connection.url is set in the configuration file");
+      throw new RuntimeException("No Paymo API connection.url is set in the configuration file");
     }
     $this->apiKey = $apiKey;
     $this->connectionName = $connectionName;
     $this->connectionUrl = $connectionUrl;
-    //$bar = "*****************************************************************************************************\n";
-    //Log::getLog()->log($this->logging, "NEW CONNECTION TO PAYMO {$this->connectionName} : {$connectionUrl}", "\n".$bar, $bar);
   }
 
   /**
-   * Static method to create or retrieve a connection
+   * Create or retrieve a Paymo API connection.
    *
-   * @param string|string[]|null $apiKeyUser     The API key for this connection, An array with 2 values
-   *                                             [username,password] can be passed for direct login (not recommended)
-   * @param bool|null            $useLogging     to determine if this connection will write to the log
-   * @param string|null          $connectionName An optional friendly name for the connection (mostly for logging)
-   * @param string|null          $connectionUrl  An alternative base URL for the Paymo API (if null, uses default)
+   * This is the primary method for establishing connections to the Paymo API.
+   * It implements a singleton pattern per API key - calling connect() with the
+   * same API key returns the existing connection rather than creating a new one.
    *
-   * @throws Exception If no connection was previously setup with an apiKey
-   * @return Paymo
+   * ## Usage Examples
+   *
+   * ```php
+   * // Create a new connection with API key
+   * $paymo = Paymo::connect('your-api-key');
+   *
+   * // Retrieve the default (first) connection
+   * $paymo = Paymo::connect();
+   *
+   * // Create connection with username/password (not recommended)
+   * $paymo = Paymo::connect(['user@example.com', 'password']);
+   *
+   * // Create named connection with logging enabled
+   * $paymo = Paymo::connect('api-key', true, 'ProductionAccount');
+   *
+   * // Create connection with custom API URL
+   * $paymo = Paymo::connect('api-key', false, 'Test', 'https://test.paymoapp.com/api/');
+   * ```
+   *
+   * @param string|string[]|null $apiKeyUser     Authentication credential:
+   *                                             - string: API key (recommended)
+   *                                             - array: ['username', 'password'] (not recommended)
+   *                                             - null: Returns the first existing connection
+   * @param bool|null            $useLogging     Override logging for this connection:
+   *                                             - true: Enable logging
+   *                                             - false: Disable logging
+   *                                             - null: Use configuration default
+   * @param string|null          $connectionName Human-readable name for logging/debugging.
+   *                                             If null, auto-generates a unique name.
+   * @param string|null          $connectionUrl  Override the API base URL.
+   *                                             If null, uses configuration default.
+   *
+   * @throws Exception If called with null when no connections exist
+   * @throws Exception If username/password array doesn't have exactly 2 elements
+   *
+   * @return Paymo The connected Paymo instance (new or existing)
+   *
+   * @since 0.1.0
    */
-  public static function connect($apiKeyUser = null, $useLogging = null, $connectionName = null, $connectionUrl = null
-  ) {
+  public static function connect($apiKeyUser = null, bool $useLogging = null, string $connectionName = null, string $connectionUrl = null
+  ) : Paymo {
     if (is_array($apiKeyUser)) {
       if (count($apiKeyUser) === 2) {
-        $apiKey = "{$apiKeyUser[0]}::{$apiKeyUser[1]}";
+        $apiKey = "$apiKeyUser[0]::$apiKeyUser[1]";
       } else {
         Log::getLog()->log(null,
                            'ERROR: API Connection attempted user/pass key that did not contain exactly two elements');
-        throw new Exception("An invalid username/password array was sent to the connection");
+        throw new RuntimeException("An invalid username/password array was sent to the connection");
       }
     } else {
       $apiKey = $apiKeyUser;
@@ -132,7 +271,7 @@ class Paymo
     if (is_null($apiKey)) {
       if (count(self::$connections) < 1) {
         Log::getLog()->log(null, 'ERROR: API Key was NULL and could not be established');
-        throw new Exception("'NULL API KEY : Cannot get connection that has not been established yet. Please insure at least one API KEY connection has been established first.'");
+        throw new RuntimeException("'NULL API KEY : Cannot get connection that has not been established yet. Please insure at least one API KEY connection has been established first.'");
       }
       // If key was not sent, default to using the first connection that exists
       $connectionKeys = array_keys(self::$connections);
@@ -145,25 +284,23 @@ class Paymo
       $connectionUrl = Configuration::get('connection.url');
     }
     if (is_null($connectionName)) {
-      $connectionSuffix = '***'.substr($apiKey, -5, 5).'-#'.rand(100000, 999999);
+      $connectionSuffix = '***'.substr($apiKey, -5, 5).'-#'.random_int(100000, 999999);
       $connectionName = Configuration::get('connection.defaultName').'-'.$connectionSuffix;
     }
     if (!isset(self::$connections[$apiKey])) {
       self::$connections[$apiKey] = new static($apiKey, $connectionUrl, $connectionName);
-      self::$connections[$apiKey]->useLogging = !!Configuration::get('enabled.logging');
+      self::$connections[$apiKey]->useLogging = (bool)Configuration::get('enabled.logging');
       if (!is_null($useLogging)) {
         self::$connections[$apiKey]->useLogging = !!$useLogging;
       }
       self::$connections[$apiKey]->useCache = !!Configuration::get('enabled.cache');
       Log::getLog()->onlyIf(Configuration::get('log.connections'))->log(self::$connections[$apiKey], Log::obj('NEW_CONNECTION', null));
-      if (Configuration::get('connection.verify')) {
-        // @todo Run connection check call to API to test credentials and API up-status, throw error on fail
-        // Run a simple call to the API to get a valid response
-        // Throw an Exception if it fails
-        //self::$connections[$apiKey]->executeRequest('account', 'head');
-      }
-      // @todo Implement logging if its enabled in the connection, special logging class will handle what to do
-      // Mixed with configuration options to customize logging rules and format, etc.
+//      if (Configuration::get('connection.verify')) {
+//        // @todo Run connection check call to API to test credentials and API up-status, throw error on fail
+//        // Run a simple call to the API to get a valid response
+//        // Throw an Exception if it fails
+//        //self::$connections[$apiKey]->executeRequest('account', 'head');
+//      }
     }
 
     Log::getLog()->onlyIf(Configuration::get('log.connections'))->log(self::$connections[$apiKey], Log::obj('USE_CONNECTION', null));
@@ -171,23 +308,62 @@ class Paymo
     return self::$connections[$apiKey];
   }
 
-  /**
-   * The connection execution method, called by the Request objects
-   *
-   * @param RequestAbstraction $request An instance of the standardized object to insure all values exist for proper
-   *                                    request
-   * @param array              $options Set of options to configure request and response handling
-   *                                    [skipCache] = boolean : If set to true, will NEVER check cache and force API
-   *                                    call
-   *
-   * @return RequestResponse
-   */
-  public function execute(RequestAbstraction $request, $options = []) {
+    /**
+     * Execute an API request through this connection.
+     *
+     * This is the core method that handles all HTTP communication with the Paymo API.
+     * It is called internally by the Request class methods (fetch, create, update, delete)
+     * and should not typically be called directly by application code.
+     *
+     * ## Request Flow
+     * 1. Check cache for existing response (if caching enabled and not skipped)
+     * 2. Build Guzzle request with authentication and parameters
+     * 3. Apply 1-second rate limiting delay
+     * 4. Execute HTTP request to Paymo API
+     * 5. Parse response and handle errors
+     * 6. Store successful responses in cache (if caching enabled)
+     * 7. Return structured RequestResponse object
+     *
+     * ## Options
+     * - `skipCache` (bool): When TRUE, bypasses cache lookup but still stores response
+     *
+     * ## Error Handling
+     * - 4xx errors: Captured as failed response with error message
+     * - 5xx errors: Captured as failed response with server error details
+     * - Network errors: Throws GuzzleException (currently exits - needs improvement)
+     *
+     * @param RequestAbstraction $request Structured request object containing:
+     *                                    - method: HTTP method (GET, POST, PUT, DELETE)
+     *                                    - resourceUrl: API endpoint path
+     *                                    - include: Related entities to include
+     *                                    - where: Filter conditions
+     *                                    - data: Request body data (for POST/PUT)
+     *                                    - files: File uploads (for multipart requests)
+     * @param array              $options Request options:
+     *                                    - skipCache (bool): Bypass cache lookup
+     *
+     * @throws JsonException
+     * @return RequestResponse Structured response containing:
+     *                         - success: Whether request succeeded (2xx status)
+     *                         - responseCode: HTTP status code
+     *                         - responseReason: Status message or error description
+     *                         - responseTime: Request duration in seconds
+     *                         - headers: Response headers
+     *                         - body: Parsed JSON response body
+     *                         - result: Extracted result data (populated by caller)
+     *
+     * @see      Request For high-level API operations
+     * @see      RequestAbstraction For request structure details
+     * @see      RequestResponse For response structure details
+     * @internal Called by Request class methods, not for direct application use
+     */
+  public function execute(RequestAbstraction $request, array $options = []) : RequestResponse
+  {
     Log::getLog()->log($this, Log::obj('START_REQUEST', $request));
 
-    // @todo Handle CACHE checks and return here before making an actual API call
-    // Response will include extra info about the cache from the loaded version of the cache
-    $skipCache = isset($options['skipCache']) && !!$options['skipCache'];
+    // Check cache before making API call (if caching is enabled)
+    $skipCache = isset($options['skipCache']) && $options['skipCache'];
+    $cacheKey = null;
     if ($this->useCache) {
       $cacheKey = $request->makeCacheKey()->cacheKey;
       if ($cacheKey && !$skipCache) {
@@ -196,19 +372,20 @@ class Paymo
         if ($cachedResponse) {
           if (is_object($cachedResponse) && $cachedResponse->isCacheMeta) {
             $timeLeft = Cache::formatDuration($cachedResponse->lifeLeft);
-            Log::getLog()->log($this, "-- RETURN VALID CACHE (Still Good For {$timeLeft})");
+            Log::getLog()->log($this, "-- RETURN VALID CACHE (Still Good For $timeLeft)");
 
             return $cachedResponse->content;
           }
           Log::getLog()->log($this, '-- RETURN VALID CACHE');
 
           return $cachedResponse;
-        } else {
-          Log::getLog()->log($this, '-- NO CACHE FOUND');
         }
+
+          Log::getLog()->log($this, '-- NO CACHE FOUND');
       }
     }
 
+    // Initialize Guzzle HTTP client
     $client = new PaymoGuzzleClient(
       [
         'base_uri' => $this->connectionUrl,
@@ -218,36 +395,40 @@ class Paymo
     $props = [];
     $query = [];
 
-    // Force a one second sleep on every paymo request to prevent overloading
-    sleep(1); // @todo Make a better queue mechanic to prevent overloading 5 requests every 5 seconds.
+    // Rate limiting: 1-second delay between requests to prevent API overload
+    // Paymo API allows 5 requests per 5 seconds, this ensures compliance
+    sleep(1); // @todo Implement smarter queue mechanism for burst requests
 
-    // Define Headers to send to Paymo
+    // Set request headers
     $headers[] = ['Accept' => 'application/json'];
     $props['headers'] = $headers;
 
-    // Define Auth property (apiKey or user/password)
+    // Set authentication (API key or username/password)
     $aP = explode('::', $this->apiKey, 2);
-    $props['auth'] = [$aP[0], isset($aP[1]) ? $aP[1] : 'apiKeyUsed'];
+    $props['auth'] = [$aP[0], $aP[1] ?? 'apiKeyUsed'];
 
-    // Compile the query string options
+    // Build query string parameters
     if (!is_null($request->include)) {
       $query['include'] = $request->include;
     }
-    //$query['include'] = 'fake';
     if (!is_null($request->where)) {
       $query['where'] = $request->where;
     }
     if (count($query) > 0) {
       $props['query'] = $query;
     }
-    if ($request->mode == 'json' && ($request->method == 'POST' || $request->method == 'PUT') && !is_null($request->data) && is_array($request->data) && count($request->data) > 0) {
+
+    // Handle JSON body for POST/PUT requests
+    if ($request->mode === 'json' && ($request->method === 'POST' || $request->method === 'PUT') && is_array($request->data) && count($request->data) > 0) {
       $props['json'] = $request->data;
     }
-    if ($request->mode == 'multipart' || ($request->method == 'POST' && !is_null($request->files) && is_array($request->files) && count($request->files) > 0)) {
+
+    // Handle multipart/form-data for file uploads
+    if ($request->mode === 'multipart' || ($request->method === 'POST' && is_array($request->files) && count($request->files) > 0)) {
       $props['multipart'] = [];
       $openFiles = [];
       foreach ($request->files as $k => $file) {
-        $fHandler = fopen($file, 'r');
+        $fHandler = fopen($file, 'rb');
         $openFiles[] = $fHandler;
         $props['multipart'][] = ['name' => $k, 'contents' => $fHandler];
       }
@@ -258,10 +439,7 @@ class Paymo
       }
     }
 
-//        var_dump($props); //exit;
-//        var_dump($request); exit;
-
-    // Run the GUZZLE request to the live API
+    // Execute the HTTP request
     $request_start = microtime(true);
     $response = new RequestResponse();
     $response->request = $request;
@@ -274,23 +452,26 @@ class Paymo
       $response->responseCode = $guzzleResponse->getStatusCode();
       $response->responseReason = $guzzleResponse->getReasonPhrase();
       $response->headers = $guzzleResponse->getHeaders();
-      $response->body = json_decode($guzzleResponse->getBody()->getContents());
+      $response->body = json_decode($guzzleResponse->getBody()->getContents(), false, 512, JSON_THROW_ON_ERROR);
     } catch (ServerException|ClientException $e) {
-      $msg = $e->getResponse()->getBody()->getContents() ?? null;
+      // Handle 4xx and 5xx HTTP errors
+      $msg = $e->getResponse()->getBody()->getContents();
       if ($msg) {
-        $msg = json_decode($msg)->message;
+        $msg = json_decode($msg, false, 512, JSON_THROW_ON_ERROR)->message;
       }
       $response->body = null;
       $response->responseCode = $e->getCode();
       $response->responseReason = $msg;
       $response->headers = $e->getResponse()->getHeaders();
     } catch (GuzzleException $e) {
+      // Handle network and other Guzzle errors
       Log::getLog()->log($this, Log::obj('GUZZLE_ERROR', $e));
-      // @todo Handle better with an error handler class
+      // @todo Implement proper error handler class
       echo "UNKNOWN EXCEPTION...\n";
       var_dump($e);
       exit;
     } finally {
+      // Clean up and finalize response
       $request_end = microtime(true);
       $request_time = $request_end - $request_start;
       if (isset($openFiles) && is_array($openFiles)) {
@@ -306,25 +487,16 @@ class Paymo
         'code'    => $response->responseCode,
         'reason'  => $response->responseReason,
         'time'    => $response->responseTime,
-        'headers' => json_encode($response->headers, JSON_UNESCAPED_SLASHES),
+        'headers' => json_encode($response->headers, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES),
       ]));
 
-      //var_dump($response); exit;
-
-      // @todo Handle errors with error handler class and configuration rules
-      // Responses: (To be handled by an error handler)
-      // 200 ALL GOOD
-      // 429 TOO MANY REQUESTS (sends header for "Retry-After" # of seconds to wait)
-      // 500 Server Error (probably a bad invalid/formatted request)
-      // Handle ERRORS before sending back the response
-
-      // @todo If cache is enabled, store the cache with the request cachekey and the response
-      // Response will include an extra parameter related to the cache info itself
+      // Store successful responses in cache
       if ($this->useCache && $response->success && $cacheKey) {
         Log::getLog()->log($this, '-- STORE VALID CACHE');
         Cache::store($cacheKey, $response);
       }
 
+      // Log failed responses (debugging)
       if (!$response->success) {
         echo "FAILED PAYMO RESPONSE...\n";
         var_dump($response);
@@ -332,16 +504,16 @@ class Paymo
 
       return $response;
     }
-
-//        foreach ($response->getHeaders() as $name => $values) {
-//            echo $name . ': ' . implode(', ', $values) . "\r\n";
-//        }
-//        var_dump($response->getStatusCode(), $response->getReasonPhrase(), $response->getBody());
-
-    //$body = json_decode($response->getBody()->getContents());
-    //var_dump($body);
   }
 
+    /**
+     * Destructor - logs connection termination when enabled.
+     *
+     * Called automatically when the Paymo instance is destroyed (end of script
+     * or when explicitly unset). Logs the connection closure for debugging.
+     *
+     * @throws JsonException
+     */
   public function __destruct() {
     Log::getLog()->log($this, Log::obj('KILL_CONNECTION', null));
   }

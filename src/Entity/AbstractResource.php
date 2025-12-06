@@ -1,23 +1,31 @@
 <?php
 /**
- * PHP SDK for the PaymoApp API
- * Package Source Code: https://github.com/jcolombo/paymo-api-php
- * Paymo API Documentation : https://github.com/paymoapp/api
- * .
+ * Paymo API PHP SDK - Abstract Resource Base Class
+ *
+ * The core base class for all Paymo single-entity resources. Provides complete CRUD
+ * operations (Create, Read, Update, Delete), property management with dirty tracking,
+ * relationship handling, and file uploads.
+ *
+ * @package    Jcolombo\PaymoApiPhp\Entity
+ * @author     Joel Colombo <jc-dev@360psg.com>
+ * @copyright  2020-2025 Joel Colombo / 360 PSG, Inc.
+ * @license    MIT License
+ * @version    0.5.6
+ * @link       https://github.com/jcolombo/paymo-api-php
+ * @see        https://github.com/paymoapp/api Official Paymo API Documentation
+ *
  * MIT License
- * Copyright (c) 2020 - Joel Colombo <jc-dev@360psg.com>
- * Last Updated : 3/18/20, 10:48 PM
- * .
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * .
+ *
  * The above copyright notice and this permission notice shall be included in all
  * copies or substantial portions of the Software.
- * .
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -38,66 +46,219 @@ use Jcolombo\PaymoApiPhp\Utility\RequestCondition;
 use stdClass;
 
 /**
- * Class AbstractResource
+ * Abstract Resource Base Class
+ *
+ * The primary class that all Paymo entity resources inherit from. This class provides
+ * the complete interface for interacting with Paymo API resources including:
+ *
+ * - **CRUD Operations**: Create, Read (fetch), Update, Delete
+ * - **Property Management**: Magic getters/setters with type validation
+ * - **Dirty Tracking**: Knows which properties have changed since last save/load
+ * - **Relationship Handling**: Load and manage related entities (includes)
+ * - **File Uploads**: Upload images and files to entities
+ * - **Query Building**: Static methods for WHERE and HAS conditions
+ *
+ * ## Basic Usage
+ *
+ * ```php
+ * use Jcolombo\PaymoApiPhp\Paymo;
+ * use Jcolombo\PaymoApiPhp\Entity\Resource\Project;
+ *
+ * // Connect to Paymo
+ * Paymo::connect('your-api-key');
+ *
+ * // Fetch a project
+ * $project = Project::new()->fetch(12345);
+ * echo $project->name;
+ *
+ * // Update it
+ * $project->name = "New Project Name";
+ * $project->update();
+ *
+ * // Create a new project
+ * $newProject = Project::new();
+ * $newProject->name = "My New Project";
+ * $newProject->client_id = 123;
+ * $newProject->create();
+ *
+ * // Delete a project
+ * Project::deleteById(12345);
+ * ```
+ *
+ * ## Required Class Constants
+ *
+ * All child resource classes MUST define these constants:
+ *
+ * | Constant          | Type     | Description                                      |
+ * |-------------------|----------|--------------------------------------------------|
+ * | `LABEL`           | string   | Human-readable name (e.g., "Project")            |
+ * | `API_PATH`        | string   | API endpoint path (e.g., "projects")             |
+ * | `API_ENTITY`      | string   | Entity key for EntityMap (e.g., "project")       |
+ * | `REQUIRED_CREATE` | string[] | Props required for create() operation            |
+ * | `READONLY`        | string[] | Props that cannot be manually set                |
+ * | `CREATEONLY`      | string[] | Props that can only be set during create()       |
+ * | `INCLUDE_TYPES`   | array    | Valid includable relations with their types      |
+ * | `PROP_TYPES`      | array    | Property definitions with data types             |
+ * | `WHERE_OPERATIONS`| array    | Allowed WHERE operators per property             |
+ *
+ * ## Property Types
+ *
+ * Properties are defined in PROP_TYPES with these SDK types:
+ *
+ * - `text` - String value
+ * - `integer` - Integer value
+ * - `decimal` - Float value
+ * - `boolean` - Boolean value
+ * - `date` - Date string (Y-m-d)
+ * - `datetime` - DateTime string
+ * - `resource:entityname` - Foreign key reference
+ * - `collection:entityname` - Array of related entities
+ * - `enum:val1|val2` - Enumerated string values
+ * - `intEnum:25|50|75` - Enumerated integer values
+ *
+ * ## Dirty Tracking
+ *
+ * The SDK tracks which properties have been modified since the last API operation:
+ *
+ * ```php
+ * $project = Project::new()->fetch(123);
+ * echo $project->isDirty();  // false
+ *
+ * $project->name = "Changed";
+ * echo $project->isDirty();  // true
+ *
+ * $dirtyKeys = $project->getDirtyKeys();  // ['name']
+ * $dirtyValues = $project->getDirtyValues();
+ * // ['name' => ['original' => 'Old Name', 'current' => 'Changed']]
+ *
+ * $project->update();  // Only sends 'name' to API
+ * echo $project->isDirty();  // false (after successful update)
+ * ```
+ *
+ * ## Including Related Entities
+ *
+ * Load related entities in a single API call:
+ *
+ * ```php
+ * // Include specific relations
+ * $project = Project::new()->fetch(123, ['client', 'tasks', 'milestones']);
+ *
+ * // Access included relations
+ * echo $project->client->name;
+ * foreach ($project->tasks as $task) {
+ *     echo $task->name;
+ * }
+ * ```
  *
  * @package Jcolombo\PaymoApiPhp\Entity
+ * @author  Joel Colombo <jc-dev@360psg.com>
+ * @since   0.1.0
+ *
+ * @see AbstractEntity For base entity functionality
+ * @see AbstractCollection For list operations
+ * @see EntityMap For entity registration
  */
 abstract class AbstractResource extends AbstractEntity
 {
 
     /**
-     * Any child classes must define the list of constants in this array
+     * Constants that must be defined by all child resource classes.
+     *
+     * During construction in development mode, the class verifies these
+     * constants exist. This catches configuration errors early.
+     *
+     * @var string[] List of required constant names
      */
     public const REQUIRED_CONSTANTS = [
         'LABEL', 'API_PATH', 'API_ENTITY', 'REQUIRED_CREATE', 'READONLY', 'CREATEONLY', 'INCLUDE_TYPES', 'PROP_TYPES', 'WHERE_OPERATIONS'
     ];
 
     /**
-     * Default value to override the responding API object property to process. NULL unless defined by the child classes
+     * Override for API response key when it differs from the request path.
+     *
+     * Most endpoints return data under the same key as the path (e.g., GET /projects
+     * returns {"projects": [...]}). Some endpoints differ - set this constant in the
+     * child class to handle those cases.
+     *
+     * @var string|null Response key override, or NULL to use API_PATH
+     *
+     * @example TaskAssignment uses API_PATH='userstasks' but API_RESPONSE_KEY='taskassignments'
      */
     public const API_RESPONSE_KEY = null;
 
     /**
-     * The current values for the defined props for this instance of the resource
+     * Current property values for this entity instance.
      *
-     * @var array
+     * Keys are property names as defined in PROP_TYPES.
+     * Values are the current (potentially dirty) values.
+     *
+     * @var array<string, mixed> Associative array of property values
      */
     protected $props = [];
 
     /**
-     * A list of values with associative keys for "props" set with values that are NOT valid maps properties or includes
+     * Storage for properties not defined in PROP_TYPES.
      *
-     * @var array
+     * When the API returns properties not defined in PROP_TYPES, or when
+     * setting unknown properties, they're stored here rather than causing errors.
+     * Useful for handling undocumented API fields.
+     *
+     * @var array<string, mixed> Associative array of unlisted property values
      */
     protected $unlisted = [];
 
     /**
-     * The values of the props as set after a clean load from the database (this is reset every time the resource is
-     * loaded from the API
+     * Property values as they were after the last API load/save.
      *
-     * @var array
+     * Used for dirty tracking - comparing current props to loaded props
+     * determines which values have changed and need to be sent in updates.
+     *
+     * @var array<string, mixed> Snapshot of property values after last API operation
      */
     protected $loaded = [];
 
     /**
-     * An array of keys that have valid "included" resources for this object as defined by the valid include constant
-     * of this resource type
+     * Hydrated related entities (includes) for this resource.
      *
-     * @var array
+     * Keys are the include names (e.g., 'client', 'tasks').
+     * Values are either AbstractResource instances (single relations)
+     * or AbstractCollection instances (collection relations).
+     *
+     * @var array<string, AbstractResource|AbstractCollection> Related entities
      */
     protected $included = [];
 
     /**
-     * The default Resource constructor
-     * Requires a Paymo connection instance or attempts to find/create one.
-     * When in development mode, will validate the object class has all required defined constants
+     * Initialize a new resource instance.
      *
-     * @param array | Paymo | string | null $paymo Either an API Key, Paymo Connection, config settings array (from
-     *                                             another entitied getConfiguration call), or null to get first
-     *                                             connection available
-     * @param int | null                    $id    An optional ID to pre-populate the ID property of the object
+     * ## Constructor Options
      *
-     * @throws Exception
+     * ```php
+     * // Default connection
+     * $project = new Project();
+     *
+     * // With API key
+     * $project = new Project('api-key');
+     *
+     * // With existing connection
+     * $project = new Project($paymoConnection);
+     *
+     * // With ID pre-populated
+     * $project = new Project(null, 12345);
+     *
+     * // Configuration array (internal use)
+     * $project = new Project(['connection' => $paymo, 'useCacheIfAvailable' => false]);
+     * ```
+     *
+     * @param Paymo|string|array|null $paymo Connection specification:
+     *                                       - null: Use default connection
+     *                                       - string: API key
+     *                                       - Paymo: Connection instance
+     *                                       - array: Configuration array
+     * @param int|null                $id    Optional ID to pre-populate
+     *
+     * @throws Exception If required constants are missing (dev mode only)
+     * @throws Exception If connection cannot be established
      */
     public function __construct($paymo = null, $id = null)
     {
@@ -125,12 +286,27 @@ abstract class AbstractResource extends AbstractEntity
     }
 
     /**
-     * Overwrite the loaded values with the current values, thereby resetting the dirty state on all props
-     * WARNING: Washing the object loses the last loaded or saved values and assumes the current values are
-     * clean and saved via some other means. Entities are always auto-washed after loading and hydration is
-     * complete
+     * Mark current property values as "clean" (saved state).
      *
-     * @return AbstractResource Returns the object itself for optional object chaining
+     * Copies current props to loaded props, resetting dirty tracking.
+     * Called automatically after fetch/create/update operations.
+     *
+     * ## Warning
+     *
+     * Calling this manually will make the SDK think all current values
+     * have been saved, even if they haven't been sent to the API.
+     *
+     * ## Example
+     *
+     * ```php
+     * $project->name = "Changed";
+     * echo $project->isDirty();  // true
+     *
+     * $project->wash();
+     * echo $project->isDirty();  // false (but NOT saved to API!)
+     * ```
+     *
+     * @return AbstractResource Returns $this for method chaining
      */
     public function wash()
     {
@@ -140,18 +316,30 @@ abstract class AbstractResource extends AbstractEntity
     }
 
     /**
-     * Static method to always create a resource or collection using the currently configured mapped class in Entity
-     * Map
-     * NOTE: Using this method to factory create your class will void IDE typehinting when developing (as it doesnt
-     * know what class will return)
+     * Factory method to create a new resource instance.
      *
-     * @param array | Paymo | string | null $paymo Either an API Key,
-     *                                             Paymo Connection, config settings array (from another entitied
-     *                                             getConfiguration call), or null to get first connection available
-     * @param int | null                    $id    An optional ID to pre-populate the ID property of the object
+     * Creates an instance using the class registered in EntityMap, allowing
+     * for custom class overrides while maintaining consistent API.
      *
-     * @throws Exception
-     * @return AbstractResource
+     * ## Example
+     *
+     * ```php
+     * // Create new empty resource
+     * $project = Project::new();
+     *
+     * // With connection
+     * $project = Project::new('api-key');
+     *
+     * // With ID
+     * $project = Project::new(null, 12345);
+     * ```
+     *
+     * @param Paymo|string|array|null $paymo Connection specification
+     * @param int|null                $id    Optional ID to pre-populate
+     *
+     * @return AbstractResource New instance of the appropriate class
+     *
+     * @throws Exception If EntityMap has no class for this entity
      */
     public static function new($paymo = null, $id = null)
     {
@@ -159,18 +347,33 @@ abstract class AbstractResource extends AbstractEntity
     }
 
     /**
-     * Static method to build a collection object for selecting and holding a list of this particular resource type
-     * This can be chained from directly to easily load a list in one line.
-     * Ex: Project::list()->fetch()  Would return a list of ALL projects with ALL its data that this API connection has
-     * access to.
+     * Create a collection for listing entities of this type.
      *
-     * @param array | Paymo | string | null $paymo Either an API Key, Paymo Connection, config settings array (from
-     *                                             another entitied getConfiguration call), or null to get first
-     *                                             connection available
+     * Returns an EntityCollection (or specialized subclass) configured
+     * for fetching lists of this resource type.
      *
-     * @throws Exception
-     * @return EntityCollection An empty EntityCollection instantiated based on the entityMap configuration for this
-     *                          key
+     * ## Example
+     *
+     * ```php
+     * // Get all projects
+     * $projects = Project::list()->fetch();
+     *
+     * // With filters
+     * $activeProjects = Project::list()
+     *     ->where(Project::where('active', true))
+     *     ->fetch();
+     *
+     * // With includes
+     * $projects = Project::list()
+     *     ->include(['client', 'tasks'])
+     *     ->fetch();
+     * ```
+     *
+     * @param Paymo|string|array|null $paymo Connection specification
+     *
+     * @return EntityCollection Collection configured for this entity type
+     *
+     * @throws Exception If EntityMap has no collection class for this entity
      */
     public static function list($paymo = null)
     {
@@ -186,16 +389,49 @@ abstract class AbstractResource extends AbstractEntity
     }
 
     /**
-     * Class specific wrapper to create and validate the props and includes of the where condition for a specific
-     * entity resource
+     * Create a WHERE condition for filtering lists of this entity.
      *
-     * @param        $prop     {@see RequestCondition::where()}
-     * @param        $value    {@see RequestCondition::where()}
-     * @param string $operator {@see RequestCondition::where()}
-     * @param bool   $validate {@see RequestCondition::where()}
+     * Creates a RequestCondition object configured for this entity type,
+     * with validation of property names and operators.
      *
-     * @throws Exception
-     * @return RequestCondition
+     * ## Operators
+     *
+     * - `=` - Equals (default)
+     * - `!=` - Not equals
+     * - `<`, `<=`, `>`, `>=` - Comparisons
+     * - `like`, `not like` - Pattern matching
+     * - `in`, `not in` - Array membership
+     * - `range` - Between two values
+     *
+     * ## Examples
+     *
+     * ```php
+     * // Simple equality
+     * Project::where('active', true);
+     *
+     * // With operator
+     * Project::where('budget', 1000, '>');
+     *
+     * // Array membership
+     * Project::where('status', ['active', 'completed'], 'in');
+     *
+     * // Pattern matching
+     * Project::where('name', '%test%', 'like');
+     *
+     * // Date comparison
+     * Project::where('created_on', '2024-01-01', '>=');
+     * ```
+     *
+     * @param string $prop     Property name to filter on
+     * @param mixed  $value    Value to compare against
+     * @param string $operator Comparison operator (default: '=')
+     * @param bool   $validate Whether to validate against entity schema (default: true)
+     *
+     * @return RequestCondition Configured condition for use with list()
+     *
+     * @throws Exception If property doesn't exist or operator not allowed (when $validate=true)
+     *
+     * @see AbstractCollection::where() For applying conditions to lists
      */
     public static function where($prop, $value, $operator = '=', $validate = true)
     {
@@ -203,15 +439,46 @@ abstract class AbstractResource extends AbstractEntity
     }
 
     /**
-     * Class specific wrapper to create and validate the props and includes of the HAS filter for a specific
-     * entity resource
+     * Create a HAS condition for filtering by relationship counts.
      *
-     * @param string $include  {@see RequestCondition::has()}
-     * @param int    $count    {@see RequestCondition::has()}
-     * @param string $operator {@see RequestCondition::has()}
+     * HAS conditions filter entities based on the number of related entities
+     * they have. Unlike WHERE, HAS conditions are applied after fetching
+     * (they can't be sent to the API directly).
      *
-     * @throws Exception
-     * @return RequestCondition
+     * ## Operators
+     *
+     * - `>` - More than (default)
+     * - `>=` - At least
+     * - `<` - Fewer than
+     * - `<=` - At most
+     * - `=` - Exactly
+     * - `!=` - Not exactly
+     *
+     * ## Examples
+     *
+     * ```php
+     * // Projects with at least one task
+     * Project::has('tasks', 0, '>');
+     *
+     * // Projects with 5 or more tasks
+     * Project::has('tasks', 5, '>=');
+     *
+     * // Projects with no milestones
+     * Project::has('milestones', 0, '=');
+     *
+     * // Clients with between 2-5 projects
+     * Client::has('projects', [2, 5], '>=<');
+     * ```
+     *
+     * @param string    $include  Name of the includable relation to count
+     * @param int|int[] $count    Count to compare against (or [min, max] for range)
+     * @param string    $operator Comparison operator (default: '>')
+     *
+     * @return RequestCondition Configured condition for use with list()
+     *
+     * @throws Exception If include doesn't exist on this entity
+     *
+     * @see AbstractCollection::where() For applying conditions to lists
      */
     public static function has($include, $count = 0, $operator = '>')
     {
@@ -219,16 +486,29 @@ abstract class AbstractResource extends AbstractEntity
     }
 
     /**
-     * Creates a new resource object and calls its delete method (setting the response equal to a new instance of the
-     * entity with response results)
+     * Delete an entity by ID without fetching it first.
      *
-     * @param int                           $id    The ID to perform the delete on
-     * @param array | Paymo | string | null $paymo Either an API Key, Paymo Connection, config settings array (from
-     *                                             another entitied getConfiguration call), or null to get first
-     *                                             connection available
+     * Convenience method that creates a temporary resource instance
+     * with the given ID and calls delete() on it.
      *
-     * @throws Exception
-     * @return AbstractResource | null
+     * ## Example
+     *
+     * ```php
+     * // Delete project 12345
+     * Project::deleteById(12345);
+     *
+     * // With specific connection
+     * Project::deleteById(12345, 'api-key');
+     * ```
+     *
+     * @param int                     $id    Entity ID to delete
+     * @param Paymo|string|array|null $paymo Connection specification
+     *
+     * @return AbstractResource|null The resource instance after deletion (empty)
+     *
+     * @throws Exception If deletion fails
+     *
+     * @see self::delete() For instance method version
      */
     public static function deleteById($id, $paymo = null)
     {
@@ -244,11 +524,33 @@ abstract class AbstractResource extends AbstractEntity
     }
 
     /**
-     * Delete a resource of this class type with the either the ID passed to the method OR the id set on this objects
-     * props Clears the object back to a reset fresh state after successfully deleting it.
+     * Delete this entity from Paymo.
      *
-     * @throws Exception
-     * @return AbstractResource
+     * Permanently removes the entity from Paymo. Requires the entity
+     * to have an ID set (either from fetch() or manual assignment).
+     *
+     * ## Warning
+     *
+     * This operation is **NOT REVERSIBLE**. The entity and potentially
+     * related data will be permanently deleted.
+     *
+     * ## Example
+     *
+     * ```php
+     * // Delete a fetched entity
+     * $project = Project::new()->fetch(123);
+     * $project->delete();
+     *
+     * // Delete by ID
+     * $project = Project::new(null, 123);
+     * $project->delete();
+     * ```
+     *
+     * @return AbstractResource Returns $this (cleared of all data)
+     *
+     * @throws Exception If no ID is set on the entity
+     *
+     * @see self::deleteById() For static version
      */
     public function delete()
     {
@@ -271,10 +573,23 @@ abstract class AbstractResource extends AbstractEntity
     }
 
     /**
-     * Resets the object to empty. Keeps any settings but clears the data from the props,
-     * unlisted, loaded, and included collections.
+     * Clear all data from this entity instance.
      *
-     * @return AbstractResource Returns the object itself for optional object chaining
+     * Resets the entity to an empty state while preserving the connection
+     * and other configuration. Called automatically after delete().
+     *
+     * ## Example
+     *
+     * ```php
+     * $project = Project::new()->fetch(123);
+     * echo $project->name;  // "Some Project"
+     *
+     * $project->clear();
+     * echo $project->name;  // null
+     * echo $project->id;    // null
+     * ```
+     *
+     * @return AbstractResource Returns $this for method chaining
      */
     public function clear()
     {
@@ -287,14 +602,36 @@ abstract class AbstractResource extends AbstractEntity
     }
 
     /**
-     * Manual call in place of the direct magic method setter, allows for bulk property setting as array
+     * Set one or more property values.
      *
-     * @param string | array $key   Either a prop key or an associative array of prop key=>value combinations
-     * @param null           $value If $key is an array, this is ignored. Otherwise its used to set the value of $key
-     *                              prop
+     * Provides both single-property and bulk-property setting with validation.
+     * An alternative to using magic setters when method chaining is desired.
      *
-     * @throws Exception
-     * @return AbstractResource Returns the object itself for optional object chaining
+     * ## Examples
+     *
+     * ```php
+     * // Single property
+     * $project->set('name', 'New Name');
+     *
+     * // Multiple properties
+     * $project->set([
+     *     'name' => 'New Name',
+     *     'description' => 'Description here',
+     *     'client_id' => 123
+     * ]);
+     *
+     * // Method chaining
+     * $project = Project::new()
+     *     ->set(['name' => 'Project', 'client_id' => 123])
+     *     ->create();
+     * ```
+     *
+     * @param string|array $key   Property name, or associative array of property => value
+     * @param mixed        $value Value to set (ignored if $key is array)
+     *
+     * @return AbstractResource Returns $this for method chaining
+     *
+     * @throws Exception If property validation fails
      */
     public function set($key, $value = null)
     {
@@ -311,6 +648,17 @@ abstract class AbstractResource extends AbstractEntity
         return $this;
     }
 
+    /**
+     * Associate a related entity with this resource.
+     *
+     * @param string           $key    The include key to set
+     * @param AbstractResource $object The related entity to associate
+     * @param int|null         $index  Optional index for collection relations
+     *
+     * @return AbstractResource Returns $this for method chaining
+     *
+     * @todo Implementation pending - currently a placeholder
+     */
     public function relate($key, $object, $index = null)
     {
         // Find the object type for $key if its an array include use the associative index
@@ -318,12 +666,30 @@ abstract class AbstractResource extends AbstractEntity
     }
 
     /**
-     * If enabled, will prevent API fetch calls from overwriting any current prop values if they are dirty
-     * By default, API loads will overwrite any data in this object even if its dirty and unsaved
+     * Enable protection against overwriting dirty (unsaved) data.
      *
-     * @param bool $protect Set to true and any attempt to overwrite dirty props will throw an error
+     * When enabled, calling fetch() on an entity with unsaved changes
+     * will throw an exception instead of overwriting the changes.
      *
-     * @return AbstractResource Returns the object itself for optional object chaining
+     * ## Example
+     *
+     * ```php
+     * $project = Project::new()->fetch(123);
+     * $project->name = "Unsaved change";
+     *
+     * // Without protection - changes lost!
+     * $project->fetch(123);  // Overwrites $project->name
+     *
+     * // With protection
+     * $project->protectDirtyOverwrites(true);
+     * $project->fetch(123);  // Throws exception!
+     * ```
+     *
+     * @param bool $protect TRUE to enable protection, FALSE to disable
+     *
+     * @return AbstractResource Returns $this for method chaining
+     *
+     * @see self::isDirty() For checking dirty state before fetch
      */
     public function protectDirtyOverwrites($protect = true)
     {
@@ -333,14 +699,29 @@ abstract class AbstractResource extends AbstractEntity
     }
 
     /**
-     * Call this with a TRUE value to always load from API (ignoring cache if it exists)
-     * This will still STORE the cache results if Caching is enabled on the connection
-     * Setting this back to false on the entity will re-enable caching if its ON in the connection
-     * By default all entities will try to use cache if connection cache is set to true
+     * Ignore cache for this entity's API calls.
      *
-     * @param bool $ignore The setting for this objects cache use override
+     * When enabled, fetch() calls bypass the cache and always make
+     * fresh API requests. The response is still cached for other entities.
      *
-     * @return AbstractResource Returns the object itself for optional object chaining
+     * ## Example
+     *
+     * ```php
+     * // Always get fresh data for this instance
+     * $project = Project::new();
+     * $project->ignoreCache(true);
+     * $project->fetch(123);  // Fresh from API
+     *
+     * // Re-enable caching
+     * $project->ignoreCache(false);
+     * $project->fetch(123);  // May use cache
+     * ```
+     *
+     * @param bool $ignore TRUE to bypass cache, FALSE to use cache
+     *
+     * @return AbstractResource Returns $this for method chaining
+     *
+     * @see Cache For global cache configuration
      */
     public function ignoreCache($ignore = true)
     {
@@ -350,16 +731,48 @@ abstract class AbstractResource extends AbstractEntity
     }
 
     /**
-     * Execute an API call to populate this object with data based on a single ID for this entity type
+     * Fetch an entity from the Paymo API.
      *
-     * @param int | null $id         The ID to use to populate this object. If null, it uses the existing prop ID, if
-     *                               still no value... will throw an Exception
-     * @param string[]   $fields     An array of string props and/or include entities to get from the API call
-     * @param array      $options    The set of options for this request
-     *                               [skipCache] = boolean : If set to true, will NEVER check cache and force API call
+     * Retrieves a single entity by ID, optionally including related entities
+     * and limiting returned properties.
      *
-     * @throws Exception
-     * @return AbstractResource Returns the instance of itself for chaining method potential
+     * ## Examples
+     *
+     * ```php
+     * // Basic fetch
+     * $project = Project::new()->fetch(123);
+     *
+     * // With includes
+     * $project = Project::new()->fetch(123, ['client', 'tasks']);
+     *
+     * // With specific properties
+     * $project = Project::new()->fetch(123, ['name', 'description', 'client']);
+     *
+     * // Skip cache for fresh data
+     * $project = Project::new()->fetch(123, [], ['skipCache' => true]);
+     *
+     * // Using existing ID
+     * $project = Project::new(null, 123);
+     * $project->fetch();  // Uses ID from constructor
+     * ```
+     *
+     * ## Options
+     *
+     * | Key       | Type | Description                              |
+     * |-----------|------|------------------------------------------|
+     * | skipCache | bool | Bypass cache, fetch fresh from API       |
+     *
+     * @param int|null $id      Entity ID to fetch (uses existing if null)
+     * @param string[] $fields  Properties and includes to return
+     * @param array    $options Request options (see table above)
+     *
+     * @return AbstractResource Returns $this, hydrated with API data
+     *
+     * @throws Exception If no ID is available
+     * @throws Exception If dirty protection is enabled and entity is dirty
+     *
+     * @see self::protectDirtyOverwrites() For protecting unsaved changes
+     * @see self::ignoreCache() For skipping cache on all fetches
      */
     public function fetch($id = null, $fields = [], $options = [])
     {
@@ -396,11 +809,30 @@ abstract class AbstractResource extends AbstractEntity
     }
 
     /**
-     * Check if there is at least one dirty key that doesnt match the last loaded or saved value
+     * Check if any properties have unsaved changes.
      *
-     * @param bool $checkRelations If true, will look at and check all "included" entities recursively
+     * Compares current property values to the values loaded from the API
+     * to determine if there are unsaved modifications.
      *
-     * @return bool
+     * ## Example
+     *
+     * ```php
+     * $project = Project::new()->fetch(123);
+     * echo $project->isDirty();  // false
+     *
+     * $project->name = "Changed";
+     * echo $project->isDirty();  // true
+     *
+     * $project->update();
+     * echo $project->isDirty();  // false
+     * ```
+     *
+     * @param bool $checkRelations If TRUE, also checks included relations recursively
+     *
+     * @return bool TRUE if any properties have been modified
+     *
+     * @see self::getDirtyKeys() For list of modified properties
+     * @see self::getDirtyValues() For original and current values
      */
     public function isDirty($checkRelations = false)
     {
@@ -428,9 +860,26 @@ abstract class AbstractResource extends AbstractEntity
     }
 
     /**
-     * Return a list of strings for the prop keys that dont match the last loaded or saved values
+     * Get list of property names that have been modified.
      *
-     * @return string[] Array of prop string keys
+     * Returns an array of property keys whose current values differ
+     * from their loaded (saved) values.
+     *
+     * ## Example
+     *
+     * ```php
+     * $project = Project::new()->fetch(123);
+     * $project->name = "New Name";
+     * $project->description = "New Desc";
+     *
+     * $dirty = $project->getDirtyKeys();
+     * // ['name', 'description']
+     * ```
+     *
+     * @return string[] Array of modified property names
+     *
+     * @see self::isDirty() For simple boolean check
+     * @see self::getDirtyValues() For values comparison
      */
     public function getDirtyKeys()
     {
@@ -445,14 +894,27 @@ abstract class AbstractResource extends AbstractEntity
     }
 
     /**
-     * Internal method to populate this object with the results from a paymo API call
-     * This method is only exposed publicly to allow other hydration calls to propagate the process
-     * It is not intended to be called directly (unless passing in the raw object results from a call elsewhere)
+     * Populate this entity from an API response.
      *
-     * @param int    $objectId       The ID of this object being populated
-     * @param object $responseObject The standard object returned from the API call
+     * Internal method that processes API response data and populates
+     * this entity's properties and includes. Called automatically by
+     * fetch(), create(), and update().
      *
-     * @throws Exception
+     * ## Process
+     *
+     * 1. Clears existing data
+     * 2. Enables hydration mode (allows setting READONLY props)
+     * 3. Sets each property from response
+     * 4. Hydrates included relations recursively
+     * 5. Disables hydration mode
+     * 6. Snapshots props for dirty tracking
+     *
+     * @param object   $responseObject API response data as stdClass
+     * @param int|null $objectId       The ID of this entity
+     *
+     * @throws Exception If include hydration fails
+     *
+     * @internal Called automatically by CRUD methods
      */
     public function _hydrate($responseObject, $objectId = null)
     {
@@ -475,12 +937,17 @@ abstract class AbstractResource extends AbstractEntity
     }
 
     /**
-     * Supporting method to populate "include" hydration when child objects or lists are included in the response
+     * Hydrate an included (related) entity from API response.
      *
-     * @param string         $entityKey string The valid include key from the INCLUDE_TYPES constant to be populated
-     * @param object | array $object    The single include object or an array of objects depending on the key type
+     * Creates appropriate resource or collection instances for
+     * included relations and populates them from the response data.
      *
-     * @throws Exception If an entity class definition cannot be found for the provided key
+     * @param string       $entityKey Include key (e.g., 'client', 'tasks')
+     * @param object|array $object    Response data for the include
+     *
+     * @throws Exception If entity class cannot be found
+     *
+     * @internal Called by _hydrate()
      */
     private function _hydrateInclude($entityKey, $object)
     {
@@ -502,19 +969,53 @@ abstract class AbstractResource extends AbstractEntity
     }
 
     /**
-     * Create a new resource entry in the Paymo system with the data existing in this object
-     * Be careful calling this on an existing entity while leaving the stripReadonly option on as it will remove the
-     * readonly values and create a new copy of the entity
+     * Create a new entity in Paymo.
      *
-     * @param array $options An associative array of possible options for configuring the creation rules
-     *                       [stripReadonly] : bool [Default: true] - Will strip any readonly props (like ID) from the
-     *                       creation values
-     *                       [cascade] : bool [Default: true] - Look for any child relations attached to this entity
-     *                       and create them as well (they will NOT strip readonly and only create them if they have no
-     *                       ID)
+     * Sends the current property values to the API to create a new entity.
+     * On success, this entity is populated with the API response (including
+     * the assigned ID).
      *
-     * @throws Exception
-     * @return AbstractResource Returns itself fully hydrated with the results from the API.
+     * ## Required Properties
+     *
+     * Each resource type defines required properties in REQUIRED_CREATE.
+     * The method validates these are set before making the API call.
+     *
+     * ## CREATEONLY Properties
+     *
+     * Some properties can only be set during creation (like project_id on a task).
+     * These are listed in the CREATEONLY constant.
+     *
+     * ## Example
+     *
+     * ```php
+     * // Create a project
+     * $project = Project::new()
+     *     ->set([
+     *         'name' => 'New Project',
+     *         'client_id' => 123
+     *     ])
+     *     ->create();
+     *
+     * echo $project->id;  // New ID from Paymo
+     * ```
+     *
+     * ## Options
+     *
+     * | Key           | Type   | Default | Description                           |
+     * |---------------|--------|---------|---------------------------------------|
+     * | stripReadonly | bool   | false   | Remove readonly props before sending  |
+     * | cancelReadonly| bool   | true    | Skip create if readonly props exist   |
+     * | cascade       | bool   | true    | Create related entities (future)      |
+     * | dataMode      | string | 'json'  | Request mode: 'json' or 'multipart'   |
+     * | uploadProps   | array  | []      | Properties that are file paths        |
+     *
+     * @param array $options Create options (see table above)
+     *
+     * @return AbstractResource Returns $this with new ID and API data
+     *
+     * @throws Exception If required properties are missing
+     *
+     * @see self::update() For modifying existing entities
      */
     public function create($options = [])
     {
@@ -568,7 +1069,7 @@ abstract class AbstractResource extends AbstractEntity
             }
             if ($cascade) {
                 // Create any children that are possible, currently cant create relations on the standalone resource
-                //@todo Cascade through included entities and create them if relevant
+                //@todo Cascade through included entities and create them as well
             }
         }
 
@@ -576,11 +1077,18 @@ abstract class AbstractResource extends AbstractEntity
     }
 
     /**
-     * Check the custom creation requirement rules, with OR and AND logic
+     * Validate complex required property expressions.
      *
-     * @param string $key The key to process for possible logic operators
+     * Handles the logic operators in REQUIRED_CREATE:
+     * - `|` - OR (any one required)
+     * - `||` - XOR (exactly one required)
+     * - `&` - AND (all required)
      *
-     * @return bool Returns a success or fail boolean based on if the creation key rule is met
+     * @param string $key Property key or expression to validate
+     *
+     * @return bool TRUE if requirement is satisfied
+     *
+     * @internal Called by create()
      */
     protected function _validateCreateRequirement($key)
     {
@@ -629,13 +1137,27 @@ abstract class AbstractResource extends AbstractEntity
     }
 
     /**
-     * Get one or more values from the magic methods by passing a key or an string array of keys
+     * Get one or more property values.
      *
-     * @param string|string[] $key An array or a single key to get the value for
+     * Retrieves property values using the magic getter. Supports both
+     * single property retrieval and bulk retrieval.
      *
-     * @throws Exception
-     * @return mixed|null Either the value of a single key or if an array of keys is passed, an associative array is
-     *                    sent pack with a value for each string key
+     * ## Examples
+     *
+     * ```php
+     * // Single property
+     * $name = $project->get('name');
+     *
+     * // Multiple properties
+     * $data = $project->get(['name', 'description', 'active']);
+     * // Returns: ['name' => 'Project', 'description' => '...', 'active' => true]
+     * ```
+     *
+     * @param string|string[] $key Property name or array of property names
+     *
+     * @return mixed|array|null Single value, array of values, or null if not found
+     *
+     * @throws Exception If magic getter throws
      */
     public function get($key)
     {
@@ -656,12 +1178,28 @@ abstract class AbstractResource extends AbstractEntity
     }
 
     /**
-     * Magic getter method
-     * Will check the class props, unlisted and included object properties
+     * Magic getter for property access.
      *
-     * @param string $name Object property getter key
+     * Allows accessing properties directly on the object. Checks in order:
+     * 1. Defined properties (PROP_TYPES)
+     * 2. Unlisted properties
+     * 3. Included relations
      *
-     * @return mixed | null
+     * ## Example
+     *
+     * ```php
+     * $project = Project::new()->fetch(123, ['client']);
+     *
+     * // Property access
+     * echo $project->name;
+     *
+     * // Include access
+     * echo $project->client->name;
+     * ```
+     *
+     * @param string $name Property name
+     *
+     * @return mixed|null Property value or null if not set
      */
     public function __get($name)
     {
@@ -677,14 +1215,41 @@ abstract class AbstractResource extends AbstractEntity
     }
 
     /**
-     * Magic setter method
-     * If the setter cannot find the key in the valid props, it will add the value to the "unlisted" array
+     * Magic setter for property assignment.
      *
-     * @param string $name  Object property to attempt magic setting
-     * @param mixed  $value The value to attempt to set
+     * Validates and sets property values. READONLY properties are
+     * blocked unless in hydration mode. Unknown properties go to unlisted.
      *
-     * @throws Exception
-     * @return void
+     * ## Property Rules
+     *
+     * - **READONLY**: Cannot be set manually (e.g., id, created_on)
+     * - **CREATEONLY**: Can only be set before create() (e.g., project_id on task)
+     * - **Normal**: Can be set anytime
+     *
+     * ## Example
+     *
+     * ```php
+     * $project = Project::new();
+     *
+     * // Normal property
+     * $project->name = "New Project";  // Works
+     *
+     * // CREATEONLY (before create)
+     * $task = Task::new();
+     * $task->project_id = 123;  // Works
+     *
+     * // CREATEONLY (after create)
+     * $task = Task::new()->fetch(456);
+     * $task->project_id = 789;  // Silently ignored
+     *
+     * // READONLY
+     * $project->id = 999;  // Silently ignored (unless hydrating)
+     * ```
+     *
+     * @param string $name  Property name
+     * @param mixed  $value Value to set
+     *
+     * @throws Exception If property validation fails
      */
     public function __set($name, $value)
     {
@@ -701,17 +1266,35 @@ abstract class AbstractResource extends AbstractEntity
     }
 
     /**
-     * Make an update request to the API to update data for a specific resource, requires an ID be set on the object
-     * and have at least one dirtty non-ID prop (or dirty children if option is set)
+     * Update this entity in Paymo.
      *
-     * @param array $options An associative array of possible options for configuring the update rules
-     *                       [updateRelations] : bool [Default: true] - Will traverse all relations and check for dirty
-     *                       objects and trigger updates to each dirty one
-     *                       [createRelations] : bool [Default: true] - Will create any related includes in collections
-     *                       if they do not yet have ids
+     * Sends only the modified (dirty) properties to the API. Requires
+     * the entity to have an ID.
      *
-     * @throws Exception
-     * @return $this
+     * ## Example
+     *
+     * ```php
+     * $project = Project::new()->fetch(123);
+     * $project->name = "Updated Name";
+     * $project->description = "Updated description";
+     * $project->update();  // Only sends name and description
+     * ```
+     *
+     * ## Options
+     *
+     * | Key             | Type | Default | Description                         |
+     * |-----------------|------|---------|-------------------------------------|
+     * | updateRelations | bool | true    | Update dirty related entities       |
+     * | createRelations | bool | true    | Create new related entities         |
+     *
+     * @param array $options Update options (see table above)
+     *
+     * @return AbstractResource Returns $this with updated API data
+     *
+     * @throws Exception If no ID is set
+     *
+     * @see self::create() For creating new entities
+     * @see self::isDirty() For checking what will be sent
      */
     public function update($options = [])
     {
@@ -756,17 +1339,32 @@ abstract class AbstractResource extends AbstractEntity
     }
 
     /**
-     * Upload an image to an entity
+     * Upload an image to this entity.
      *
-     * @param string $filepath  The path to the local file for uploading (usually is the the tmp uploaded path)
-     * @param string $propKey   The property key for the upload file to be attached to. Defaults to 'image' as most
-     *                          resources have a single image prop. Also used as the mutlipart upload variable name for
-     *                          requests
-     * @param bool   $isPropKey Determine if this is supposed to be checked against the prop list on the resource or
-     *                          not
+     * Convenience wrapper for upload() with 'image' as the default property.
      *
-     * @throws Exception
-     * @return $this Return the object itself for chaining
+     * ## Example
+     *
+     * ```php
+     * $client = Client::new()->fetch(123);
+     * $client->image('/path/to/logo.png');  // Uploads as 'image' property
+     *
+     * // With custom property name
+     * $user = User::new()->fetch(456);
+     * $user->image('/path/to/avatar.jpg', 'profile_image');
+     * ```
+     *
+     * @param string $filepath  Path to the image file
+     * @param string $propKey   Property name for the image (default: 'image')
+     * @param bool   $isPropKey Whether to validate against PROP_TYPES
+     *
+     * @return AbstractResource Returns $this with updated API data
+     *
+     * @throws Exception If entity has no ID
+     * @throws Exception If file doesn't exist
+     *
+     * @see self::file() For non-image file uploads
+     * @see self::upload() For the underlying implementation
      */
     public function image($filepath, $propKey = 'image', $isPropKey = true)
     {
@@ -774,18 +1372,25 @@ abstract class AbstractResource extends AbstractEntity
     }
 
     /**
-     * Upload an image to an existing entity.
+     * Upload a file attachment to this entity.
      *
-     * @param string $filepath  The path to the local file for uploading (usually is the the tmp uploaded path)
-     * @param string $propKey   The property key for the upload file to be attached to. Also used as the mutlipart
-     *                          upload variable name for requests
-     * @param bool   $isPropKey Determine if this is supposed to be checked against the prop list on the resource or
-     *                          not
+     * Sends a file to the API as a multipart form upload.
      *
-     * @throws Exception
-     * @return $this Return the object itself for chaining
-     * @todo Refactor to allow for image uploads in the same call (means sending the data combined with file in
-     *       multipart body)
+     * ## Requirements
+     *
+     * - Entity must have an ID (call fetch() or create() first)
+     * - File must exist at the specified path
+     *
+     * @param string $filepath  Path to the file to upload
+     * @param string $propKey   Form field name for the upload
+     * @param bool   $isPropKey Whether to validate against PROP_TYPES
+     *
+     * @return AbstractResource Returns $this with updated API data
+     *
+     * @throws Exception If entity has no ID
+     * @throws Exception If file doesn't exist
+     *
+     * @internal Use image() or file() public methods instead
      */
     protected function upload($filepath, $propKey, $isPropKey = true)
     {
@@ -810,17 +1415,28 @@ abstract class AbstractResource extends AbstractEntity
     }
 
     /**
-     * Upload a file attached to an entity
+     * Upload a file to this entity.
      *
-     * @param string $filepath  The path to the local file for uploading (usually is the the tmp uploaded path)
-     * @param string $propKey   The property key for the upload file to be attached to. Defaults to 'file' as most
-     *                          resources add files via the 'file' key. Also used as the mutlipart upload variable name
-     *                          for requests
-     * @param bool   $isPropKey Determine if this is supposed to be checked against the prop list on the resource or
-     *                          not
+     * Convenience wrapper for upload() with 'file' as the default property
+     * and no property validation.
      *
-     * @throws Exception
-     * @return $this Return the object itself for chaining
+     * ## Example
+     *
+     * ```php
+     * $task = Task::new()->fetch(123);
+     * $task->file('/path/to/document.pdf');
+     * ```
+     *
+     * @param string $filepath  Path to the file to upload
+     * @param string $propKey   Form field name (default: 'file')
+     * @param bool   $isPropKey Whether to validate against PROP_TYPES (default: false)
+     *
+     * @return AbstractResource Returns $this with updated API data
+     *
+     * @throws Exception If entity has no ID
+     * @throws Exception If file doesn't exist
+     *
+     * @see self::image() For image uploads
      */
     public function file($filepath, $propKey = 'file', $isPropKey = false)
     {
@@ -828,9 +1444,12 @@ abstract class AbstractResource extends AbstractEntity
     }
 
     /**
-     * Return all values that exist in the unlisted collection
+     * Get all unlisted (undocumented) properties.
      *
-     * @return mixed[]
+     * Returns properties that were set but aren't defined in PROP_TYPES.
+     * Useful for accessing undocumented API fields.
+     *
+     * @return array<string, mixed> Associative array of unlisted properties
      */
     public function unlisted()
     {
@@ -838,12 +1457,24 @@ abstract class AbstractResource extends AbstractEntity
     }
 
     /**
-     * Return all the current values of the defined object props as an associative array
-     * Passing a true parameter will check all defined keys (as null) even if they are not currently set
+     * Get all current property values.
      *
-     * @param bool $includeAll If true, will check the defined propType and return them as NULL if not set
+     * Returns the current state of all defined properties.
      *
-     * @return mixed[]
+     * ## Example
+     *
+     * ```php
+     * $project = Project::new()->fetch(123);
+     * $props = $project->props();
+     * // ['id' => 123, 'name' => 'Project', ...]
+     *
+     * // Include all possible properties (null if not set)
+     * $allProps = $project->props(true);
+     * ```
+     *
+     * @param bool $includeAll If TRUE, includes all PROP_TYPES keys (null if unset)
+     *
+     * @return array<string, mixed> Associative array of property values
      */
     public function props($includeAll = false)
     {
@@ -854,22 +1485,35 @@ abstract class AbstractResource extends AbstractEntity
                     $props[$k] = null;
                 }
             }
-//            $diff = array_diff_key($this::PROP_TYPES, $props);
-//            foreach ($diff as $k) {
-//                if (!isset($props[$k])) {
-//                    $props[$k] = null;
-//                }
-//            }
         }
 
         return $props;
     }
 
     /**
-     * Return an array of the current prop values that do not match the last loaded or saved value
+     * Get original and current values for dirty properties.
      *
-     * @return array[] A multidimensional array with prop as keys and a 2 part assoc array for each key [original,
-     *                 current]
+     * Returns detailed information about modified properties including
+     * both the loaded (original) value and the current value.
+     *
+     * ## Example
+     *
+     * ```php
+     * $project = Project::new()->fetch(123);
+     * $project->name = "Changed Name";
+     * $project->budget = 5000;
+     *
+     * $dirty = $project->getDirtyValues();
+     * // [
+     * //     'name' => ['original' => 'Old Name', 'current' => 'Changed Name'],
+     * //     'budget' => ['original' => null, 'current' => 5000]
+     * // ]
+     * ```
+     *
+     * @return array<string, array{original: mixed, current: mixed}> Dirty property details
+     *
+     * @see self::getDirtyKeys() For just the property names
+     * @see self::isDirty() For simple boolean check
      */
     public function getDirtyValues()
     {
@@ -886,12 +1530,35 @@ abstract class AbstractResource extends AbstractEntity
     }
 
     /**
-     * Return a stdClass object of the properties and its included relations (configured with options)
+     * Export entity as a plain stdClass object.
      *
-     * @param array $options An associative array of setting options for how to flatten the responses.
-     *                       [stripNull] : boolean [false] = Will only return props that are not set to null
+     * Converts the entity and its included relations to a simple
+     * object suitable for JSON encoding or other serialization.
      *
-     * @return stdClass
+     * ## Example
+     *
+     * ```php
+     * $project = Project::new()->fetch(123, ['client', 'tasks']);
+     *
+     * $data = $project->flatten();
+     * // stdClass with all props and nested includes
+     *
+     * // Strip null values
+     * $data = $project->flatten(['stripNull' => true]);
+     *
+     * // Convert to JSON
+     * $json = json_encode($project->flatten());
+     * ```
+     *
+     * ## Options
+     *
+     * | Key       | Type | Default | Description                    |
+     * |-----------|------|---------|--------------------------------|
+     * | stripNull | bool | false   | Omit properties with null values |
+     *
+     * @param array $options Flatten options (see table above)
+     *
+     * @return stdClass Plain object with properties and includes
      */
     public function flatten($options = [])
     {

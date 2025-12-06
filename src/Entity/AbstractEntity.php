@@ -1,23 +1,31 @@
 <?php
 /**
- * PHP SDK for the PaymoApp API
- * Package Source Code: https://github.com/jcolombo/paymo-api-php
- * Paymo API Documentation : https://github.com/paymoapp/api
- * .
+ * Paymo API PHP SDK - Abstract Entity Base Class
+ *
+ * The foundational base class for all Paymo entity types. Provides core functionality
+ * for connection management, validation, and property type checking that is inherited
+ * by both AbstractResource (single entities) and AbstractCollection (lists of entities).
+ *
+ * @package    Jcolombo\PaymoApiPhp\Entity
+ * @author     Joel Colombo <jc-dev@360psg.com>
+ * @copyright  2020-2025 Joel Colombo / 360 PSG, Inc.
+ * @license    MIT License
+ * @version    0.5.6
+ * @link       https://github.com/jcolombo/paymo-api-php
+ * @see        https://github.com/paymoapp/api Official Paymo API Documentation
+ *
  * MIT License
- * Copyright (c) 2020 - Joel Colombo <jc-dev@360psg.com>
- * Last Updated : 3/18/20, 9:23 PM
- * .
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * .
+ *
  * The above copyright notice and this permission notice shall be included in all
  * copies or substantial portions of the Software.
- * .
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -36,62 +44,178 @@ use Jcolombo\PaymoApiPhp\Utility\Converter;
 use Jcolombo\PaymoApiPhp\Utility\RequestCondition;
 
 /**
- * Class AbstractEntity
+ * Abstract Entity Base Class
+ *
+ * The root class of the SDK's entity hierarchy. All Paymo resources and collections
+ * ultimately inherit from this class. It provides:
+ *
+ * - **Connection Management**: Links entities to Paymo API connections
+ * - **Validation Utilities**: Static methods to validate properties, includes, and WHERE conditions
+ * - **Factory Methods**: Create properly typed resources and collections via EntityMap
+ * - **Configuration Cloning**: Transfer settings between related entities during hydration
+ *
+ * ## Class Hierarchy
+ *
+ * ```
+ * AbstractEntity (this class)
+ *     ├── AbstractResource (single entity)
+ *     │       ├── Project
+ *     │       ├── Task
+ *     │       ├── Client
+ *     │       └── ... (33 total resources)
+ *     │
+ *     └── AbstractCollection (list of entities)
+ *             ├── EntityCollection (generic)
+ *             ├── TimeEntryCollection
+ *             └── ... (specialized collections)
+ * ```
+ *
+ * ## Valid WHERE Operators
+ *
+ * When filtering entities in list operations, these operators are available:
+ *
+ * | Operator    | Description                           | Example                              |
+ * |-------------|---------------------------------------|--------------------------------------|
+ * | `=`         | Equals                                | `where('active', true)`              |
+ * | `!=`        | Not equals                            | `where('status', 'draft', '!=')`     |
+ * | `<`         | Less than                             | `where('budget', 1000, '<')`         |
+ * | `<=`        | Less than or equals                   | `where('priority', 5, '<=')`         |
+ * | `>`         | Greater than                          | `where('created_on', '2024-01-01')` |
+ * | `>=`        | Greater than or equals                | `where('updated_on', $date, '>=')`   |
+ * | `like`      | SQL LIKE pattern match                | `where('name', '%test%', 'like')`    |
+ * | `not like`  | SQL NOT LIKE pattern                  | `where('name', '%temp%', 'not like')`|
+ * | `in`        | Value in array                        | `where('status', ['a','b'], 'in')`   |
+ * | `not in`    | Value not in array                    | `where('type', [1,2], 'not in')`     |
+ * | `range`     | Between two values (array of 2)       | `where('price', [10,50], 'range')`   |
+ *
+ * ## Special Entity Keys
+ *
+ * Some entities don't have traditional IDs:
+ * - `company` - Singleton entity, fetched without ID
  *
  * @package Jcolombo\PaymoApiPhp\Entity
+ * @author  Joel Colombo <jc-dev@360psg.com>
+ * @since   0.1.0
+ *
+ * @see     AbstractResource For single entity operations
+ * @see     AbstractCollection For list operations
+ * @see     EntityMap For entity class registration
  */
 abstract class AbstractEntity
 {
     /**
-     * The valid possible operators usable in WHERE clauses when selecting lists of entities
+     * All valid comparison operators for WHERE clauses.
+     *
+     * These operators can be used when filtering entity lists. Each resource
+     * may further restrict which operators are allowed on specific properties
+     * via its WHERE_OPERATIONS constant.
+     *
+     * @var string[] Array of valid operator strings
+     *
+     * @see self::allowWhere() For operator validation
+     * @see RequestCondition::where() For creating WHERE conditions
      */
     public const VALID_OPERATORS = ['=', '!=', '<', '<=', '>', '>=', 'like', 'not like', 'in', 'not in', 'range'];
 
     /**
-     * An array of resource keys that do not have an ID to be checked when fetching / updating
+     * Resource keys that don't use standard ID-based fetch/update.
+     *
+     * Some Paymo entities are singletons (like Company settings) and don't
+     * have individual IDs. These are fetched with ID=-1 internally.
+     *
+     * @var string[] Array of entity keys that skip ID validation
      */
     public const SKIP_ID_FETCH_UPDATE = ['company'];
 
     /**
-     * A temporary boolean used automatically by the class to allow population of readonly props during API responses
+     * Internal flag indicating hydration mode is active.
      *
-     * @var bool
+     * When TRUE, allows setting of READONLY properties (like `id`, `created_on`)
+     * which are normally protected from manual modification. This is automatically
+     * enabled during API response hydration and disabled afterward.
+     *
+     * @var bool TRUE when hydrating from API response
+     *
+     * @internal Used by _hydrate() methods
      */
     protected $hydrationMode = false;
 
     /**
-     * The instance of the Paymo connection used for this object
+     * The Paymo API connection instance for this entity.
      *
-     * @var Paymo|null
+     * All API operations (fetch, create, update, delete) are executed
+     * through this connection. Set during construction and can be
+     * cloned to child entities via getConfiguration().
+     *
+     * @var Paymo|null The active connection or NULL if not yet established
+     *
+     * @see Paymo::connect() For establishing connections
      */
     protected $connection = null;
 
     /**
-     * Flag setting if true will automatically overwrite any existing data in this object when a new FETCh is called
-     * If set to false, the object will throw an error if data was "manually" changed since the last load but not saved
-     * before attempting to load new data.
+     * Controls whether fetch operations can overwrite dirty (unsaved) data.
      *
-     * @var bool
+     * - **TRUE** (default): New fetch() calls will overwrite any unsaved changes
+     * - **FALSE**: Throws exception if fetch() is called with dirty properties
+     *
+     * Use protectDirtyOverwrites(true) to enable protection.
+     *
+     * @var bool TRUE to allow overwrites, FALSE to protect dirty data
+     *
+     * @see AbstractResource::protectDirtyOverwrites() For setting this flag
      */
     protected $overwriteDirtyWithRequests = true;
 
     /**
-     * Decide if this object should use cache on its fetch calls. Requires system wide caching also be enabled or its
-     * always treated as false
+     * Controls whether this entity should use cached responses.
      *
-     * @var bool
+     * - **TRUE** (default): Use cache if connection has caching enabled
+     * - **FALSE**: Always make fresh API calls (ignoreCache mode)
+     *
+     * This is an entity-level override. Global caching must also be enabled
+     * on the connection for caching to actually occur.
+     *
+     * @var bool TRUE to use cache, FALSE to force fresh API calls
+     *
+     * @see AbstractResource::ignoreCache() For setting this flag
+     * @see Paymo::$useCache For connection-level cache setting
      */
     protected $useCacheIfAvailable = true;
 
     /**
-     * The default Entity constructor
-     * Requires a Paymo connection instance or attempts to find/create one.
+     * Initialize an entity with a Paymo connection.
      *
-     * @param array | Paymo | string | null $paymo Either an API Key, Paymo Connection, config settings array (from
-     *                                             another entitied getConfiguration call), or null to get first
-     *                                             connection available
+     * The constructor accepts multiple formats for flexibility:
      *
-     * @throws Exception
+     * ## Connection Options
+     *
+     * ```php
+     * // Option 1: Use existing/default connection (most common)
+     * $entity = new SomeEntity();
+     *
+     * // Option 2: Provide API key to create/get connection
+     * $entity = new SomeEntity('your-api-key');
+     *
+     * // Option 3: Provide existing Paymo connection
+     * $paymo = Paymo::connect('api-key');
+     * $entity = new SomeEntity($paymo);
+     *
+     * // Option 4: Configuration array (used internally for cloning)
+     * $entity = new SomeEntity([
+     *     'connection' => $paymo,
+     *     'overwriteDirtyWithRequests' => false,
+     *     'useCacheIfAvailable' => true
+     * ]);
+     * ```
+     *
+     * @param Paymo|string|array|null $paymo Connection specification:
+     *                                       - null: Uses first available connection
+     *                                       - string: API key to connect with
+     *                                       - Paymo: Existing connection instance
+     *                                       - array: Configuration with 'connection' key
+     *
+     * @throws Exception If no connection can be established or invalid type provided
      */
     public function __construct($paymo = null)
     {
@@ -110,27 +234,41 @@ abstract class AbstractEntity
         } elseif (is_object($connection)) {
             $this->connection = $connection;
         } else {
-            throw new Exception("No Connection Provided, Be sure you have connected with a Paymo::connect() call before using the API entities");
+            throw new Exception(
+              "No Connection Provided, Be sure you have connected with a Paymo::connect() call before using the API entities"
+            );
         }
 
-        return $this;
+        return;
     }
 
     /**
-     * This method is used by other AbstractEntities to clone the settings for inheritance when dynamically creating new
-     * objects from hydration methods.
+     * Apply configuration settings from another entity.
      *
-     * @param array $configurationArray Set of protected properties to be forced into specific values
+     * Used internally when creating child entities during hydration to ensure
+     * they inherit the same connection and behavioral settings as their parent.
      *
-     * @throws Exception
+     * ## Configuration Keys
+     *
+     * | Key                        | Type   | Description                           |
+     * |----------------------------|--------|---------------------------------------|
+     * | `connection`               | Paymo  | The API connection to use             |
+     * | `overwriteDirtyWithRequests` | bool | Whether to allow overwriting dirty data |
+     * | `useCacheIfAvailable`      | bool   | Whether to use caching                |
+     *
+     * @param array $configurationArray Configuration settings to apply
+     *
+     * @throws Exception If parameter is not an array
+     *
+     * @internal Used by _hydrateInclude() and related methods
+     * @see      self::getConfiguration() For retrieving configuration
      */
     public function setConfiguration($configurationArray)
     {
         if (!is_array($configurationArray)) {
             throw new Exception("Cloning configuration requires a single associative array or object passed to it");
         }
-        if (isset($configurationArray['connection']) && is_a($configurationArray['connection'],
-                                                             'Jcolombo\PaymoApiPhp\Paymo')) {
+        if (isset($configurationArray['connection']) && $configurationArray['connection'] instanceof Paymo) {
             $this->connection = $configurationArray['connection'];
         }
         if (isset($configurationArray['overwriteDirtyWithRequests'])) {
@@ -142,23 +280,38 @@ abstract class AbstractEntity
     }
 
     /**
-     * Static method to always create a resource or collection using the currently configured mapped class  in Entity
-     * Map NOTE: Using this method to factory create your class will void IDE typehinting when developing (as it doesnt
-     * know what class will return)
+     * Factory method to create a new resource instance via EntityMap.
      *
-     * @param null       $paymo                    * @param array | Paymo | string | null $paymo Either an API Key,
-     *                                             Paymo Connection, config settings array (from another entitied
-     *                                             getConfiguration call), or null to get first connection available
-     * @param int | null $id                       An optional ID to pre-populate the ID property of the object
+     * Creates a resource using the class registered in EntityMap for the calling
+     * class's API_ENTITY key. This allows for custom resource class overrides
+     * while maintaining API compatibility.
      *
-     * @throws Exception
-     * @return AbstractResource
+     * ## Example
+     *
+     * ```php
+     * // Usually called via the child class's new() method:
+     * $project = Project::new();
+     *
+     * // Which internally calls:
+     * $project = AbstractEntity::newResource('api-key', 123);
+     * ```
+     *
+     * @param Paymo|string|array|null $paymo Connection specification (see constructor)
+     * @param int|null                $id    Optional ID to pre-populate on the resource
+     *
+     * @throws Exception If no class is found in EntityMap for this entity key
+     *
+     * @return AbstractResource A new instance of the mapped resource class
+     *
+     * @see EntityMap::resource() For class lookup
      */
     public static function newResource($paymo = null, $id = null)
     {
         $realClass = EntityMap::resource(static::API_ENTITY);
         if (is_null($realClass)) {
-            throw new Exception("No class found in the Entity Mapp for creating a {static::LABEL} with key '{static::API_ENTITY}'");
+            throw new Exception(
+              "No class found in the Entity Mapp for creating a {static::LABEL} with key '{static::API_ENTITY}'"
+            );
         }
 
         //@todo Anyone with ideas on how a simple way to typehint the return type correctly for IDE's (like PhpStorm). Minor concern.
@@ -166,22 +319,35 @@ abstract class AbstractEntity
     }
 
     /**
-     * Static method to always create a resource or collection using the currently configured mapped class  in Entity
-     * Map NOTE: Using this method to factory create your class will void IDE typehinting when developing (as it doesnt
-     * know what class will return)
+     * Factory method to create a new collection instance via EntityMap.
      *
-     * @param null $paymo                          * @param array | Paymo | string | null $paymo Either an API Key,
-     *                                             Paymo Connection, config settings array (from another entitied
-     *                                             getConfiguration call), or null to get first connection available
+     * Creates a collection using the class registered in EntityMap for the calling
+     * class's API_ENTITY key. This allows for custom collection class overrides.
      *
-     * @throws Exception
-     * @return AbstractCollection
+     * ## Example
+     *
+     * ```php
+     * // Usually called via the child class's list() method:
+     * $collection = Project::list();
+     *
+     * // Which creates a collection for fetching project lists
+     * ```
+     *
+     * @param Paymo|string|array|null $paymo Connection specification (see constructor)
+     *
+     * @throws Exception If no class is found in EntityMap for this entity key
+     *
+     * @return AbstractCollection A new instance of the mapped collection class
+     *
+     * @see EntityMap::collection() For class lookup
      */
     public static function newCollection($paymo = null)
     {
         $realClass = EntityMap::resource(static::API_ENTITY);
         if (is_null($realClass)) {
-            throw new Exception("No class found in the Entity Mapp for creating a {static::LABEL} with key '{static::API_ENTITY}'");
+            throw new Exception(
+              "No class found in the Entity Mapp for creating a {static::LABEL} with key '{static::API_ENTITY}'"
+            );
         }
 
         //@todo Anyone with ideas on how a simple way to typehint the return type correctly for IDE's (like PhpStorm). Minor concern.
@@ -189,13 +355,34 @@ abstract class AbstractEntity
     }
 
     /**
-     * Determine if a key is either a prop or an include type on a specific entity
+     * Check if a key is valid as either a property or an includable relation.
      *
-     * @param string $entityKey     The entity key to use in look up
-     * @param string $propOrInclude The key that is being checked for allowance as either a prop or an include
+     * Used during request validation to determine if a field can be selected
+     * or included in API responses.
      *
-     * @throws Exception
-     * @return bool
+     * ## Example
+     *
+     * ```php
+     * // Check if 'name' is selectable on projects
+     * if (AbstractEntity::isSelectable('project', 'name')) {
+     *     // Can be used in select or fetch fields
+     * }
+     *
+     * // Can also use dot notation
+     * AbstractEntity::isSelectable('project.name'); // true
+     * AbstractEntity::isSelectable('project.tasks'); // true (includable)
+     * ```
+     *
+     * @param string      $entityKey     The entity key to check against (e.g., 'project')
+     * @param string|null $propOrInclude The property/include key to validate,
+     *                                   or NULL to extract from dot notation in $entityKey
+     *
+     * @throws Exception If EntityMap lookup fails
+     *
+     * @return bool TRUE if the key is a valid property or includable relation
+     *
+     * @see self::isProp() For property-only validation
+     * @see self::isIncludable() For include-only validation
      */
     public static function isSelectable($entityKey, $propOrInclude = null)
     {
@@ -205,17 +392,34 @@ abstract class AbstractEntity
         $entityResource = EntityMap::resource($entityKey);
 
         return !!$entityResource && (self::isProp($entityKey, $propOrInclude)
-                || self::isIncludable($entityKey, $propOrInclude));
+            || self::isIncludable($entityKey, $propOrInclude));
     }
 
     /**
-     * Check if a specific entity has a valid property type allowed
+     * Check if a key is a valid property on an entity.
      *
-     * @param string      $entityKey The entity key to use in look up
-     * @param null|string $propKey
+     * Properties are scalar values stored directly on the entity (like name,
+     * description, created_on). They are defined in each resource's PROP_TYPES constant.
      *
-     * @throws Exception
-     * @return bool
+     * ## Example
+     *
+     * ```php
+     * // Check direct property
+     * AbstractEntity::isProp('project', 'name');        // true
+     * AbstractEntity::isProp('project', 'description'); // true
+     * AbstractEntity::isProp('project', 'tasks');       // false (it's an include)
+     *
+     * // Dot notation also works
+     * AbstractEntity::isProp('project.name');           // true
+     * ```
+     *
+     * @param string      $entityKey The entity key to check (e.g., 'project', 'task')
+     * @param string|null $propKey   The property key to validate,
+     *                               or NULL to extract from dot notation in $entityKey
+     *
+     * @throws Exception If EntityMap lookup fails
+     * @return bool TRUE if the key is a valid property
+     *
      */
     public static function isProp($entityKey, $propKey = null)
     {
@@ -228,13 +432,30 @@ abstract class AbstractEntity
     }
 
     /**
-     * Check if a specific entity has a valid include entity or collection allowed
+     * Check if a key is a valid includable relation on an entity.
      *
-     * @param string $entityKey  The entity key to use in look up
-     * @param string $includeKey The include key that is being checked for allowance
+     * Includes are related entities or collections that can be loaded alongside
+     * the main entity. They are defined in each resource's INCLUDE_TYPES constant.
      *
-     * @throws Exception
-     * @return bool
+     * ## Example
+     *
+     * ```php
+     * // Check includable relations
+     * AbstractEntity::isIncludable('project', 'tasks');  // true
+     * AbstractEntity::isIncludable('project', 'client'); // true
+     * AbstractEntity::isIncludable('project', 'name');   // false (it's a prop)
+     *
+     * // Dot notation
+     * AbstractEntity::isIncludable('project.tasks');     // true
+     * ```
+     *
+     * @param string      $entityKey  The entity key to check (e.g., 'project', 'task')
+     * @param string|null $includeKey The include key to validate,
+     *                                or NULL to extract from dot notation in $entityKey
+     *
+     * @throws Exception If EntityMap lookup fails
+     * @return bool TRUE if the key is a valid includable relation
+     *
      */
     public static function isIncludable($entityKey, $includeKey)
     {
@@ -247,17 +468,39 @@ abstract class AbstractEntity
     }
 
     /**
-     * Check if a specific WHERE limit operator is allowed on a specific entity resource property
-     * If the value passed does not match the valid data type for a specific property it will return the error message
-     * If it is valid and has a valid value, it will return true
+     * Validate whether a WHERE condition is allowed for a specific property.
      *
-     * @param string $entityKey The resource key to check for the property with any operator restrictions
-     * @param string $operator  The operator to check for valid use
-     * @param mixed  $value     The value to be used in the where condition (validated against the expected prop type)
+     * Performs comprehensive validation including:
+     * 1. Whether the property exists on the entity
+     * 2. Whether WHERE filtering is allowed on this property
+     * 3. Whether the specified operator is allowed
+     * 4. Whether the value matches the expected data type
      *
-     * @throws Exception
-     * @return bool | string A boolean TRUE if all passed. Otherwise a string message for throwing in an Exception by
-     *              caller
+     * ## Example
+     *
+     * ```php
+     * // Valid condition
+     * $result = AbstractEntity::allowWhere('project.active', '=', true);
+     * // Returns: true
+     *
+     * // Invalid operator for property
+     * $result = AbstractEntity::allowWhere('project.name', 'range', ['a','z']);
+     * // Returns: "Property project.name cannot use the range operator."
+     *
+     * // Invalid data type
+     * $result = AbstractEntity::allowWhere('project.client_id', '=', 'not-a-number');
+     * // Returns: "WHERE: project.client_id = expects integer but got string: not-a-number"
+     * ```
+     *
+     * @param string $entityKey Full property path with dot notation (e.g., 'project.active')
+     * @param string $operator  The comparison operator to validate
+     * @param mixed  $value     Optional value to validate data type against
+     *
+     * @throws Exception If EntityMap lookup fails
+     *
+     * @return bool|string TRUE if valid, error message string if invalid
+     *
+     * @see RequestCondition::where() For creating valid WHERE conditions
      */
     public static function allowWhere($entityKey, $operator, $value = null)
     {
@@ -286,7 +529,8 @@ abstract class AbstractEntity
             $primitive = Converter::getPrimitiveType($datatype);
             $enum = null;
             if (strpos($primitive, 'string::') === 0 || strpos($primitive, 'integer::') === 0) {
-                $enum = explode('|', array_pop(explode('::', $primitive, 2)));
+                $arr = explode('::', $primitive, 2);
+                $enum = explode('|', array_pop($arr));
                 $primitive = 'string';
             }
             if (in_array($operator, ['in', 'not in', 'range'])) {
@@ -295,17 +539,21 @@ abstract class AbstractEntity
                 }
                 foreach ($value as $v) {
                     $valid_value = gettype($v) == $primitive;
-                    if ($primitive == 'timestamp') {
-                        $valid_value = gettype($v) == 'string' || gettype($v) == 'integer';
+                    if ($primitive === 'timestamp') {
+                        $valid_value = gettype($v) === 'string' || gettype($v) === 'integer';
                     }
                     if ($primitive === 'string' && !is_null($enum) && is_array($enum)) {
                         if (!in_array($v.'', $enum)) {
-                            return "WHERE: {$entityKey} property value \"{$v}\" does not meet list restrictions of allowed options [".implode(', ',
-                                                                                                                                              $enum)."]";
+                            return "WHERE: {$entityKey} property value \"{$v}\" does not meet list restrictions of allowed options [".implode(
+                                ', ',
+                                $enum
+                              )."]";
                         }
                     }
                     if (!$valid_value) {
-                        return "WHERE: {$entityKey} {$operator} expects array[{$primitive}] but got ".gettype($v).": {$v}";
+                        return "WHERE: {$entityKey} {$operator} expects array[{$primitive}] but got ".gettype(
+                            $v
+                          ).": {$v}";
                     }
                 }
             } else {
@@ -315,16 +563,20 @@ abstract class AbstractEntity
                 $valid = gettype($value) == $primitive;
                 if ($primitive === 'string' && !is_null($enum) && is_array($enum)) {
                     if (!in_array($value.'', $enum)) {
-                        return "WHERE: {$entityKey} property value \"{$value}\" does not meet list restrictions of allowed options [".implode(', ',
-                                                                                                                                              $enum)."]";
+                        return "WHERE: {$entityKey} property value \"{$value}\" does not meet list restrictions of allowed options [".implode(
+                            ', ',
+                            $enum
+                          )."]";
                     }
                 }
                 if (!$valid) {
-                    if ($primitive == 'timestamp') {
-                        $valid = gettype($value) == 'string' || gettype($value) == 'integer';
+                    if ($primitive === 'timestamp') {
+                        $valid = gettype($value) === 'string' || gettype($value) === 'integer';
                     }
                     if (!$valid) {
-                        return "WHERE: {$entityKey} {$operator} expects {$primitive} but got ".gettype($value).": {$value}";
+                        return "WHERE: {$entityKey} {$operator} expects {$primitive} but got ".gettype(
+                            $value
+                          ).": {$value}";
                     }
                 }
             }
@@ -334,14 +586,44 @@ abstract class AbstractEntity
     }
 
     /**
-     * Get the defined property datatype (non PHP official) for the resource entity
+     * Get the SDK data type for a property on an entity.
      *
-     * @param string $entityKey The entity to get the prop type from
-     * @param string $prop      The property on $entityKey resource to get the datatype from
+     * Returns the type string as defined in the resource's PROP_TYPES constant.
+     * These are SDK-specific types that map to PHP primitives via Converter.
      *
-     * @throws Exception
-     * @return string | null Either the string name of the internal property type... or null if the property cant be
-     *                found defined on the resource
+     * ## SDK Data Types
+     *
+     * | Type                    | Description                              |
+     * |-------------------------|------------------------------------------|
+     * | `text`                  | String value                             |
+     * | `integer`               | Integer value                            |
+     * | `decimal`               | Float/decimal value                      |
+     * | `boolean`               | Boolean value                            |
+     * | `date`                  | Date string (Y-m-d)                      |
+     * | `datetime`              | DateTime string (Y-m-d H:i:s)            |
+     * | `resource:entityname`   | Foreign key to another resource          |
+     * | `collection:entityname` | Array of related entities                |
+     * | `enum:val1\|val2\|val3` | Enumerated string values                 |
+     * | `intEnum:25\|50\|75`    | Enumerated integer values                |
+     *
+     * ## Example
+     *
+     * ```php
+     * $type = AbstractEntity::getPropertyDataType('project', 'name');
+     * // Returns: 'text'
+     *
+     * $type = AbstractEntity::getPropertyDataType('task', 'project_id');
+     * // Returns: 'resource:project'
+     * ```
+     *
+     * @param string $entityKey The entity key (e.g., 'project', 'task')
+     * @param string $prop      The property name
+     *
+     * @throws Exception If EntityMap lookup fails
+     *
+     * @return string|null The data type string, or NULL if property not found
+     *
+     * @see Converter::getPrimitiveType() For converting to PHP types
      */
     public static function getPropertyDataType($entityKey, $prop)
     {
@@ -354,14 +636,36 @@ abstract class AbstractEntity
     }
 
     /**
-     * Scrub the fields and where conditional arrays to validate content
+     * Validate and clean up field/include lists and WHERE conditions for API requests.
      *
-     * @param string             $entityKey    An the short reference key name for the entity resource being cleaned up
-     * @param string[]           $fields       An array of strings for props and includes to return on each base object
-     * @param RequestCondition[] $whereFilters An array of RequestConditions to send to the API when getting lists
+     * Separates a combined field list into:
+     * - **select**: Properties to return on the main entity
+     * - **include**: Related entities to load
      *
-     * @throws Exception
-     * @return array Contains an item for $select, $include, and $where scrubbed for use by Request calls
+     * Also validates WHERE conditions against the entity schema.
+     *
+     * ## Example
+     *
+     * ```php
+     * // Mixed list of props and includes
+     * $fields = ['name', 'description', 'client', 'tasks.name'];
+     * $where = [Project::where('active', true)];
+     *
+     * [$select, $include, $where] = AbstractEntity::cleanupForRequest('project', $fields, $where);
+     * // $select = ['name', 'description', 'id']  (id always added)
+     * // $include = ['client', 'tasks.name', 'tasks.id']
+     * // $where = [RequestCondition with dataType set]
+     * ```
+     *
+     * @param string             $entityKey    The entity key being queried
+     * @param string[]           $fields       Mixed array of property and include names
+     * @param RequestCondition[] $whereFilters Array of WHERE/HAS conditions
+     *
+     * @throws Exception If validation fails
+     *
+     * @return array Three-element array: [select[], include[], where[]]
+     *
+     * @internal Used by fetch() and list() methods
      */
     protected static function cleanupForRequest($entityKey, $fields = [], $whereFilters = [])
     {
@@ -384,14 +688,40 @@ abstract class AbstractEntity
     }
 
     /**
-     * Clean up an array of include items to validate they exist and are allowed.
-     * Will recursively traverse the include array and check each level and all sub-levels
+     * Validate and clean up an include list for API requests.
      *
-     * @param string[] $include   Array of strings to scrub for valid set of allowed props
-     * @param string   $entityKey The root entity key to compare validation of the $include rules to
+     * Processes include specifications at any nesting depth, ensuring all paths
+     * are valid according to entity schemas. Also ensures ID fields are included
+     * when specific properties are selected on related entities.
      *
-     * @throws Exception
-     * @return string[] A scrubbed version of only valid include keys. Insures ID keys are added if missing.
+     * ## Include Formats
+     *
+     * - `'client'` - Include the client relation
+     * - `'client.name'` - Include client with only name property
+     * - `'tasks.assignees.name'` - Nested include (tasks -> assignees -> name)
+     *
+     * ## Caching
+     *
+     * Results are cached via ScrubCache to avoid revalidating the same
+     * include lists multiple times in a single request.
+     *
+     * ## Example
+     *
+     * ```php
+     * $includes = ['client', 'tasks.name', 'invalid_relation'];
+     * $cleaned = AbstractEntity::scrubInclude($includes, 'project');
+     * // Returns: ['client', 'tasks.name', 'tasks.id']
+     * // Note: 'invalid_relation' was removed, 'tasks.id' was auto-added
+     * ```
+     *
+     * @param string[] $include   Array of include paths to validate
+     * @param string   $entityKey The root entity key to validate against
+     *
+     * @throws Exception If EntityMap lookups fail
+     *
+     * @return string[] Cleaned array with only valid includes
+     *
+     * @see ScrubCache For include validation caching
      */
     public static function scrubInclude($include, $entityKey)
     {
@@ -453,7 +783,7 @@ abstract class AbstractEntity
         }
         $flipped = array_flip($realInclude);
         foreach ($realInclude as $i) {
-            $tmp = substr($i, strlen($i) - 4, 3) === '.id' ? substr($i, 0, strlen($i) - 4) : null;
+            $tmp = substr($i, strlen($i) - 4, 3) === '.id' ? substr($i, 0, -4) : null;
             if (!is_null($tmp) && isset($flipped[$tmp])) {
                 unset($flipped[$i]);
             }
@@ -465,14 +795,35 @@ abstract class AbstractEntity
     }
 
     /**
-     * Check all the properties of the RequestCondition against a specific entity to clean up its values before use
+     * Validate and enrich WHERE conditions for API requests.
      *
-     * @param RequestCondition[] $where     A RequestCondition to clean up for a specific entity resource (datatypes,
-     *                                      etc)
-     * @param string             $entityKey The entity to clean up the where "object" for
+     * Processes each RequestCondition to:
+     * 1. Validate the property/include path exists
+     * 2. Set the appropriate dataType for value conversion
+     * 3. Filter out invalid conditions
      *
-     * @throws Exception
-     * @return RequestCondition[] Returns a "clean" list of valid RequestConditions, having stripped any bad ones out
+     * Supports both WHERE conditions (property filters) and HAS conditions
+     * (relationship count filters).
+     *
+     * ## Example
+     *
+     * ```php
+     * $conditions = [
+     *     Project::where('active', true),
+     *     Project::where('invalid_prop', 'value'),  // Will be filtered out
+     *     Project::has('tasks', 0, '>')
+     * ];
+     *
+     * $cleaned = AbstractEntity::scrubWhere($conditions, 'project');
+     * // Returns array with only valid conditions, each with dataType set
+     * ```
+     *
+     * @param RequestCondition[] $where     Array of conditions to validate
+     * @param string             $entityKey The entity key to validate against
+     *
+     * @throws Exception If EntityMap lookups fail
+     * @return RequestCondition[] Array of validated conditions with dataTypes set
+     *
      */
     public static function scrubWhere($where, $entityKey)
     {
@@ -487,8 +838,10 @@ abstract class AbstractEntity
                     $includeKey = $pts[0];
                     $eProp = array_pop($pts);
                     $eKey = array_pop($pts);
-                    if (self::isIncludable($entityKey, $includeKey) && EntityMap::exists($eKey) && self::isProp($eKey,
-                                                                                                                $eProp)) {
+                    if (self::isIncludable($entityKey, $includeKey) && EntityMap::exists($eKey) && self::isProp(
+                        $eKey,
+                        $eProp
+                      )) {
                         $w->dataType = self::getPropertyDataType($eKey, $eProp);
                         $filteredWhere[] = $w;
                     }
@@ -510,25 +863,61 @@ abstract class AbstractEntity
     }
 
     /**
-     * Get all the entities settings as an associative array that can be used to clone them into a new entity
+     * Get entity configuration for cloning to child entities.
      *
-     * @return array All the intended clone contents from this entity
+     * Returns an associative array of all configuration settings that should
+     * be inherited by child entities created during hydration.
+     *
+     * ## Example
+     *
+     * ```php
+     * // Get config from parent entity
+     * $config = $project->getConfiguration();
+     *
+     * // Use it to create child with same settings
+     * $task = new Task($config);
+     * ```
+     *
+     * @return array Configuration array with keys:
+     *               - connection: Paymo instance
+     *               - overwriteDirtyWithRequests: bool
+     *               - useCacheIfAvailable: bool
+     *
+     * @see self::setConfiguration() For applying configuration
      */
     public function getConfiguration()
     {
         return [
-            'connection' => $this->connection,
-            'overwriteDirtyWithRequests' => $this->overwriteDirtyWithRequests,
-            'useCacheIfAvailable' => $this->useCacheIfAvailable
+          'connection'                 => $this->connection,
+          'overwriteDirtyWithRequests' => $this->overwriteDirtyWithRequests,
+          'useCacheIfAvailable'        => $this->useCacheIfAvailable
         ];
     }
 
     /**
-     * Get an alternative "response" key to process the results if they dont match the original request key
+     * Get the API response key override if defined.
      *
-     * @param string|AbstractResource $objClass Either an instance or a string class name to check the class constants
+     * Some Paymo API endpoints return data under a different key than expected.
+     * This method checks for an API_RESPONSE_KEY constant and formats it
+     * for use in Request methods.
      *
-     * @return string Either an empty string or an appended alternative resource key
+     * ## Example
+     *
+     * ```php
+     * // TaskAssignment uses 'userstasks' path but 'taskassignments' response key
+     * $respKey = $this->getResponseKey($taskAssignment);
+     * // Returns: ':taskassignments'
+     *
+     * // Most entities have no override
+     * $respKey = $this->getResponseKey($project);
+     * // Returns: ''
+     * ```
+     *
+     * @param AbstractResource|string $objClass Instance or class name to check
+     *
+     * @return string Empty string or ':responseKey' format
+     *
+     * @internal Used by Request methods for response parsing
      */
     protected function getResponseKey($objClass)
     {
@@ -536,13 +925,19 @@ abstract class AbstractEntity
     }
 
     /**
-     * Check the data types of the fields and where lists sent into the fetch calls of child entities
+     * Validate parameters for fetch operations.
      *
-     * @param string[]           $fields The list of fields to be checked as being all strings
-     * @param RequestCondition[] $where  The list of where conditions to check all are RequestCondition objects
+     * Ensures field and where parameters are properly formatted arrays
+     * with correct element types.
      *
-     * @throws Exception
-     * @return bool Returns true if all elements pass. Throws exception on any failures.
+     * @param string[]           $fields Array of field names (must be strings)
+     * @param RequestCondition[] $where  Array of conditions (must be RequestCondition)
+     *
+     * @throws Exception If any validation fails with descriptive message
+     *
+     * @return bool TRUE if all validation passes
+     *
+     * @internal Called by fetch() before making API requests
      */
     protected function validateFetch($fields = [], $where = [])
     {
@@ -558,7 +953,7 @@ abstract class AbstractEntity
             }
         }
         foreach ($where as $w) {
-            if (!is_a($w, 'Jcolombo\PaymoApiPhp\Utility\RequestCondition')) {
+            if (!$w instanceof RequestCondition) {
                 throw new Exception("Where conditions must all be instances of the RequestCondition class");
             }
         }

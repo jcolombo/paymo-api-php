@@ -3,21 +3,21 @@
  * PHP SDK for the PaymoApp API
  * Package Source Code: https://github.com/jcolombo/paymo-api-php
  * Paymo API Documentation : https://github.com/paymoapp/api
- * .
+ *
  * MIT License
  * Copyright (c) 2020 - Joel Colombo <jc-dev@360psg.com>
  * Last Updated : 3/18/20, 9:23 PM
- * .
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * .
+ *
  * The above copyright notice and this permission notice shall be included in all
  * copies or substantial portions of the Software.
- * .
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -25,20 +25,102 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
+ *
+ * ======================================================================================
+ * COLOR UTILITY - PAYMO COLOR PALETTE HELPER
+ * ======================================================================================
+ *
+ * This utility class provides access to Paymo's default color palette. Many Paymo
+ * resources support color properties (projects, tasklists, etc.), and this class
+ * helps select colors that match Paymo's built-in color picker.
+ *
+ * AVAILABLE COLOR SETS:
+ * ---------------------
+ * - red: Pink to deep red tones
+ * - redOrange: Coral and salmon tones
+ * - orange: Orange to yellow tones
+ * - green: Green tones from dark to light
+ * - greenBlue: Teal and cyan tones
+ * - blue: Blue tones from dark to light
+ * - purple: Purple and lavender tones
+ * - grayscale: Gray tones from dark to light
+ *
+ * Each color set contains 5 shades from darkest to lightest.
+ *
+ * USAGE EXAMPLES:
+ * ---------------
+ * ```php
+ * // Get a completely random color
+ * $color = Color::random();
+ *
+ * // Get a random blue
+ * $color = Color::byName('blue');
+ *
+ * // Get the darkest blue (index 0)
+ * $color = Color::byName('blue', 0);
+ *
+ * // Get the lightest green (index 4)
+ * $color = Color::byName('green', 4);
+ *
+ * // Use in project creation
+ * $project = new Project();
+ * $project->name = 'New Project';
+ * $project->color = Color::random();
+ * $project->create();
+ * ```
+ *
+ * @package    Jcolombo\PaymoApiPhp\Utility
+ * @author     Joel Colombo <jc-dev@360psg.com>
+ * @copyright  2020 Joel Colombo
+ * @license    MIT
+ * @version    0.5.6
+ * @link       https://github.com/jcolombo/paymo-api-php
  */
 
 namespace Jcolombo\PaymoApiPhp\Utility;
 
+
+use Exception;
+
 /**
- * Class Color
+ * Helper class for working with Paymo's color palette.
+ *
+ * Provides easy access to Paymo's default color values, which match the colors
+ * available in Paymo's interface color picker. Use this to ensure visual
+ * consistency between programmatically created resources and those created
+ * through the Paymo UI.
  *
  * @package Jcolombo\PaymoApiPhp\Utility
  */
 class Color
 {
-
     /**
-     * An array containing the default colors from the paymo interface popup picker (as of 2020-03-11)
+     * Paymo's default color palette organized by color family.
+     *
+     * Contains the hex color values from Paymo's interface color picker
+     * (as of March 2020). Each color family has 5 shades arranged from
+     * darkest (index 0) to lightest (index 4).
+     *
+     * COLOR VALUES:
+     * -------------
+     * All values are 6-character hex strings WITHOUT the leading '#'.
+     * Add '#' prefix if needed for CSS or other contexts.
+     *
+     * STRUCTURE:
+     * ----------
+     * ```php
+     * [
+     *     'colorFamily' => [
+     *         'DARKEST',    // index 0
+     *         'DARK',       // index 1
+     *         'MEDIUM',     // index 2
+     *         'LIGHT',      // index 3
+     *         'LIGHTEST',   // index 4
+     *     ],
+     * ]
+     * ```
+     *
+     * @var array<string, array<int, string>> Color families with their shade arrays
      */
     public const PAYMO_DEFAULT_COLORS = [
         'red' => [
@@ -68,31 +150,81 @@ class Color
     ];
 
     /**
-     * Get a random color from the Paymo presets
+     * Get a random color from any color family.
      *
-     * @return string A random hex color from the preset colors ready to use on any color properties of resources
+     * Selects a random color family, then returns a random shade from that family.
+     * Useful when you want any valid Paymo color without preference.
+     *
+     * USAGE:
+     * ------
+     * ```php
+     * // Get any random color
+     * $color = Color::random();
+     * echo $color;  // e.g., "3E9FE7"
+     *
+     * // Use in resource
+     * $tasklist->color = Color::random();
+     * ```
+     *
+     * @throws Exception
+     * @return string 6-character hex color string (without '#' prefix)
+     *
+     * @see byName() For selecting from a specific color family
      */
-    public static function random()
+    public static function random() : string
     {
         $sets = array_keys(self::PAYMO_DEFAULT_COLORS);
 
-        return self::byName($sets[rand(0, (count($sets) - 1))]);
+        return self::byName($sets[random_int(0, (count($sets) - 1))]);
     }
 
     /**
-     * Get a specific color (or random color from a collection/set)
+     * Get a color from a specific color family.
      *
-     * @param string $color A valid string key for the preset color groups
-     * @param null   $index An optional specific position of that color to get (0 to 4, initially)
+     * Retrieves a color from the named color family. If no index is provided,
+     * returns a random shade from that family. If an index is provided,
+     * returns the specific shade at that position (0=darkest, 4=lightest).
      *
-     * @return string Get the hex color ready to use in any paymo color set fields
+     * AVAILABLE FAMILIES:
+     * -------------------
+     * - 'red': Pink to deep red tones
+     * - 'redOrange': Coral and salmon tones
+     * - 'orange': Orange to yellow tones
+     * - 'green': Green tones
+     * - 'greenBlue': Teal and cyan tones
+     * - 'blue': Blue tones
+     * - 'purple': Purple and lavender tones
+     * - 'grayscale': Gray tones
+     *
+     * USAGE:
+     * ------
+     * ```php
+     * // Random blue shade
+     * $color = Color::byName('blue');
+     *
+     * // Specific shade (0 = darkest, 4 = lightest)
+     * $darkBlue = Color::byName('blue', 0);     // "238CD7"
+     * $lightBlue = Color::byName('blue', 4);    // "5BDBF6"
+     *
+     * // Random from each family
+     * $randomGreen = Color::byName('green');
+     * $randomPurple = Color::byName('purple');
+     * ```
+     *
+     * @param string   $color The color family name (one of the PAYMO_DEFAULT_COLORS keys)
+     * @param int|null $index Optional shade index (0-4). Null for random shade.
+     *
+     * @throws Exception
+     * @return string 6-character hex color string (without '#' prefix)
+     *
+     * @see random() For completely random color selection
+     * @see PAYMO_DEFAULT_COLORS For available color families and their values
      */
-    public static function byName($color, $index = null)
+    public static function byName(string $color, int $index = null) : string
     {
         $colorSet = self::PAYMO_DEFAULT_COLORS[$color];
-        $pick = $index ?? rand(0, (count($colorSet) - 1));
+        $pick = $index ?? random_int(0, (count($colorSet) - 1));
 
         return $colorSet[$pick];
     }
-
 }
