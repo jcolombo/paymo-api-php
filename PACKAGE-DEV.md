@@ -73,7 +73,8 @@ Each resource has its own documentation page:
 | Sessions | https://github.com/paymoapp/api/blob/master/sections/sessions.md |
 | Webhooks | https://github.com/paymoapp/api/blob/master/sections/hooks.md |
 | Subtasks | https://github.com/paymoapp/api/blob/master/sections/subtasks.md |
-| Recurring Profiles | https://github.com/paymoapp/api/blob/master/sections/recurring_profiles.md |
+| Invoice Recurring Profiles | https://github.com/paymoapp/api/blob/master/sections/invoice_recurring_profiles.md |
+| Task Recurring Profiles | https://github.com/paymoapp/api/blob/master/sections/task_recurring_profiles.md |
 
 ---
 

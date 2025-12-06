@@ -45,117 +45,185 @@ Last Updated: December 2025
 
 #### 1.1 Subtask Resource
 **API Endpoint:** `subtasks`
-**Status:** NOT IMPLEMENTED
+**Status:** ✅ IMPLEMENTED (v0.6.0)
+**File:** `src/Entity/Resource/Subtask.php`
 **Priority:** Medium
 
-The Paymo API supports subtasks (checklist items within tasks). Our package has no `Subtask` resource.
+The Subtask resource has been implemented with full CRUD operations.
 
-**Required Properties:**
+**Implemented Properties:**
 - `id` (integer, read-only)
 - `name` (text, required)
 - `task_id` (resource:task, required)
+- `project_id` (resource:project, read-only)
 - `complete` (boolean)
 - `seq` (integer) - order within task
-- `due_date` (date)
-- `user_id` (resource:user) - assigned user
+- `user_id` (resource:user) - creator/assigned user
+- `completed_on` (datetime, read-only)
+- `completed_by` (resource:user, read-only)
 - `created_on` (datetime, read-only)
 - `updated_on` (datetime, read-only)
 
-**Required Includes:**
+**Implemented Includes:**
+- `project` (false) - parent project
 - `task` (false) - parent task
 - `user` (false) - assigned user
+
+**Note:** `due_date` was listed in original TODO but not found in official API documentation.
+Subtask reordering is handled via the parent Task's `subtasks_order` property.
+
+**Related Updates:**
+- Task resource now includes `subtasks` in INCLUDE_TYPES
+- Task resource now has `subtasks_order` property for reordering
+- TypeScript interface added: `PaymoSubtask`
+- EntityMap updated with subtask/subtasks entries
 
 ---
 
 #### 1.2 Invoice Recurring Profile Resource
 **API Endpoint:** `recurringprofiles`
-**Status:** NOT IMPLEMENTED
+**Status:** ✅ IMPLEMENTED (v0.6.0)
+**Files:** `src/Entity/Resource/RecurringProfile.php`, `src/Entity/Resource/RecurringProfileItem.php`
 **Priority:** High
 
-Recurring invoice profiles for automated billing. Referenced in Client includes but no resource exists.
+Invoice recurring profiles for automated billing have been implemented with full CRUD operations.
 
-**Required Properties:**
+**Implemented Properties (RecurringProfile):**
 - `id` (integer, read-only)
-- `name` (text)
 - `client_id` (resource:client, required)
-- `template_id` (resource:invoicetemplate)
 - `currency` (text, required)
-- `status` (enum: active|paused|stopped)
+- `frequency` (enum: w|2w|3w|4w|m|2m|3m|6m|y, required)
 - `start_date` (date, required)
-- `end_date` (date)
-- `occurrences` (integer) - how many invoices to create
-- `occurrences_count` (integer, read-only) - created so far
-- `frequency` (enum: weekly|biweekly|monthly|bimonthly|quarterly|biannually|annually)
-- `bill_to` (text)
-- `company_info` (text)
-- `footer` (text)
-- `notes` (text)
-- `tax` (decimal)
-- `tax_text` (text)
-- `tax2` (decimal)
-- `tax2_text` (text)
-- `discount` (decimal)
-- `discount_text` (text)
+- `template_id` (resource:invoicetemplate)
+- `title` (text)
+- `subtotal`, `total` (decimal, read-only)
+- `tax`, `tax_amount`, `tax_text` (tax fields)
+- `tax2`, `tax2_amount`, `tax2_text` (secondary tax fields)
 - `tax_on_tax` (boolean)
-- `next_date` (date, read-only) - next invoice date
-- `items` (array) - line items template
-- `created_on` (datetime, read-only)
-- `updated_on` (datetime, read-only)
+- `discount`, `discount_amount`, `discount_text` (discount fields)
+- `occurrences`, `invoices_created`, `last_created` (schedule tracking)
+- `autosend`, `pay_online`, `send_attachment` (settings)
+- `bill_to`, `company_info`, `footer`, `notes` (text blocks)
+- `options` (object)
+- `created_on`, `updated_on` (datetime, read-only)
 
-**Required Includes:**
-- `client` (false)
-- `invoicetemplate` (false)
-- `invoices` (true) - generated invoices
+**Implemented Properties (RecurringProfileItem):**
+- `id` (integer, read-only)
+- `recurring_profile_id` (resource:recurringprofile, required)
+- `item` (text, required)
+- `description` (text)
+- `price_unit` (decimal, required)
+- `quantity` (decimal, required)
+- `apply_tax` (boolean)
+- `seq` (integer)
+- `created_on`, `updated_on` (datetime, read-only)
+
+**Implemented Includes:**
+- RecurringProfile: `client` (false), `recurringprofileitems` (true)
+- RecurringProfileItem: `recurringprofile` (false)
+
+**Note:** Original TODO listed properties that don't match official API documentation.
+Actual frequency values are abbreviated codes (w, 2w, m, etc.).
+Invoices are generated daily at 9 AM UTC.
+
+**Related Updates:**
+- Client resource already had `recurringprofiles` in INCLUDE_TYPES
+- TypeScript interfaces added: `PaymoRecurringProfile`, `PaymoRecurringProfileItem`
+- EntityMap updated with all four entries (singular/plural for both resources)
 
 ---
 
 #### 1.3 Task Recurring Profile Resource
 **API Endpoint:** `taskrecurringprofiles`
-**Status:** NOT IMPLEMENTED
+**Status:** ✅ IMPLEMENTED (v0.6.0)
+**File:** `src/Entity/Resource/TaskRecurringProfile.php`
 **Priority:** Medium
 
-Referenced in Task resource (`recurring_profile_id`) but no resource exists.
+Task recurring profiles for automated task creation have been implemented with full CRUD operations.
 
-**Required Properties:**
+**Implemented Properties:**
 - `id` (integer, read-only)
-- `name` (text)
-- `project_id` (resource:project, required)
+- `name` (text, required)
+- `code` (text)
+- `project_id` (resource:project, required unless task_id)
 - `tasklist_id` (resource:tasklist)
-- `status` (enum: active|paused|stopped)
-- `start_date` (date, required)
-- `end_date` (date)
-- `frequency` (enum: daily|weekly|biweekly|monthly|bimonthly|quarterly|annually)
-- `task_name` (text, required) - template for created tasks
-- `task_description` (text)
-- `task_users` (collection:users)
-- `task_billable` (boolean)
-- `task_budget_hours` (decimal)
-- `task_priority` (intEnum: 25|50|75|100)
-- `created_on` (datetime, read-only)
-- `updated_on` (datetime, read-only)
+- `task_id` (resource:task, create-only, imports settings from task)
+- `user_id`, `task_user_id` (resource:user, read-only)
+- `company_id` (resource:company)
+- `billable`, `flat_billing` (boolean)
+- `description` (text)
+- `price_per_hour`, `estimated_price`, `budget_hours` (decimal)
+- `users` (collection:user)
+- `priority` (intEnum:25|50|75|100)
+- `notifications` (text, JSON format)
+- `frequency` (enum: daily|weekly|monthly, required)
+- `interval` (integer, required)
+- `on_day` (text, for monthly)
+- `occurrences`, `until` (schedule limits)
+- `active` (boolean)
+- `due_date_offset` (integer)
+- `recurring_start_date` (date, required)
+- `generated_count`, `last_generated_on`, `next_processing_date` (read-only)
+- `processing_timezone`, `processing_hour` (text)
+- `created_on`, `updated_on` (datetime, read-only)
+
+**Implemented Includes:**
+- `project` (false)
+
+**Note:** Original TODO listed different property names. Actual API uses:
+- `name` instead of `task_name`
+- `frequency` values are: daily, weekly, monthly (not biweekly, quarterly, etc.)
+- `interval` property controls "every N periods"
+
+**Related Updates:**
+- Task resource already references `recurring_profile_id`
+- TypeScript interface added: `PaymoTaskRecurringProfile`
+- EntityMap updated with taskrecurringprofile/taskrecurringprofiles entries
 
 ---
 
 #### 1.4 Webhook/Hook Resource
 **API Endpoint:** `hooks`
-**Status:** NOT IMPLEMENTED
+**Status:** ✅ IMPLEMENTED (v0.6.0)
+**File:** `src/Entity/Resource/Webhook.php`
 **Priority:** Medium
 
-For receiving real-time notifications of Paymo events.
+Webhooks for real-time notifications have been implemented with full CRUD operations.
 
-**Required Properties:**
+**Implemented Properties:**
 - `id` (integer, read-only)
 - `target_url` (url, required) - webhook endpoint
-- `event` (text, required) - event type (e.g., 'model.insert.Task')
-- `where` (object) - filter conditions
-- `created_on` (datetime, read-only)
+- `event` (text, required) - event type pattern
+- `where` (text) - filter conditions
+- `secret` (text) - HMAC signing secret (write-only, never returned)
+- `last_status_code` (integer, read-only) - last HTTP response status
+- `created_on`, `updated_on` (datetime, read-only)
 
 **Available Events:**
+Actions:
 - `model.insert.{Entity}` - when entity is created
 - `model.update.{Entity}` - when entity is updated
 - `model.delete.{Entity}` - when entity is deleted
-- `timer.start` - when timer starts
-- `timer.stop` - when timer stops
+- `timer.start.Entry` - when timer starts
+- `timer.stop.Entry` - when timer stops
+
+Wildcards:
+- `*` - all events
+- `model.insert.*` - all insert events
+- `*.Task` - all task events
+
+**Event Constants:** PHP class includes 25+ event constants for type safety.
+
+**Special Features:**
+- HMAC-SHA1 signature verification via `secret` property
+- Conditional filtering with `where` parameter
+- Auto-deletion on HTTP 410 responses
+- Webhook headers: X-Paymo-Webhook, X-Paymo-Event, X-Paymo-Signature
+
+**Related Updates:**
+- TypeScript interface added: `PaymoWebhook`
+- TypeScript event constants: `PAYMO_WEBHOOK_EVENTS`
+- EntityMap updated with hook/hooks entries
 
 ---
 
@@ -702,15 +770,15 @@ Add automatic rate limit handling with retry logic.
 ## Priority Summary
 
 ### Immediate (High Priority)
-1. [ ] Create `RecurringProfile` resource (Invoice recurring)
-2. [ ] Create `Subtask` resource
-3. [ ] Create `Webhook` resource
+1. [x] Create `RecurringProfile` resource (Invoice recurring) - ✅ COMPLETED v0.6.0
+2. [x] Create `Subtask` resource - ✅ COMPLETED v0.6.0
+3. [x] Create `Webhook` resource - ✅ COMPLETED v0.6.0
 4. [ ] Fix `workflow_id` type in Project (currently `resource:milestone`)
 5. [ ] Fix typo `miletstone` -> `milestone` in Tasklist
 6. [ ] Fix typo `interger` -> `integer` in Company
 
 ### Short Term (Medium Priority)
-7. [ ] Create `TaskRecurringProfile` resource
+7. [x] Create `TaskRecurringProfile` resource - ✅ COMPLETED v0.6.0
 8. [ ] Add missing properties to Project (`start_date`, `end_date`, `budget`)
 9. [ ] Add missing properties to Task (`time_estimate`, `progress`)
 10. [ ] Add Invoice action methods (`send()`, `remind()`, etc.)

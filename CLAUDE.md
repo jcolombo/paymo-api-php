@@ -219,6 +219,7 @@ use Jcolombo\PaymoApiPhp\Entity\Resource\Client;
 |----------|-------|--------------|
 | Project | `Project` | `/projects` |
 | Task | `Task` | `/tasks` |
+| Subtask | `Subtask` | `/subtasks` |
 | Tasklist | `Tasklist` | `/tasklists` |
 | Client | `Client` | `/clients` |
 | User | `User` | `/users` |
@@ -231,6 +232,8 @@ use Jcolombo\PaymoApiPhp\Entity\Resource\Client;
 | Invoice | `Invoice` | `/invoices` |
 | InvoiceItem | `InvoiceItem` | `/invoiceitems` |
 | InvoicePayment | `InvoicePayment` | `/invoicepayments` |
+| RecurringProfile | `RecurringProfile` | `/recurringprofiles` |
+| RecurringProfileItem | `RecurringProfileItem` | `/recurringprofileitems` |
 | Estimate | `Estimate` | `/estimates` |
 | EstimateItem | `EstimateItem` | `/estimateitems` |
 | Expense | `Expense` | `/expenses` |
@@ -242,12 +245,14 @@ use Jcolombo\PaymoApiPhp\Entity\Resource\Client;
 | Milestone | `Milestone` | `/milestones` |
 | Booking | `Booking` | `/bookings` |
 | TaskAssignment | `TaskAssignment` | `/userstasks` |
+| TaskRecurringProfile | `TaskRecurringProfile` | `/taskrecurringprofiles` |
 | Workflow | `Workflow` | `/workflows` |
 | WorkflowStatus | `WorkflowStatus` | `/workflowstatuses` |
 | File | `File` | `/files` |
 | Comment | `Comment` | `/comments` |
 | Discussion | `Discussion` | `/discussions` |
 | ClientContact | `ClientContact` | `/clientcontacts` |
+| Webhook | `Webhook` | `/hooks` |
 | Report | `Report` | `/reports` |
 | Company | `Company` | `/company` |
 
@@ -474,7 +479,7 @@ foreach ($project->tasks as $task) {
 ['client', 'tasklists', 'tasks', 'milestones', 'discussions', 'files', 'workflow']
 
 // Task includes
-['project', 'tasklist', 'users', 'entries', 'comments']
+['project', 'tasklist', 'users', 'entries', 'subtasks', 'comments']
 
 // Client includes
 ['projects', 'contacts', 'invoices']

@@ -381,6 +381,56 @@
         "type": "collection",
         "resourceKey": "report",
         "collection": true
+      },
+      "subtask": {
+        "type": "resource",
+        "resource": "Jcolombo\\PaymoApiPhp\\Entity\\Resource\\Subtask",
+        "collectionKey": "subtasks"
+      },
+      "subtasks": {
+        "type": "collection",
+        "resourceKey": "subtask",
+        "collection": true
+      },
+      "recurringprofile": {
+        "type": "resource",
+        "resource": "Jcolombo\\PaymoApiPhp\\Entity\\Resource\\RecurringProfile",
+        "collectionKey": "recurringprofiles"
+      },
+      "recurringprofiles": {
+        "type": "collection",
+        "resourceKey": "recurringprofile",
+        "collection": true
+      },
+      "recurringprofileitem": {
+        "type": "resource",
+        "resource": "Jcolombo\\PaymoApiPhp\\Entity\\Resource\\RecurringProfileItem",
+        "collectionKey": "recurringprofileitems"
+      },
+      "recurringprofileitems": {
+        "type": "collection",
+        "resourceKey": "recurringprofileitem",
+        "collection": true
+      },
+      "taskrecurringprofile": {
+        "type": "resource",
+        "resource": "Jcolombo\\PaymoApiPhp\\Entity\\Resource\\TaskRecurringProfile",
+        "collectionKey": "taskrecurringprofiles"
+      },
+      "taskrecurringprofiles": {
+        "type": "collection",
+        "resourceKey": "taskrecurringprofile",
+        "collection": true
+      },
+      "hook": {
+        "type": "resource",
+        "resource": "Jcolombo\\PaymoApiPhp\\Entity\\Resource\\Webhook",
+        "collectionKey": "hooks"
+      },
+      "hooks": {
+        "type": "collection",
+        "resourceKey": "hook",
+        "collection": true
       }
     }
   }

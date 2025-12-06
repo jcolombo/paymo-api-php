@@ -271,6 +271,7 @@ class Task extends AbstractResource
       'user'           => false,
       'thread'         => false,
       'entries'        => true,
+      'subtasks'       => true,
       'invoiceitem'    => false,
       'workflowstatus' => false
     ];
@@ -310,13 +311,14 @@ class Task extends AbstractResource
       'invoice_item_id'      => 'resource:invoiceitem',
       'priority'             => 'intEnum:25|50|75|100',
       'status_id'            => 'resource:workflowstatus',
+      'subtasks_order'       => 'array',   // Array of subtask IDs for reordering
         // Undocumented Props
       'completed_on'         => 'datetime',
       'completed_by'         => 'resource:user',
       'cover_file_id'        => 'resource:file',
       'price'                => 'decimal',
       'start_date'           => 'date',
-      'recurring_profile_id' => 'integer', // What is a recurring profile object? Not documented?
+      'recurring_profile_id' => 'resource:taskrecurringprofile', // Task recurring profile reference
       'billing_type'         => 'text'
     ];
 
