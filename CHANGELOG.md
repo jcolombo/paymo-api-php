@@ -1,0 +1,231 @@
+# Changelog
+
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [Unreleased]
+
+### Changed
+- Refactored `simplexml_load_file` to `simplexml_load_string` for improved compatibility
+- Updated function loading to support v1 functions path
+- Replaced `PF_API_V2_METHOD` with `PF_API_METHOD` globally
+
+### Added
+- New API route support for public endpoints in `.htaccess`
+- Route validation and authorization handling in loader
+
+### Removed
+- Unused `error.php` functions and refactored utility usage
+
+### Fixed
+- Corrected file and function inclusion paths for consistency
+
+---
+
+## [0.5.5] - 2024-11-20
+
+### Added
+- Ability to disable connection logging via configuration
+
+### Changed
+- Reformatted start request header to remove prefix for cleaner output
+
+---
+
+## [0.5.4] - 2024-11-20
+
+### Added
+- **Logging System**: Comprehensive logging capability for API requests and responses
+  - New `Log` utility class (`src/Utility/Log.php`) for structured logging
+  - New `MetaData` utility class (`src/Utility/MetaData.php`) for request metadata tracking
+  - Configurable log levels and output destinations
+  - Logging configuration in `default.paymoapi.config.json`
+- `skipCache` option for individual API requests to bypass caching when needed
+
+### Changed
+- Refactored `Cache` class with significant improvements for better logging integration
+- Updated `Configuration` class to support new logging settings
+- Enhanced `Paymo` main class with logging hooks
+
+---
+
+## [0.5.3] - 2023-12-07
+
+### Fixed
+- Removed an invalid conditional that caused incorrect behavior
+- Replaced incorrect use of `count()` with `strlen()` for string length operations
+
+---
+
+## [0.5.2] - 2023-11-26
+
+### Added
+- **Caching System**: Basic in-memory and file-based caching for API responses
+  - New `Cache` class (`src/Cache/Cache.php`) for response caching
+  - Cache configuration options for TTL and storage method
+- `skipCache` option on `fetch()` method to bypass cache for specific requests
+- Activity Feed resource support (initial implementation)
+- `project_id` parameter support for Tasklist creation
+
+### Changed
+- Updated Guzzle dependency to `~7.8`
+- Updated all Composer packages to latest compatible versions
+- Added request delay support to prevent API rate limiting
+- Major refactoring of `Paymo.php` for improved caching integration
+
+### Fixed
+- Typo on `invoiced` field in resource definitions
+- Property call issues in resource handling
+
+---
+
+## [0.5.1] - 2020-03-28
+
+### Added
+- `client_id` filter support for TimeEntry resource queries
+
+### Fixed
+- Error with hydrating included/related objects in API responses
+
+---
+
+## [0.5.0] - 2020-03-19
+
+This is the first major feature-complete release of the Paymo API PHP library.
+
+### Added
+
+#### Core Framework
+- **Entity System**: Complete object-oriented entity framework
+  - `AbstractEntity` base class with property management
+  - `EntityCollection` for handling lists of entities
+  - `EntityMap` singleton for entity class registration and lookup
+- **Request System**: Fluent API request builder
+  - `RequestAbstraction` for building complex queries
+  - `RequestCondition` for WHERE and HAS filtering
+  - `RequestResponse` for standardized response handling
+- **Configuration Management**: Flexible configuration system
+  - `Configuration` class with file-based and runtime config
+  - Support for `hassankhan/config` package for config file parsing
+  - `default.paymoapi.config.json` template
+- **Data Type Conversion**: Automatic type handling
+  - `Converter` utility with support for: `string`, `int`, `float`, `bool`, `date`, `datetime`, `html`, `enum`, `enum_int_list`
+
+#### API Resources (33 Total)
+- **Projects & Tasks**
+  - `Project` - Full CRUD with all Paymo project properties
+  - `ProjectStatus` - Project status management
+  - `ProjectTemplate` - Project template handling
+  - `ProjectTemplateTask` - Template task definitions
+  - `ProjectTemplateTasklist` - Template tasklist definitions
+  - `Task` - Complete task management with custom WHERE clause validation
+  - `Tasklist` - Tasklist CRUD with `project_id` support
+  - `TaskAssignment` (userstasks) - Task-user assignment management
+- **Time Tracking**
+  - `TimeEntry` - Time entry management with variable create clause requirements
+  - `Booking` - Resource booking management
+- **Financial**
+  - `Invoice` - Invoice creation and management
+  - `InvoiceItem` - Invoice line items
+  - `InvoicePayment` - Payment tracking
+  - `InvoiceTemplate` - Invoice template definitions
+  - `InvoiceTemplateGallery` - Invoice template assets
+  - `Estimate` - Estimate management
+  - `EstimateItem` - Estimate line items
+  - `EstimateTemplate` - Estimate templates
+  - `EstimateTemplateGallery` - Estimate template assets
+  - `Expense` - Expense tracking
+- **Users & Clients**
+  - `User` - User management with extensive property mapping
+  - `Client` - Client entity management
+  - `ClientContact` - Client contact records
+  - `Company` - Company settings with comprehensive undocumented property mapping
+- **Collaboration**
+  - `Discussion` - Project discussions
+  - `Comment` - Comment entities
+  - `CommentThread` - Threaded comment support
+  - `Milestone` - Project milestone tracking with `reminder_sent` property
+- **Workflows**
+  - `Workflow` - Workflow definitions
+  - `WorkflowStatus` - Workflow status states with color support
+- **Files & Sessions**
+  - `File` - File upload and management
+  - `Session` - API session handling
+- **Reports**
+  - `Report` - Basic report generation (read-only)
+
+#### API Operations
+- **CRUD Operations**: Full support for Create, Read, Update, Delete
+  - `::fetch($id)` - Retrieve single entity by ID
+  - `::list()` - Retrieve entity collections with filtering
+  - `->save()` - Create new or update existing entities
+  - `->delete()` - Remove entities
+- **Query Building**
+  - `WHERE` clause filtering with validation per entity type
+  - `HAS` relationship filtering for deep relation queries
+  - `INCLUDE` for eager loading related entities
+  - `SELECT` for field limiting
+- **Property Features**
+  - `CREATEONLY` properties - Fields settable only during creation
+  - `READONLY` properties - Server-managed fields
+  - In-memory field scrubbing cache for validation performance
+
+#### Utilities
+- File and image upload methods via `uploadFile()` and `uploadImage()`
+- `flatten()` method on resources and collections for raw `stdClass` export
+- Stock color options from Paymo's default color picker
+- Request time tracking for performance monitoring
+
+#### Authentication
+- API key authentication (primary method)
+- Username/password authentication support
+- Guzzle HTTP client integration with proper headers
+
+#### Error Handling
+- Guzzle `ClientException` handling for 4xx responses
+- Guzzle `ServerException` handling for 5xx responses
+- Response body validation
+- Configurable connection timeout
+
+### Changed
+- Reorganized `WHERE` and `HAS` static methods to attach directly to entity classes
+- Moved Entity class map into static singleton pattern
+- Extracted configuration from constants to dedicated config handler
+- Connection timeout now configurable via settings
+
+### Fixed
+- Color setting issues on workflow status random colors
+- WHERE filter glitches on deep relations
+- Copyright formatting in source files
+
+---
+
+## [0.0.1] - 2020-03-02
+
+### Added
+- Initial project setup and scaffolding
+- Composer package configuration (`jcolombo/paymo-api-php`)
+- PSR-4 autoloading under `Jcolombo\PaymoApiPhp` namespace
+- MIT license
+- Basic library framework structure
+- Developer contact information and metadata
+
+### Dependencies
+- PHP >= 7.2
+- `guzzlehttp/guzzle` - HTTP client
+- `hassankhan/config` - Configuration file parsing
+- `adbario/php-dot-notation` - Dot notation array access
+- `ext-json` - JSON extension
+
+---
+
+[Unreleased]: https://github.com/jcolombo/paymo-api-php/compare/v0.5.5...HEAD
+[0.5.5]: https://github.com/jcolombo/paymo-api-php/compare/v0.5.4...v0.5.5
+[0.5.4]: https://github.com/jcolombo/paymo-api-php/compare/v0.5.3...v0.5.4
+[0.5.3]: https://github.com/jcolombo/paymo-api-php/compare/v0.5.2...v0.5.3
+[0.5.2]: https://github.com/jcolombo/paymo-api-php/compare/v0.5.1...v0.5.2
+[0.5.1]: https://github.com/jcolombo/paymo-api-php/compare/v0.5.0...v0.5.1
+[0.5.0]: https://github.com/jcolombo/paymo-api-php/compare/v0.0.1...v0.5.0
+[0.0.1]: https://github.com/jcolombo/paymo-api-php/releases/tag/v0.0.1
