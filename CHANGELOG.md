@@ -7,14 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Changed
-- Refactored `simplexml_load_file` to `simplexml_load_string` for improved compatibility
-- Updated function loading to support v1 functions path
-- Replaced `PF_API_V2_METHOD` with `PF_API_METHOD` globally
+---
+
+## [0.5.6] - 2025-12-05
 
 ### Added
 - New API route support for public endpoints in `.htaccess`
 - Route validation and authorization handling in loader
+- Error handling system implementation
+
+### Changed
+- Refactored `simplexml_load_file` to `simplexml_load_string` for improved compatibility
+- Updated function loading to support v1 functions path
+- Replaced `PF_API_V2_METHOD` with `PF_API_METHOD` globally
+- Updated PHP version requirement
 
 ### Removed
 - Unused `error.php` functions and refactored utility usage
@@ -221,7 +227,8 @@ This is the first major feature-complete release of the Paymo API PHP library.
 
 ---
 
-[Unreleased]: https://github.com/jcolombo/paymo-api-php/compare/v0.5.5...HEAD
+[Unreleased]: https://github.com/jcolombo/paymo-api-php/compare/v0.5.6...HEAD
+[0.5.6]: https://github.com/jcolombo/paymo-api-php/compare/v0.5.5...v0.5.6
 [0.5.5]: https://github.com/jcolombo/paymo-api-php/compare/v0.5.4...v0.5.5
 [0.5.4]: https://github.com/jcolombo/paymo-api-php/compare/v0.5.3...v0.5.4
 [0.5.3]: https://github.com/jcolombo/paymo-api-php/compare/v0.5.2...v0.5.3
