@@ -1,7 +1,7 @@
 # Paymo API PHP SDK - Package Development Guide
 
 **Internal Development Documentation**
-Version: 0.5.6+
+Version: 0.5.7
 Last Updated: December 2025
 
 ---

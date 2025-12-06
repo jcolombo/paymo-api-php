@@ -90,7 +90,7 @@
  * @author     Joel Colombo <jc-dev@360psg.com>
  * @copyright  2020 Joel Colombo
  * @license    MIT
- * @version    0.5.6
+ * @version    0.5.7
  * @link       https://github.com/jcolombo/paymo-api-php
  *
  * @see        AbstractResource::WHERE() Shortcut method for creating WHERE conditions

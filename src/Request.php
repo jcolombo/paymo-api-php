@@ -9,7 +9,7 @@
  * @author     Joel Colombo <jc-dev@360psg.com>
  * @copyright  2020-2025 Joel Colombo / 360 PSG, Inc.
  * @license    MIT License
- * @version    0.5.6
+ * @version    0.5.7
  * @link       https://github.com/jcolombo/paymo-api-php
  * @see        https://github.com/paymoapp/api Official Paymo API Documentation
  *

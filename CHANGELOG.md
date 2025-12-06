@@ -9,6 +9,48 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.5.7] - 2025-12-06
+
+### Added
+- **CLAUDE.md** - AI assistant guide for developers using the package
+  - Connection management and singleton behavior documentation
+  - Connection state and settings persistence patterns
+  - Complete CRUD operation examples
+  - WHERE/HAS condition filtering reference
+  - Common usage patterns and recipes
+- **PACKAGE-DEV.md** - Comprehensive internal development guide
+  - Resource class structure and required constants
+  - Property type system reference
+  - EntityMap configuration guide
+  - Resource-specific behaviors documentation
+  - TypeScript definitions maintenance rules
+  - Development checklists for new/modified resources
+  - File templates for new resources
+- **TODO-LIST.md** - Detailed analysis of missing features vs official Paymo API
+  - Missing resources: Subtask, RecurringProfile, TaskRecurringProfile, Webhook
+  - Missing properties per resource
+  - Missing include relationships
+  - Bug tracking (typos in constants)
+
+### Changed
+- **PHP 7.4 minimum requirement** - Updated from PHP 7.2 to PHP 7.4
+- **Method signature flexibility** - Removed strict `int` type hints from `$id` parameters in `Request.php` methods (`fetch()`, `update()`, `upload()`, `delete()`) to accept string IDs from databases
+- **Collection fetch flexibility** - Removed `array` type hint from `$where` parameter in `AbstractCollection::fetch()` to allow single `RequestCondition` objects
+- Updated Guzzle dependency to `^7.8`
+- Added `#[\ReturnTypeWillChange]` attribute for PHP 8.1+ compatibility
+
+### Fixed
+- Type compatibility issues when passing non-strict scalar types to methods
+- Backward compatibility for existing code that passes string IDs or single conditions
+
+### Documentation
+- Enhanced PHPDoc blocks across all resource classes with comprehensive descriptions
+- Added official Paymo API documentation links to resource file headers
+- Improved code examples in class documentation
+- Added property documentation with `@property` annotations
+
+---
+
 ## [0.5.6] - 2025-12-05
 
 ### Added
@@ -227,7 +269,8 @@ This is the first major feature-complete release of the Paymo API PHP library.
 
 ---
 
-[Unreleased]: https://github.com/jcolombo/paymo-api-php/compare/v0.5.6...HEAD
+[Unreleased]: https://github.com/jcolombo/paymo-api-php/compare/v0.5.7...HEAD
+[0.5.7]: https://github.com/jcolombo/paymo-api-php/compare/v0.5.6...v0.5.7
 [0.5.6]: https://github.com/jcolombo/paymo-api-php/compare/v0.5.5...v0.5.6
 [0.5.5]: https://github.com/jcolombo/paymo-api-php/compare/v0.5.4...v0.5.5
 [0.5.4]: https://github.com/jcolombo/paymo-api-php/compare/v0.5.3...v0.5.4

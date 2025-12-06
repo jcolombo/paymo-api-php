@@ -33,7 +33,7 @@ This independently developed package provides a developer-friendly toolkit to si
 
 ## Requirements
 
-- PHP 7.2 or higher
+- PHP 7.4 or higher
 - An active [Paymo](https://www.paymoapp.com) account
 - A Paymo API key (found in your Paymo account settings)
 - Composer
