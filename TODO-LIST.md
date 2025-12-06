@@ -725,6 +725,34 @@ Add automatic rate limit handling with retry logic.
 17. [ ] Consider pagination improvements
 18. [ ] Consider caching layer
 
+### TypeScript Definitions (Required)
+19. [ ] Add TypeScript interface for Project
+20. [ ] Add TypeScript interface for Task
+21. [ ] Add TypeScript interface for Client
+22. [ ] Add TypeScript interface for User
+23. [ ] Add TypeScript interface for TimeEntry
+24. [ ] Add TypeScript interface for Invoice
+25. [ ] Add TypeScript interface for InvoiceItem
+26. [ ] Add TypeScript interface for Estimate
+27. [ ] Add TypeScript interface for EstimateItem
+28. [ ] Add TypeScript interface for Expense
+29. [ ] Add TypeScript interface for Tasklist
+30. [ ] Add TypeScript interface for Milestone
+31. [ ] Add TypeScript interface for TaskAssignment
+32. [ ] Add TypeScript interface for Workflow
+33. [ ] Add TypeScript interface for WorkflowStatus
+34. [ ] Add TypeScript interface for File
+35. [ ] Add TypeScript interface for Comment
+36. [ ] Add TypeScript interface for Discussion
+37. [ ] Add TypeScript interface for ClientContact
+38. [ ] Add TypeScript interface for Report
+39. [ ] Add TypeScript interface for Company
+40. [ ] Add TypeScript interface for InvoicePayment
+41. [ ] Add TypeScript interfaces for all Template resources
+42. [ ] Add TypeScript interfaces for any new resources created
+
+**Note:** Currently only `PaymoBooking` exists in `src/.resources/typescript.data-types.ts`. All other resources need TypeScript interfaces. See PACKAGE-DEV.md Section 10 for TypeScript maintenance rules.
+
 ---
 
 ## Notes
