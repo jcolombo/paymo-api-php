@@ -806,7 +806,7 @@ abstract class AbstractCollection extends AbstractEntity implements Iterator, Ar
      * @see AbstractResource::WHERE() Creates WHERE conditions
      * @see AbstractResource::HAS() Creates HAS conditions for relationships
      */
-    public function fetch($fields = [], array $where = [], array $options = []) : AbstractCollection
+    public function fetch($fields = [], $where = [], array $options = []) : AbstractCollection
     {
         if (!is_array($fields)) {
             $fields = [$fields];

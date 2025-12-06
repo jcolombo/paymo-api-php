@@ -154,7 +154,7 @@ class Request
      *
      * @see AbstractResource::fetch() The entity method that calls this
      */
-    public static function fetch(Paymo $connection, string $objectKey, int $id, array $options) : RequestResponse
+    public static function fetch(Paymo $connection, string $objectKey, $id, array $options) : RequestResponse
     {
         [$pathKey, $responseKey] = static::getObjectReponseKeys($objectKey);
         $checkId = !($id === -1);
@@ -420,7 +420,7 @@ class Request
      *
      * @see AbstractResource::update() The entity method that calls this
      */
-    public static function update(Paymo $connection, string $objectKey, int $id, array $data) : RequestResponse
+    public static function update(Paymo $connection, string $objectKey, $id, array $data) : RequestResponse
     {
         [$pathKey, $responseKey] = static::getObjectReponseKeys($objectKey);
         $checkId = !($id === -1);
@@ -474,7 +474,7 @@ class Request
      * @see AbstractResource::image() The entity method for image uploads
      * @see AbstractResource::file() The entity method for file uploads
      */
-    public static function upload(Paymo $connection, string $objectKey, int $id, string $prop, string $filepath) : RequestResponse
+    public static function upload(Paymo $connection, string $objectKey, $id, string $prop, string $filepath) : RequestResponse
     {
         [$pathKey, $responseKey] = static::getObjectReponseKeys($objectKey);
         $checkId = !($id === -1);
@@ -524,7 +524,7 @@ class Request
      *
      * @see AbstractResource::delete() The entity method that calls this
      */
-    public static function delete(Paymo $connection, string $objectKey, int $id) : RequestResponse
+    public static function delete(Paymo $connection, string $objectKey, $id) : RequestResponse
     {
         if ($id < 1) {
             throw new RuntimeException("Attempting to delete a resource without a integer ID");
