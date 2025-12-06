@@ -1195,6 +1195,7 @@ abstract class AbstractCollection extends AbstractEntity implements Iterator, Ar
      * @see next() Moves to next position
      * @see key() Gets the current position/key
      */
+    #[\ReturnTypeWillChange]
     public function current()
     {
         return $this->data[$this->index];
@@ -1335,6 +1336,7 @@ abstract class AbstractCollection extends AbstractEntity implements Iterator, Ar
      * @see ArrayAccess PHP's ArrayAccess interface
      * @see offsetGet() Retrieves the resource at an offset
      */
+    #[\ReturnTypeWillChange]
     public function offsetExists($offset) : bool
     {
         return isset($this->data[$offset]);
@@ -1372,6 +1374,7 @@ abstract class AbstractCollection extends AbstractEntity implements Iterator, Ar
      * @see ArrayAccess PHP's ArrayAccess interface
      * @see offsetExists() Checks if offset exists before accessing
      */
+    #[\ReturnTypeWillChange]
     public function offsetGet($offset) : ?AbstractResource
     {
         return $this->data[$offset] ?? null;
@@ -1417,6 +1420,7 @@ abstract class AbstractCollection extends AbstractEntity implements Iterator, Ar
      * @see ArrayAccess PHP's ArrayAccess interface
      * @see offsetGet() Retrieves resources by offset
      */
+    #[\ReturnTypeWillChange]
     public function offsetSet($offset, $value) : void
     {
         if (is_null($offset)) {
@@ -1463,6 +1467,7 @@ abstract class AbstractCollection extends AbstractEntity implements Iterator, Ar
      * @see AbstractResource::delete() To delete from the API
      * @see clear() To remove all resources from collection
      */
+    #[\ReturnTypeWillChange]
     public function offsetUnset($offset) : void
     {
         unset($this->data[$offset]);
