@@ -619,20 +619,649 @@ export interface PaymoInvoice {
   invoicetemplate?: PaymoInvoiceTemplate;
 }
 
-// Forward declarations for types not yet fully defined
-declare interface PaymoProjectStatus {}
-declare interface PaymoTasklist {}
-declare interface PaymoMilestone {}
-declare interface PaymoDiscussion {}
-declare interface PaymoFile {}
-declare interface PaymoInvoiceItem {}
-declare interface PaymoWorkflow {}
-declare interface PaymoWorkflowStatus {}
-declare interface PaymoThread {}
-declare interface PaymoComment {}
-declare interface PaymoExpense {}
-declare interface PaymoReport {}
-declare interface PaymoClientContact {}
-declare interface PaymoInvoicePayment {}
+/**
+ * TypeScript interface for Paymo InvoiceItem entity.
+ *
+ * Corresponds to: src/Entity/Resource/InvoiceItem.php
+ * Official API: https://github.com/paymoapp/api/blob/master/sections/invoices.md
+ *
+ * Line items on invoices representing services, products, or billable items.
+ *
+ * @see PROP_TYPES in the PHP resource class for authoritative property definitions
+ */
+export interface PaymoInvoiceItem {
+  // Read-only properties
+  id: number;
+  created_on: string;
+  updated_on: string;
+
+  // Required properties
+  item: string;
+
+  // Optional properties
+  invoice_id?: number;
+  description?: string;
+  price_unit?: number;
+  quantity?: number;
+  expense_id?: number;
+  apply_tax?: boolean;
+  seq?: number;
+
+  // Included relations (optional - only present when requested)
+  invoice?: PaymoInvoice;
+  expense?: PaymoExpense;
+  entries?: PaymoTimeEntry[];
+  projects?: PaymoProject[];
+  tasks?: PaymoTask[];
+}
+
+/**
+ * TypeScript interface for Paymo InvoicePayment entity.
+ *
+ * Corresponds to: src/Entity/Resource/InvoicePayment.php
+ * Official API: https://github.com/paymoapp/api/blob/master/sections/invoice_payments.md
+ *
+ * Payments recorded against invoices.
+ *
+ * @see PROP_TYPES in the PHP resource class for authoritative property definitions
+ */
+export interface PaymoInvoicePayment {
+  // Read-only properties
+  id: number;
+  created_on: string;
+  updated_on: string;
+  invoice_id: number;
+
+  // Required properties
+  amount: number;
+
+  // Optional properties
+  date?: string;
+  notes?: string;
+
+  // Included relations (optional - only present when requested)
+  invoice?: PaymoInvoice;
+}
+
+/**
+ * TypeScript interface for Paymo Estimate entity.
+ *
+ * Corresponds to: src/Entity/Resource/Estimate.php
+ * Official API: https://github.com/paymoapp/api/blob/master/sections/estimates.md
+ *
+ * Estimates/quotes sent to clients before work begins.
+ *
+ * @see PROP_TYPES in the PHP resource class for authoritative property definitions
+ */
+export interface PaymoEstimate {
+  // Read-only properties
+  id: number;
+  created_on: string;
+  updated_on: string;
+  subtotal: number;
+  total: number;
+  tax_amount?: number;
+  tax2_amount?: number;
+  discount_amount?: number;
+  permalink?: string;
+  pdf_link?: string;
+
+  // Required properties
+  client_id: number;
+  currency: string;
+
+  // Optional properties
+  number?: string;
+  template_id?: number;
+  status?: 'draft' | 'sent' | 'viewed' | 'accepted' | 'invoiced' | 'void';
+  date?: string;
+  tax?: number;
+  tax_text?: string;
+  tax2?: number;
+  tax2_text?: string;
+  tax_on_tax?: boolean;
+  discount?: number;
+  discount_text?: string;
+  language?: string;
+  bill_to?: string;
+  company_info?: string;
+  footer?: string;
+  notes?: string;
+  title?: string;
+  brief_description?: string;
+  invoice_id?: number;
+
+  // Included relations (optional - only present when requested)
+  client?: PaymoClient;
+  invoice?: PaymoInvoice;
+  estimateitems?: PaymoEstimateItem[];
+  estimatetemplate?: PaymoEstimateTemplate;
+}
+
+/**
+ * TypeScript interface for Paymo EstimateItem entity.
+ *
+ * Corresponds to: src/Entity/Resource/EstimateItem.php
+ * Official API: https://github.com/paymoapp/api/blob/master/sections/estimates.md
+ *
+ * Line items on estimates.
+ *
+ * @see PROP_TYPES in the PHP resource class for authoritative property definitions
+ */
+export interface PaymoEstimateItem {
+  // Read-only properties
+  id: number;
+  created_on: string;
+  updated_on: string;
+
+  // Required properties
+  estimate_id: number;
+  item: string;
+  price_unit: number;
+  quantity: number;
+
+  // Optional properties
+  description?: string;
+  apply_tax?: boolean;
+  seq?: number;
+
+  // Included relations (optional - only present when requested)
+  estimate?: PaymoEstimate;
+}
+
+/**
+ * TypeScript interface for Paymo Expense entity.
+ *
+ * Corresponds to: src/Entity/Resource/Expense.php
+ * Official API: https://github.com/paymoapp/api/blob/master/sections/expenses.md
+ *
+ * Expense records for tracking costs on projects.
+ *
+ * @see PROP_TYPES in the PHP resource class for authoritative property definitions
+ */
+export interface PaymoExpense {
+  // Read-only properties
+  id: number;
+  created_on: string;
+  updated_on: string;
+  image_thumb_large?: string;
+  image_thumb_medium?: string;
+  image_thumb_small?: string;
+
+  // Required properties
+  amount: number;
+
+  // Optional properties
+  client_id?: number;
+  project_id?: number;
+  user_id?: number;
+  currency?: string;
+  date?: string;
+  notes?: string;
+  invoiced?: boolean;
+  invoice_item_id?: number;
+  tags?: string[];
+  file?: string;
+
+  // Included relations (optional - only present when requested)
+  client?: PaymoClient;
+  project?: PaymoProject;
+  user?: PaymoUser;
+  invoiceitems?: PaymoInvoiceItem[];
+}
+
+/**
+ * TypeScript interface for Paymo Tasklist entity.
+ *
+ * Corresponds to: src/Entity/Resource/Tasklist.php
+ * Official API: https://github.com/paymoapp/api/blob/master/sections/tasklists.md
+ *
+ * Task lists are containers for organizing tasks within a project.
+ *
+ * @see PROP_TYPES in the PHP resource class for authoritative property definitions
+ */
+export interface PaymoTasklist {
+  // Read-only properties
+  id: number;
+  created_on: string;
+  updated_on: string;
+  project_id: number;
+
+  // Required properties
+  name: string;
+
+  // Optional properties
+  seq?: number;
+  milestone_id?: number;
+
+  // Included relations (optional - only present when requested)
+  project?: PaymoProject;
+  milestone?: PaymoMilestone;
+  tasks?: PaymoTask[];
+}
+
+/**
+ * TypeScript interface for Paymo Milestone entity.
+ *
+ * Corresponds to: src/Entity/Resource/Milestone.php
+ * Official API: https://github.com/paymoapp/api/blob/master/sections/milestones.md
+ *
+ * Milestones are project checkpoints with due dates.
+ *
+ * @see PROP_TYPES in the PHP resource class for authoritative property definitions
+ */
+export interface PaymoMilestone {
+  // Read-only properties
+  id: number;
+  created_on: string;
+  updated_on: string;
+  reminder_sent?: boolean;
+
+  // Required properties
+  name: string;
+  project_id: number;
+
+  // Optional properties
+  user_id?: number;
+  due_date?: string;
+  send_reminder?: number;
+  complete?: boolean;
+  linked_tasklists?: number[];
+
+  // Included relations (optional - only present when requested)
+  project?: PaymoProject;
+  user?: PaymoUser;
+  tasklists?: PaymoTasklist[];
+}
+
+/**
+ * TypeScript interface for Paymo TaskAssignment (UserTask) entity.
+ *
+ * Corresponds to: src/Entity/Resource/TaskAssignment.php
+ * Official API: https://github.com/paymoapp/api/blob/master/sections/users_tasks.md
+ *
+ * Represents the assignment of a user to a task.
+ *
+ * @see PROP_TYPES in the PHP resource class for authoritative property definitions
+ */
+export interface PaymoTaskAssignment {
+  // Read-only properties
+  id: number;
+  created_on: string;
+  updated_on: string;
+
+  // Required properties
+  user_id: number;
+  task_id: number;
+
+  // Included relations (optional - only present when requested)
+  user?: PaymoUser;
+  task?: PaymoTask;
+}
+
+/**
+ * TypeScript interface for Paymo Workflow entity.
+ *
+ * Corresponds to: src/Entity/Resource/Workflow.php
+ * Official API: https://github.com/paymoapp/api/blob/master/sections/workflows.md
+ *
+ * Workflows define the status progression for tasks.
+ *
+ * @see PROP_TYPES in the PHP resource class for authoritative property definitions
+ */
+export interface PaymoWorkflow {
+  // Read-only properties
+  id: number;
+  created_on: string;
+  updated_on: string;
+
+  // Required properties
+  name: string;
+
+  // Optional properties
+  is_default?: boolean;
+
+  // Included relations (optional - only present when requested)
+  workflowstatuses?: PaymoWorkflowStatus[];
+}
+
+/**
+ * TypeScript interface for Paymo WorkflowStatus entity.
+ *
+ * Corresponds to: src/Entity/Resource/WorkflowStatus.php
+ * Official API: https://github.com/paymoapp/api/blob/master/sections/workflow_statuses.md
+ *
+ * Workflow statuses represent stages in a workflow (e.g., To Do, In Progress, Done).
+ *
+ * @see PROP_TYPES in the PHP resource class for authoritative property definitions
+ */
+export interface PaymoWorkflowStatus {
+  // Read-only properties
+  id: number;
+  created_on: string;
+  updated_on: string;
+  seq: number;
+  action?: string;
+
+  // Required properties
+  name: string;
+  workflow_id: number;
+
+  // Optional properties
+  color?: string;
+
+  // Included relations (optional - only present when requested)
+  workflow?: PaymoWorkflow;
+}
+
+/**
+ * TypeScript interface for Paymo File entity.
+ *
+ * Corresponds to: src/Entity/Resource/File.php
+ * Official API: https://github.com/paymoapp/api/blob/master/sections/files.md
+ *
+ * Files attached to projects, tasks, discussions, or comments.
+ *
+ * @see PROP_TYPES in the PHP resource class for authoritative property definitions
+ */
+export interface PaymoFile {
+  // Read-only properties
+  id: number;
+  created_on: string;
+  updated_on: string;
+  user_id: number;
+  project_id?: number;
+  discussion_id?: number;
+  task_id?: number;
+  comment_id?: number;
+  token?: string;
+  size?: number;
+  file?: string;
+  image_thumb_large?: string;
+  image_thumb_medium?: string;
+  image_thumb_small?: string;
+
+  // Optional properties
+  original_filename?: string;
+  description?: string;
+
+  // Included relations (optional - only present when requested)
+  project?: PaymoProject;
+  user?: PaymoUser;
+  discussion?: PaymoDiscussion;
+  task?: PaymoTask;
+  comment?: PaymoComment;
+}
+
+/**
+ * TypeScript interface for Paymo Comment entity.
+ *
+ * Corresponds to: src/Entity/Resource/Comment.php
+ * Official API: https://github.com/paymoapp/api/blob/master/sections/comments.md
+ *
+ * Comments on tasks, discussions, or files.
+ *
+ * @see PROP_TYPES in the PHP resource class for authoritative property definitions
+ */
+export interface PaymoComment {
+  // Read-only properties
+  id: number;
+  created_on: string;
+  updated_on: string;
+  thread_id: number;
+  user_id: number;
+
+  // Required properties
+  content: string;
+
+  // Create-only properties (specify target for new comment)
+  task_id?: number;
+  discussion_id?: number;
+  file_id?: number;
+
+  // Included relations (optional - only present when requested)
+  thread?: PaymoThread;
+  user?: PaymoUser;
+  project?: PaymoProject;
+  files?: PaymoFile[];
+}
+
+/**
+ * TypeScript interface for Paymo Discussion entity.
+ *
+ * Corresponds to: src/Entity/Resource/Discussion.php
+ * Official API: https://github.com/paymoapp/api/blob/master/sections/discussions.md
+ *
+ * Discussions are project-level conversation threads.
+ *
+ * @see PROP_TYPES in the PHP resource class for authoritative property definitions
+ */
+export interface PaymoDiscussion {
+  // Read-only properties
+  id: number;
+  created_on: string;
+  updated_on: string;
+  user_id: number;
+
+  // Required properties
+  name: string;
+  project_id: number;
+
+  // Optional properties
+  description?: string;
+
+  // Included relations (optional - only present when requested)
+  project?: PaymoProject;
+  user?: PaymoUser;
+  thread?: PaymoThread;
+  files?: PaymoFile[];
+}
+
+/**
+ * TypeScript interface for Paymo ClientContact entity.
+ *
+ * Corresponds to: src/Entity/Resource/ClientContact.php
+ * Official API: https://github.com/paymoapp/api/blob/master/sections/client_contacts.md
+ *
+ * Contact persons associated with clients.
+ *
+ * @see PROP_TYPES in the PHP resource class for authoritative property definitions
+ */
+export interface PaymoClientContact {
+  // Read-only properties
+  id: number;
+  created_on: string;
+  updated_on: string;
+  image_thumb_large?: string;
+  image_thumb_medium?: string;
+  image_thumb_small?: string;
+
+  // Required properties
+  client_id: number;
+  name: string;
+
+  // Optional properties
+  email?: string;
+  mobile?: string;
+  phone?: string;
+  fax?: string;
+  skype?: string;
+  notes?: string;
+  position?: string;
+  is_main?: boolean;
+  access?: boolean;
+  image?: string;
+
+  // Included relations (optional - only present when requested)
+  client?: PaymoClient;
+}
+
+/**
+ * TypeScript interface for Paymo Report entity.
+ *
+ * Corresponds to: src/Entity/Resource/Report.php
+ * Official API: https://github.com/paymoapp/api/blob/master/sections/reports.md
+ *
+ * Time and expense reports.
+ *
+ * @see PROP_TYPES in the PHP resource class for authoritative property definitions
+ */
+export interface PaymoReport {
+  // Read-only properties
+  id: number;
+  created_on: string;
+  updated_on: string;
+
+  // Required properties
+  name: string;
+
+  // Optional properties
+  user_id?: number;
+  type?: 'static' | 'live' | 'temp';
+  start_date?: string;
+  end_date?: string;
+  date_interval?: string;
+  projects?: string;
+  clients?: string;
+  users?: string;
+  include?: Record<string, any>;
+  extra?: Record<string, any>;
+  info?: Record<string, any>;
+  content?: Record<string, any>;
+  permalink?: string;
+  shared?: boolean;
+  share_client_id?: number;
+
+  // Included relations (optional - only present when requested)
+  user?: PaymoUser;
+  client?: PaymoClient;
+}
+
+/**
+ * TypeScript interface for Paymo Company entity.
+ *
+ * Corresponds to: src/Entity/Resource/Company.php
+ * Official API: https://github.com/paymoapp/api/blob/master/sections/company.md
+ *
+ * Company settings and account information.
+ *
+ * @see PROP_TYPES in the PHP resource class for authoritative property definitions
+ */
+export interface PaymoCompany {
+  // Read-only properties
+  id: number;
+  created_on: string;
+  updated_on: string;
+  image_thumb_large?: string;
+  image_thumb_medium?: string;
+  image_thumb_small?: string;
+  account_type?: string;
+  max_users?: number;
+  current_users?: number;
+  max_projects?: number;
+  current_projects?: number;
+  max_invoices?: number;
+  current_invoices?: number;
+
+  // Optional properties
+  name?: string;
+  address?: string;
+  phone?: string;
+  email?: string;
+  url?: string;
+  fiscal_information?: string;
+  country?: string;
+  image?: string;
+  timezone?: string;
+  default_currency?: string;
+  default_price_per_hour?: number;
+  apply_tax_to_expenses?: boolean;
+  tax_on_tax?: boolean;
+  currency_position?: string;
+  next_invoice_number?: string;
+  next_estimate_number?: string;
+  online_payments?: boolean;
+  date_format?: string;
+  time_format?: string;
+  decimal_sep?: string;
+  thousands_sep?: string;
+  week_start?: number;
+  workday_start?: string;
+  workday_end?: string;
+  working_days?: string;
+}
+
+/**
+ * TypeScript interface for Paymo Session entity.
+ *
+ * Corresponds to: src/Entity/Resource/Session.php
+ * Official API: https://github.com/paymoapp/api/blob/master/sections/sessions.md
+ *
+ * Authentication sessions (for password-based auth, not API keys).
+ *
+ * @see PROP_TYPES in the PHP resource class for authoritative property definitions
+ */
+export interface PaymoSession {
+  // All properties are read-only
+  id: string; // Note: Session ID is a string, not a number
+  created_on: string;
+  updated_on: string;
+  ip: string;
+  expires_on: string;
+  user_id: number;
+}
+
+/**
+ * TypeScript interface for Paymo ProjectStatus entity.
+ *
+ * Corresponds to: src/Entity/Resource/ProjectStatus.php
+ * Official API: https://github.com/paymoapp/api/blob/master/sections/project_statuses.md
+ *
+ * Project statuses for categorizing projects (e.g., Active, Archived).
+ *
+ * @see PROP_TYPES in the PHP resource class for authoritative property definitions
+ */
+export interface PaymoProjectStatus {
+  // Read-only properties
+  id: number;
+  created_on: string;
+  updated_on: string;
+  readonly?: boolean;
+
+  // Required properties
+  name: string;
+
+  // Optional properties
+  active?: boolean;
+  seq?: number;
+
+  // Included relations (optional - only present when requested)
+  projects?: PaymoProject[];
+}
+
+/**
+ * TypeScript interface for Paymo Thread entity.
+ *
+ * Threads are containers for comments. They are automatically created
+ * when comments are added to tasks, discussions, or files.
+ *
+ * @see Comment resource for creating comments with thread targets
+ */
+export interface PaymoThread {
+  // Read-only properties
+  id: number;
+  created_on: string;
+  updated_on: string;
+  project_id?: number;
+  discussion_id?: number;
+  task_id?: number;
+  file_id?: number;
+
+  // Included relations (optional - only present when requested)
+  comments?: PaymoComment[];
+}
+
+// Forward declarations for template types (rarely used directly)
 declare interface PaymoInvoiceTemplate {}
+declare interface PaymoEstimateTemplate {}
 

@@ -612,9 +612,9 @@ The following are now in PROP_TYPES and CREATEONLY:
 ## 27. TypeScript Interfaces
 
 **File:** `src/.resources/typescript.data-types.ts`
-**Status:** HIGH-PRIORITY COMPLETE
+**Status:** COMPLETE
 
-### 27.1 Existing Interfaces
+### 27.1 All Interfaces (32 total)
 - [x] PaymoBooking
 - [x] PaymoSubtask (added v0.6.0)
 - [x] PaymoRecurringProfile (added v0.6.0)
@@ -627,32 +627,28 @@ The following are now in PROP_TYPES and CREATEONLY:
 - [x] PaymoUser (added v0.6.0)
 - [x] PaymoTimeEntry (added v0.6.0)
 - [x] PaymoInvoice (added v0.6.0)
+- [x] PaymoInvoiceItem (added v0.6.0)
+- [x] PaymoInvoicePayment (added v0.6.0)
+- [x] PaymoEstimate (added v0.6.0)
+- [x] PaymoEstimateItem (added v0.6.0)
+- [x] PaymoExpense (added v0.6.0)
+- [x] PaymoTasklist (added v0.6.0)
+- [x] PaymoMilestone (added v0.6.0)
+- [x] PaymoTaskAssignment (added v0.6.0)
+- [x] PaymoWorkflow (added v0.6.0)
+- [x] PaymoWorkflowStatus (added v0.6.0)
+- [x] PaymoFile (added v0.6.0)
+- [x] PaymoComment (added v0.6.0)
+- [x] PaymoDiscussion (added v0.6.0)
+- [x] PaymoClientContact (added v0.6.0)
+- [x] PaymoReport (added v0.6.0)
+- [x] PaymoCompany (added v0.6.0)
+- [x] PaymoSession (added v0.6.0)
+- [x] PaymoProjectStatus (added v0.6.0)
+- [x] PaymoThread (added v0.6.0)
+- [x] PAYMO_WEBHOOK_EVENTS constants (added v0.6.0)
 
-### 27.2 TODO: Add Remaining Interfaces (Low Priority)
-All interfaces below should be created based on VERIFIED API properties only:
-
-| Interface | Resource | Priority |
-|-----------|----------|----------|
-| PaymoInvoiceItem | InvoiceItem | Medium |
-| PaymoInvoicePayment | InvoicePayment | Medium |
-| PaymoEstimate | Estimate | Medium |
-| PaymoEstimateItem | EstimateItem | Medium |
-| PaymoExpense | Expense | Medium |
-| PaymoTasklist | Tasklist | Medium |
-| PaymoMilestone | Milestone | Medium |
-| PaymoTaskAssignment | TaskAssignment | Medium |
-| PaymoWorkflow | Workflow | Low |
-| PaymoWorkflowStatus | WorkflowStatus | Low |
-| PaymoFile | File | Low |
-| PaymoComment | Comment | Low |
-| PaymoDiscussion | Discussion | Low |
-| PaymoClientContact | ClientContact | Low |
-| PaymoReport | Report | Low |
-| PaymoCompany | Company | Low |
-| PaymoSession | Session | Low |
-| PaymoProjectStatus | ProjectStatus | Low |
-
-**Note:** Forward declarations exist for all remaining interfaces.
+**Note:** All interfaces verified against official Paymo API documentation.
 
 ---
 
@@ -716,13 +712,14 @@ Add automatic rate limit handling with retry logic.
 11. [x] Add Comment PROP_TYPES: `task_id`, `discussion_id`, `file_id` (create-only) - COMPLETED v0.6.0
 12. [x] Verify Session resource matches API - VERIFIED v0.6.0 (no changes needed)
 13. [x] Add high-priority TypeScript interfaces (Project, Task, Client, User, TimeEntry, Invoice) - COMPLETED v0.6.0
+14. [x] Add medium-priority TypeScript interfaces (InvoiceItem, InvoicePayment, Estimate, EstimateItem, Expense, Tasklist, Milestone, TaskAssignment) - COMPLETED v0.6.0
 
 ### TODO - Long Term (Low Priority)
-14. [ ] Add remaining TypeScript interfaces (Tasklist, Milestone, Expense, Comment, etc.)
-15. [ ] Implement utility helpers (time formatting, currency)
-16. [ ] Consider batch operations
-17. [ ] Consider pagination improvements
-18. [ ] Consider caching layer
+15. [x] Add remaining TypeScript interfaces (Workflow, WorkflowStatus, File, Comment, Discussion, ClientContact, Report, Company, Session, ProjectStatus, Thread) - COMPLETED v0.6.0
+16. [ ] Implement utility helpers (time formatting, currency)
+17. [ ] Consider batch operations
+18. [ ] Consider pagination improvements
+19. [ ] Consider caching layer
 
 ---
 
