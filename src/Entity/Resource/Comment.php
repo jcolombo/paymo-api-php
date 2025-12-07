@@ -134,12 +134,15 @@ use Jcolombo\PaymoApiPhp\Entity\AbstractResource;
  *
  * @package Jcolombo\PaymoApiPhp\Entity\Resource
  *
- * @property int    $id         Unique comment ID (read-only)
- * @property string $content    Comment text (required)
- * @property int    $thread_id  Parent thread ID
- * @property int    $user_id    Author user ID
- * @property string $created_on Creation timestamp (read-only)
- * @property string $updated_on Last update timestamp (read-only)
+ * @property int    $id            Unique comment ID (read-only)
+ * @property string $content       Comment text (required)
+ * @property int    $thread_id     Parent thread ID (read-only)
+ * @property int    $user_id       Author user ID (read-only)
+ * @property int    $task_id       Task to comment on (create-only)
+ * @property int    $discussion_id Discussion to comment on (create-only)
+ * @property int    $file_id       File to comment on (create-only)
+ * @property string $created_on    Creation timestamp (read-only)
+ * @property string $updated_on    Last update timestamp (read-only)
  */
 class Comment extends AbstractResource
 {
@@ -180,20 +183,22 @@ class Comment extends AbstractResource
     /**
      * Properties that cannot be modified via API.
      *
-     * Standard timestamp fields are read-only.
+     * thread_id and user_id are set by the server based on the target
+     * (task_id/discussion_id/file_id) and authenticated user.
      *
      * @var array<string>
      */
-    public const READONLY = ['id', 'created_on', 'updated_on'];
+    public const READONLY = ['id', 'created_on', 'updated_on', 'thread_id', 'user_id'];
 
     /**
      * Properties that can be set during creation but not updated.
      *
-     * Currently empty - comment content can be updated.
+     * task_id, discussion_id, and file_id specify the comment target
+     * during creation. Once created, the comment belongs to a thread.
      *
      * @var array<string>
      */
-    public const CREATEONLY = [];
+    public const CREATEONLY = ['task_id', 'discussion_id', 'file_id'];
 
     /**
      * Related entities available for inclusion in API requests.
@@ -216,16 +221,23 @@ class Comment extends AbstractResource
     /**
      * Property type definitions for validation and hydration.
      *
+     * task_id, discussion_id, and file_id are create-only properties
+     * used to specify where the comment is attached. After creation,
+     * only thread_id is available on the response.
+     *
      * @var array<string, string>
      */
     public const PROP_TYPES = [
-      'id'         => 'integer',
-      'created_on' => 'datetime',
-      'updated_on' => 'datetime',
-      'content'    => 'text',
-      'thread_id'  => 'resource:thread',
-      'user_id'    => 'resource:user'
-        // Undocumented Props
+      'id'            => 'integer',
+      'created_on'    => 'datetime',
+      'updated_on'    => 'datetime',
+      'content'       => 'text',
+      'thread_id'     => 'resource:thread',
+      'user_id'       => 'resource:user',
+        // Create-only target properties (specify where to attach comment)
+      'task_id'       => 'resource:task',
+      'discussion_id' => 'resource:discussion',
+      'file_id'       => 'resource:file'
     ];
 
     /**

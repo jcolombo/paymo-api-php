@@ -478,13 +478,13 @@ The following endpoints are NOT documented in the current API:
 ## 19. Comment Resource
 
 **File:** `src/Entity/Resource/Comment.php`
-**Status:** VERIFY PROP_TYPES
+**Status:** COMPLETE
 
 ### 19.1 Verified Properties (from API)
 - `id`, `content`, `thread_id`, `user_id`, `created_on`, `updated_on`
 
-### 19.2 TODO: Add Missing Properties to PROP_TYPES
-The following are used in REQUIRED_CREATE but not in PROP_TYPES:
+### 19.2 Create-Only Properties (COMPLETED v0.6.0)
+The following are now in PROP_TYPES and CREATEONLY:
 
 | Property | Type | Notes |
 |----------|------|-------|
@@ -493,6 +493,7 @@ The following are used in REQUIRED_CREATE but not in PROP_TYPES:
 | `file_id` | resource:file | For creating file comments (create-only) |
 
 **Note:** These are write-only for creation - specify target for new comment.
+`thread_id` and `user_id` are now marked read-only (set by server).
 
 ### 19.3 Verified Includes (from API)
 - thread, user, project, files
@@ -611,7 +612,7 @@ The following are used in REQUIRED_CREATE but not in PROP_TYPES:
 ## 27. TypeScript Interfaces
 
 **File:** `src/.resources/typescript.data-types.ts`
-**Status:** INCOMPLETE
+**Status:** HIGH-PRIORITY COMPLETE
 
 ### 27.1 Existing Interfaces
 - [x] PaymoBooking
@@ -620,18 +621,18 @@ The following are used in REQUIRED_CREATE but not in PROP_TYPES:
 - [x] PaymoRecurringProfileItem (added v0.6.0)
 - [x] PaymoTaskRecurringProfile (added v0.6.0)
 - [x] PaymoWebhook (added v0.6.0)
+- [x] PaymoProject (added v0.6.0)
+- [x] PaymoTask (added v0.6.0)
+- [x] PaymoClient (added v0.6.0)
+- [x] PaymoUser (added v0.6.0)
+- [x] PaymoTimeEntry (added v0.6.0)
+- [x] PaymoInvoice (added v0.6.0)
 
-### 27.2 TODO: Add Missing Interfaces
+### 27.2 TODO: Add Remaining Interfaces (Low Priority)
 All interfaces below should be created based on VERIFIED API properties only:
 
 | Interface | Resource | Priority |
 |-----------|----------|----------|
-| PaymoProject | Project | High |
-| PaymoTask | Task | High |
-| PaymoClient | Client | High |
-| PaymoUser | User | High |
-| PaymoTimeEntry | TimeEntry | High |
-| PaymoInvoice | Invoice | High |
 | PaymoInvoiceItem | InvoiceItem | Medium |
 | PaymoInvoicePayment | InvoicePayment | Medium |
 | PaymoEstimate | Estimate | Medium |
@@ -650,6 +651,8 @@ All interfaces below should be created based on VERIFIED API properties only:
 | PaymoCompany | Company | Low |
 | PaymoSession | Session | Low |
 | PaymoProjectStatus | ProjectStatus | Low |
+
+**Note:** Forward declarations exist for all remaining interfaces.
 
 ---
 
@@ -710,12 +713,12 @@ Add automatic rate limit handling with retry logic.
 10. [x] Add `subtasks_order` to Task PROP_TYPES
 
 ### TODO - Short Term (Medium Priority)
-11. [ ] Add Comment PROP_TYPES: `task_id`, `discussion_id`, `file_id` (create-only)
-12. [ ] Verify Session resource matches API (check browser/os properties)
-13. [ ] Add high-priority TypeScript interfaces (Project, Task, Client, User, TimeEntry, Invoice)
+11. [x] Add Comment PROP_TYPES: `task_id`, `discussion_id`, `file_id` (create-only) - COMPLETED v0.6.0
+12. [x] Verify Session resource matches API - VERIFIED v0.6.0 (no changes needed)
+13. [x] Add high-priority TypeScript interfaces (Project, Task, Client, User, TimeEntry, Invoice) - COMPLETED v0.6.0
 
 ### TODO - Long Term (Low Priority)
-14. [ ] Add remaining TypeScript interfaces
+14. [ ] Add remaining TypeScript interfaces (Tasklist, Milestone, Expense, Comment, etc.)
 15. [ ] Implement utility helpers (time formatting, currency)
 16. [ ] Consider batch operations
 17. [ ] Consider pagination improvements

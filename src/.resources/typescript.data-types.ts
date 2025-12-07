@@ -305,9 +305,334 @@ export const PAYMO_WEBHOOK_EVENTS = {
 
 export type PaymoWebhookEvent = typeof PAYMO_WEBHOOK_EVENTS[keyof typeof PAYMO_WEBHOOK_EVENTS];
 
-// Forward declarations for referenced types (these would be defined elsewhere)
-declare interface PaymoProject {}
-declare interface PaymoTask {}
-declare interface PaymoUser {}
-declare interface PaymoClient {}
+/**
+ * TypeScript interface for Paymo Project entity.
+ *
+ * Corresponds to: src/Entity/Resource/Project.php
+ * Official API: https://github.com/paymoapp/api/blob/master/sections/projects.md
+ *
+ * Projects are the primary containers for organizing work in Paymo,
+ * containing tasklists, tasks, discussions, files, and time tracking data.
+ *
+ * @see PROP_TYPES in the PHP resource class for authoritative property definitions
+ */
+export interface PaymoProject {
+  // Read-only properties
+  id: number;
+  created_on: string;
+  updated_on: string;
+  task_code_increment: number;
+
+  // Required properties
+  name: string;
+
+  // Optional properties
+  code?: string;
+  description?: string;
+  client_id?: number;
+  status_id?: number;
+  active?: boolean;
+  color?: string;
+  users?: number[];
+  managers?: number[];
+  billable?: boolean;
+  flat_billing?: boolean;
+  price_per_hour?: number;
+  price?: number;
+  estimated_price?: number;
+  hourly_billing_mode?: string;
+  budget_hours?: number;
+  adjustable_hours?: boolean;
+  invoiced?: boolean;
+  invoice_item_id?: number;
+  workflow_id?: number;
+
+  // Included relations (optional - only present when requested)
+  client?: PaymoClient;
+  projectstatus?: PaymoProjectStatus;
+  tasklists?: PaymoTasklist[];
+  tasks?: PaymoTask[];
+  milestones?: PaymoMilestone[];
+  discussions?: PaymoDiscussion[];
+  files?: PaymoFile[];
+  invoiceitem?: PaymoInvoiceItem;
+  workflow?: PaymoWorkflow;
+}
+
+/**
+ * TypeScript interface for Paymo Task entity.
+ *
+ * Corresponds to: src/Entity/Resource/Task.php
+ * Official API: https://github.com/paymoapp/api/blob/master/sections/tasks.md
+ *
+ * Tasks are the fundamental work units in Paymo, belonging to tasklists
+ * within projects.
+ *
+ * @see PROP_TYPES in the PHP resource class for authoritative property definitions
+ */
+export interface PaymoTask {
+  // Read-only properties
+  id: number;
+  created_on: string;
+  updated_on: string;
+  code?: string;
+  project_id: number;
+  completed_on?: string;
+  completed_by?: number;
+
+  // Required properties
+  name: string;
+
+  // Required for creation (one of)
+  tasklist_id?: number;
+  // project_id is also accepted for creation
+
+  // Optional properties
+  seq?: number;
+  description?: string;
+  complete?: boolean;
+  due_date?: string;
+  user_id?: number;
+  users?: number[];
+  billable?: boolean;
+  flat_billing?: boolean;
+  price_per_hour?: number;
+  budget_hours?: number;
+  estimated_price?: number;
+  invoiced?: boolean;
+  invoice_item_id?: number;
+  priority?: 25 | 50 | 75 | 100;
+  status_id?: number;
+  subtasks_order?: number[];
+
+  // Included relations (optional - only present when requested)
+  project?: PaymoProject;
+  tasklist?: PaymoTasklist;
+  user?: PaymoUser;
+  thread?: PaymoThread;
+  entries?: PaymoTimeEntry[];
+  subtasks?: PaymoSubtask[];
+  invoiceitem?: PaymoInvoiceItem;
+  workflowstatus?: PaymoWorkflowStatus;
+}
+
+/**
+ * TypeScript interface for Paymo User entity.
+ *
+ * Corresponds to: src/Entity/Resource/User.php
+ * Official API: https://github.com/paymoapp/api/blob/master/sections/users.md
+ *
+ * Users are team members with access to a Paymo account.
+ *
+ * @see PROP_TYPES in the PHP resource class for authoritative property definitions
+ */
+export interface PaymoUser {
+  // Read-only properties
+  id: number;
+  created_on: string;
+  updated_on: string;
+  image?: string;
+  image_thumb_large?: string;
+  image_thumb_medium?: string;
+  image_thumb_small?: string;
+  is_online?: boolean;
+
+  // Required properties
+  email: string;
+
+  // Optional properties
+  name?: string;
+  type?: 'Admin' | 'Employee';
+  active?: boolean;
+  timezone?: string;
+  phone?: string;
+  skype?: string;
+  position?: string;
+  workday_hours?: number;
+  price_per_hour?: number;
+  date_format?: string;
+  time_format?: string;
+  decimal_sep?: string;
+  thousands_sep?: string;
+  week_start?: number;
+  language?: string;
+  theme?: string;
+  assigned_projects?: number[];
+  managed_projects?: number[];
+  password?: string; // Write-only
+
+  // Included relations (optional - only present when requested)
+  comments?: PaymoComment[];
+  discussions?: PaymoDiscussion[];
+  entries?: PaymoTimeEntry[];
+  expenses?: PaymoExpense[];
+  files?: PaymoFile[];
+  milestones?: PaymoMilestone[];
+  reports?: PaymoReport[];
+}
+
+/**
+ * TypeScript interface for Paymo Client entity.
+ *
+ * Corresponds to: src/Entity/Resource/Client.php
+ * Official API: https://github.com/paymoapp/api/blob/master/sections/clients.md
+ *
+ * Clients are the entities that projects are billed to.
+ *
+ * @see PROP_TYPES in the PHP resource class for authoritative property definitions
+ */
+export interface PaymoClient {
+  // Read-only properties
+  id: number;
+  created_on: string;
+  updated_on: string;
+  active?: boolean;
+  image?: string;
+  image_thumb_large?: string;
+  image_thumb_medium?: string;
+  image_thumb_small?: string;
+
+  // Required properties
+  name: string;
+
+  // Optional properties
+  address?: string;
+  city?: string;
+  postal_code?: string;
+  country?: string;
+  state?: string;
+  phone?: string;
+  fax?: string;
+  email?: string;
+  website?: string;
+  fiscal_information?: string;
+
+  // Included relations (optional - only present when requested)
+  clientcontacts?: PaymoClientContact[];
+  projects?: PaymoProject[];
+  invoices?: PaymoInvoice[];
+  recurringprofiles?: PaymoRecurringProfile[];
+}
+
+/**
+ * TypeScript interface for Paymo TimeEntry (Entry) entity.
+ *
+ * Corresponds to: src/Entity/Resource/TimeEntry.php
+ * Official API: https://github.com/paymoapp/api/blob/master/sections/entries.md
+ *
+ * Time entries are records of time logged against tasks.
+ *
+ * @see PROP_TYPES in the PHP resource class for authoritative property definitions
+ */
+export interface PaymoTimeEntry {
+  // Read-only properties
+  id: number;
+  created_on: string;
+  updated_on: string;
+  project_id: number;
+  is_bulk?: boolean;
+
+  // Required properties
+  task_id: number;
+
+  // Required for creation (one combination):
+  // date + duration (manual entry)
+  // start_time + end_time (timed entry)
+  // user_id + start_time (running timer)
+
+  // Optional properties
+  user_id?: number;
+  start_time?: string;
+  end_time?: string;
+  date?: string;
+  duration?: number; // in seconds
+  description?: string;
+  added_manually?: boolean;
+  billed?: boolean;
+  invoice_item_id?: number;
+
+  // Included relations (optional - only present when requested)
+  task?: PaymoTask;
+  invoiceitem?: PaymoInvoiceItem;
+  user?: PaymoUser;
+}
+
+/**
+ * TypeScript interface for Paymo Invoice entity.
+ *
+ * Corresponds to: src/Entity/Resource/Invoice.php
+ * Official API: https://github.com/paymoapp/api/blob/master/sections/invoices.md
+ *
+ * Invoices are billing documents sent to clients.
+ *
+ * @see PROP_TYPES in the PHP resource class for authoritative property definitions
+ */
+export interface PaymoInvoice {
+  // Read-only properties
+  id: number;
+  created_on: string;
+  updated_on: string;
+  subtotal: number;
+  total: number;
+  tax_amount?: number;
+  tax2_amount?: number;
+  discount_amount?: number;
+  outstanding?: number;
+  permalink?: string;
+  pdf_link?: string;
+  download_token?: string;
+  token?: string;
+  reminder_1_sent?: boolean;
+  reminder_2_sent?: boolean;
+  reminder_3_sent?: boolean;
+
+  // Required properties
+  client_id: number;
+  currency: string;
+
+  // Optional properties
+  number?: string;
+  template_id?: number;
+  status?: 'draft' | 'sent' | 'viewed' | 'paid' | 'void';
+  date?: string;
+  due_date?: string;
+  delivery_date?: string;
+  tax?: number;
+  tax_text?: string;
+  tax2?: number;
+  tax2_text?: string;
+  tax_on_tax?: boolean;
+  discount?: number;
+  discount_text?: string;
+  language?: string;
+  bill_to?: string;
+  company_info?: string;
+  footer?: string;
+  notes?: string;
+  title?: string;
+  pay_online?: boolean;
+
+  // Included relations (optional - only present when requested)
+  client?: PaymoClient;
+  invoiceitems?: PaymoInvoiceItem[];
+  invoicepayments?: PaymoInvoicePayment[];
+  invoicetemplate?: PaymoInvoiceTemplate;
+}
+
+// Forward declarations for types not yet fully defined
+declare interface PaymoProjectStatus {}
+declare interface PaymoTasklist {}
+declare interface PaymoMilestone {}
+declare interface PaymoDiscussion {}
+declare interface PaymoFile {}
+declare interface PaymoInvoiceItem {}
+declare interface PaymoWorkflow {}
+declare interface PaymoWorkflowStatus {}
+declare interface PaymoThread {}
+declare interface PaymoComment {}
+declare interface PaymoExpense {}
+declare interface PaymoReport {}
+declare interface PaymoClientContact {}
+declare interface PaymoInvoicePayment {}
+declare interface PaymoInvoiceTemplate {}
 
