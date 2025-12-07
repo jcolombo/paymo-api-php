@@ -504,7 +504,203 @@ cat tests/validation-results.log | grep -i "discovered\|mismatch\|missing"
 
 ---
 
+### OVERRIDE-006: Client.active Property (Intentionally Read-Only)
+
+**Resource:** Client
+**Type:** Intentional Design Decision
+**Discovery Date:** 2025-12-07
+**Status:** Active
+
+**Official Documentation Contradiction:**
+The API documentation is self-contradictory about the `active` property:
+- Property table explicitly says: `active | boolean | _(read-only)_`
+- BUT also says: "To archive a client, make an update request with `{"active": false}`"
+
+**SDK Implementation:**
+```php
+// In Client.php READONLY
+// @override OVERRIDE-006
+// @see OVERRIDES.md#override-006
+// Intentionally read-only to prevent accidental archive/activate
+'active',
+```
+
+**Rationale:**
+The SDK marks `active` as READONLY which is CORRECT and SAFER behavior because:
+1. The API docs explicitly say it's "read-only" in the property schema
+2. Archiving/activating is a significant action that should be explicit, not accidental
+3. Normal entity updates should NOT accidentally change active status
+4. Users who need to archive/activate should make direct API calls
+
+**Alternative for Users:**
+To archive/activate a client, users should use the Paymo connection directly:
+```php
+$connection->update('clients', $clientId, ['active' => false]);
+```
+
+---
+
+### OVERRIDE-007: API Documentation Gaps - Missing Critical Properties
+
+**Resources:** EstimateItem, InvoiceItem
+**Type:** Documentation Gap
+**Discovery Date:** 2025-12-07
+**Status:** Active
+
+**Official Documentation:**
+The official Paymo API docs OMIT these essential properties from object definitions:
+- `EstimateItem.estimate_id` - Not in API docs, but required to link items to estimates
+- `InvoiceItem.invoice_id` - Not in API docs, but required to link items to invoices
+
+**Evidence:**
+Properties exist and work - verified via live API testing. TODO-LIST.md confirms these as verified properties (lines 279, 316).
+
+**SDK Implementation:**
+```php
+// In EstimateItem.php and InvoiceItem.php PROP_TYPES
+// These properties ARE documented in TODO-LIST.md despite API doc gap
+'estimate_id' => 'resource:estimate',
+'invoice_id'  => 'resource:invoice',
+```
+
+---
+
+### OVERRIDE-008: API Documentation Gaps - Missing Resources
+
+**Resources:** EstimateTemplate, InvoiceTemplate, InvoicePayment, ProjectStatus
+**Type:** Documentation Gap
+**Discovery Date:** 2025-12-07
+**Status:** Active
+
+**Official Documentation:**
+NO documentation files exist in the official Paymo API repo (https://github.com/paymoapp/api) for these endpoints.
+
+**Evidence:**
+Endpoints work - verified via live API testing. SDK implements based on direct API inspection.
+
+**SDK Behavior:**
+Implemented based on observed API responses. Properties marked appropriately in PROP_TYPES.
+
+---
+
+### OVERRIDE-009: API Response Key Anomalies
+
+**Resources:** ProjectTemplate, ProjectTemplateTasklist, ProjectTemplateTask, RecurringProfile
+**Type:** API Behavior Anomaly
+**Discovery Date:** 2025-12-07
+**Status:** Active
+
+**Issue:**
+The API returns JSON with response keys that don't match endpoint names (underscores added).
+
+**Examples:**
+| Endpoint | Response Key |
+|----------|-------------|
+| `/projecttemplates` | `project_templates` |
+| `/projecttemplatestasklists` | `project_templates_tasklists` |
+| `/projecttemplatestasks` | `project_templates_tasks` |
+| `/recurringprofiles` | `recurring_profiles` |
+
+**SDK Implementation:**
+```php
+// In affected resource files
+// @override OVERRIDE-009
+// @see OVERRIDES.md#override-009
+public const API_RESPONSE_KEY = 'project_templates'; // differs from endpoint
+```
+
+---
+
+### OVERRIDE-010: Gallery Response Key Anomalies
+
+**Resources:** EstimateTemplateGallery, InvoiceTemplateGallery
+**Type:** API Behavior Anomaly
+**Discovery Date:** 2025-12-07
+**Status:** Active
+
+**Issue:**
+These gallery endpoints return data under unconventional keys prefixed with colons.
+
+**SDK Implementation:**
+```php
+// In EstimateTemplateGallery.php and InvoiceTemplateGallery.php
+// @override OVERRIDE-010
+// @see OVERRIDES.md#override-010
+public function getResponseKey(): string
+{
+    return ':estimatetemplates'; // or ':invoicetemplates'
+}
+```
+
+---
+
+### OVERRIDE-011: Undocumented Properties (Intentionally Captured)
+
+**Affected Resources:** Multiple (Company, Booking, Task, User, Report, Invoice, etc.)
+**Type:** SDK Design Decision
+**Discovery Date:** 2025-12-07
+**Status:** Active
+
+**Policy:**
+The SDK intentionally captures ALL properties returned by the API, including undocumented ones, because:
+1. The Paymo API documentation hasn't been updated since 2022
+2. Paymo continues to release new features monthly
+3. Removing properties would break users who rely on them
+4. Capturing all data provides complete API coverage
+
+**SDK Implementation:**
+Undocumented properties are:
+- Added to PROP_TYPES with appropriate type
+- Marked with `// Undocumented Props` comment
+- Placed in READONLY array (cannot be set by users)
+
+**Examples:**
+```php
+// In Task.php
+  // Undocumented props set to readonly
+'cover_file_id',
+'price',
+'start_date',
+'recurring_profile_id',
+'billing_type'
+```
+
+---
+
+### OVERRIDE-012: Deprecated Properties (Intentionally Included)
+
+**Resource:** RecurringProfile
+**Property:** `language`
+**Type:** Deprecated Property Retention
+**Discovery Date:** 2025-12-07
+**Status:** Active
+
+**Official Documentation:**
+> `language: _(deprecated)_ Invoice language (Use invoice templates instead)`
+
+**SDK Implementation:**
+```php
+// In RecurringProfile.php
+// @override OVERRIDE-012
+// @see OVERRIDES.md#override-012
+'language' => 'text'  // Deprecated - use invoice templates instead
+```
+
+**Rationale:**
+Property included for backwards compatibility despite deprecation. Placed in READONLY to prevent users from setting deprecated values.
+
+---
+
 ## Changelog
+
+### 2025-12-07 - Gemini/Codex Audit Response
+- Added OVERRIDE-006: Client.active intentional read-only
+- Added OVERRIDE-007: EstimateItem/InvoiceItem missing critical properties in docs
+- Added OVERRIDE-008: Missing resource documentation
+- Added OVERRIDE-009: API response key anomalies
+- Added OVERRIDE-010: Gallery response key anomalies
+- Added OVERRIDE-011: Undocumented properties policy
+- Added OVERRIDE-012: Deprecated property retention
 
 ### 2024-12 - Initial Setup
 - Created OVERRIDES.md structure

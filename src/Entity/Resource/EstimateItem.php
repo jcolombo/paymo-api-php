@@ -219,7 +219,6 @@ class EstimateItem extends AbstractResource
      * Property type definitions for validation and hydration.
      *
      * price_unit and quantity use decimal for currency/unit precision.
-     * Note: estimate_id is undocumented but functional.
      *
      * @var array<string, string>
      */
@@ -233,7 +232,6 @@ class EstimateItem extends AbstractResource
       'quantity'    => 'decimal',
       'apply_tax'   => 'boolean',
       'seq'         => 'integer',
-        // Undocumented Props
       'estimate_id' => 'resource:estimate'
     ];
 

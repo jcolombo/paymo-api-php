@@ -242,14 +242,12 @@ class Invoice extends AbstractResource
       'total',
       'tax_amount',
       'tax2_amount',
-      'invoice_id',
       'permalink',
       'pdf_link',
       'language', // Deprecated - now in templates
       'reminder_1_sent',
       'reminder_2_sent',
       'reminder_3_sent',
-        // Undocumented
       'discount_amount',
       'download_token'
     ];
@@ -319,11 +317,11 @@ class Invoice extends AbstractResource
       'permalink'       => 'url',
       'pdf_link'        => 'url',
       'delivery_date'   => 'date',
-        // Undocumented Props
       'download_token'  => 'text',
+      'token'           => 'text',
+        // Undocumented Props
       'active'          => 'boolean',
-      'options'         => 'object',
-      'token'           => 'text'
+      'options'         => 'object'
     ];
 
     /**

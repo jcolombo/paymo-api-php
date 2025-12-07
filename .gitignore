@@ -1,2 +1,7 @@
 /vendor/
 /tests/validate-docker
+/tests/validation-results.log
+
+/CLAUDEPLAN.md
+/CODEXNOTES.md
+/GEMININOTES.md

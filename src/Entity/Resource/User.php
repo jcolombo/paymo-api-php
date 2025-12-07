@@ -37,7 +37,7 @@
  * KEY FEATURES:
  * -------------
  * - Full CRUD operations (create, read, update, delete)
- * - Two user types: Admin and Employee
+ * - Three user types: Admin, Employee, and Guest
  * - Personal profile management (contact, timezone, preferences)
  * - Hourly billing rate configuration
  * - Project assignment tracking
@@ -50,7 +50,7 @@
  * - id: Unique user identifier (read-only)
  * - name: User's display name
  * - email: Email address (required for creation)
- * - type: User role (Admin or Employee)
+ * - type: User role (Admin, Employee, or Guest)
  * - active: Whether user account is active
  * - password: Password (write-only, for creation/update)
  *
@@ -177,7 +177,7 @@ use Jcolombo\PaymoApiPhp\Entity\AbstractResource;
  * @property int    $id                  Unique user ID (read-only)
  * @property string $name                User's display name
  * @property string $email               Email address (required)
- * @property string $type                User type (Admin|Employee)
+ * @property string $type                User type (Admin|Employee|Guest)
  * @property bool   $active              Whether user is active
  * @property string $timezone            Timezone identifier
  * @property string $phone               Phone number

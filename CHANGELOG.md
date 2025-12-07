@@ -19,6 +19,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - PaymoCommentThread
 
 ### Fixed
+- **Invoice.php** - Removed erroneous `invoice_id` from READONLY (copy-paste error from Estimate.php)
+- **RecurringProfile.php** - Added missing `language` property to PROP_TYPES and READONLY (deprecated but documented)
+- **RecurringProfile.php** - Added `API_RESPONSE_KEY` for underscore response key handling
 - **ProjectTemplate.php** - Added missing `project_id` to PROP_TYPES (was in CREATEONLY but not typed)
 - **typescript.data-types.ts** - Fixed `hours_per_date` typo → `hours_per_day` in PaymoBooking
 - **typescript.data-types.ts** - Added missing `Guest` option to PaymoUser.type enum
@@ -31,6 +34,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Report.php** - Removed invalid `||resource:workflowstatus` from `projects` filter type
 - **TaskRecurringProfile.php** - Changed `collection:user` to `collection:users` for consistency with other resources
 - **BookingCollection.php** - Added `date_interval` to allowed filters per official API docs
+
+### Changed
+- **Estimate.php** - Removed outdated "Undocumented" comments from `discount_amount`, `download_token`
+- **EstimateItem.php** - Removed outdated "Undocumented" comment from `estimate_id`
+- **Invoice.php** - Reorganized PROP_TYPES to separate documented from truly undocumented properties
+- **InvoiceItem.php** - Removed outdated "Undocumented" comment from `invoice_id`
+- **Task.php** - Reorganized READONLY and PROP_TYPES to properly categorize documented vs undocumented
+- **Expense.php** - Fixed PHPDoc: removed non-existent `name` property, corrected `user_id`/`invoice_item_id` read-only annotations
+- **User.php** - Updated PHPDoc to include `Guest` in user type descriptions
+
+### Documentation
+- **OVERRIDES.md** - Added OVERRIDE-006 through OVERRIDE-012 documenting intentional SDK deviations:
+  - OVERRIDE-006: Client.active intentionally read-only
+  - OVERRIDE-007: EstimateItem/InvoiceItem critical property documentation gaps
+  - OVERRIDE-008: Missing resource documentation (templates, payments, status)
+  - OVERRIDE-009: API response key anomalies (underscores)
+  - OVERRIDE-010: Gallery response key anomalies (colon prefix)
+  - OVERRIDE-011: Undocumented properties policy
+  - OVERRIDE-012: Deprecated property retention (RecurringProfile.language)
 
 ---
 

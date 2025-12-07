@@ -236,7 +236,6 @@ class InvoiceItem extends AbstractResource
      * Property type definitions for validation and hydration.
      *
      * price_unit and quantity use decimal for currency/unit precision.
-     * Note: invoice_id is undocumented but functional.
      *
      * @var array<string, string>
      */
@@ -252,7 +251,6 @@ class InvoiceItem extends AbstractResource
       'seq'         => 'integer',
       'expense_id'  => 'resource:expense',
       'entries'     => 'array',   // Array of entry IDs to mark as billed
-        // Undocumented Props
       'invoice_id'  => 'resource:invoice'
     ];
 

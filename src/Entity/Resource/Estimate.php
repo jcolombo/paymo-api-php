@@ -249,7 +249,6 @@ class Estimate extends AbstractResource
       'permalink',
       'pdf_link',
       'language', // Added to readonly since it has been deprecated
-        // Undocumented
       'discount_amount',
       'download_token'
     ];
@@ -320,7 +319,6 @@ class Estimate extends AbstractResource
       'discount'          => 'decimal',
       'discount_amount'   => 'decimal',
       'discount_text'     => 'text',
-        // Undocumented Props
       'download_token'    => 'text'
     ];
 

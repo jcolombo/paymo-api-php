@@ -238,10 +238,10 @@ class Task extends AbstractResource
       'project_id', // Set by tasklist, can only be set via create with project_id
       'completed_on',
       'completed_by',
+      'invoiced',
         // Undocumented props set to readonly
       'cover_file_id',
       'price',
-      'invoiced',
       'start_date',
       'recurring_profile_id',
       'billing_type'
@@ -313,9 +313,9 @@ class Task extends AbstractResource
       'priority'             => 'intEnum:25|50|75|100',
       'status_id'            => 'resource:workflowstatus',
       'subtasks_order'       => 'array',   // Array of subtask IDs for reordering
-        // Undocumented Props
       'completed_on'         => 'datetime',
       'completed_by'         => 'resource:user',
+        // Undocumented Props
       'cover_file_id'        => 'resource:file',
       'price'                => 'decimal',
       'start_date'           => 'date',

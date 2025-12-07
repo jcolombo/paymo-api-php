@@ -155,17 +155,16 @@ use Jcolombo\PaymoApiPhp\Entity\AbstractResource;
  * @package Jcolombo\PaymoApiPhp\Entity\Resource
  *
  * @property int    $id                  Unique expense ID (read-only)
- * @property string $name                Expense name/description
  * @property int    $client_id           Associated client ID (required)
  * @property int    $project_id          Associated project ID
- * @property int    $user_id             Creator user ID (read-only)
+ * @property int    $user_id             Creator user ID
  * @property float  $amount              Expense amount (required)
  * @property string $currency            Currency code (required)
  * @property string $date                Expense date (YYYY-MM-DD)
  * @property string $notes               Additional notes
  * @property array  $tags                Categorization tags
- * @property bool   $invoiced            Whether expense is billed
- * @property int    $invoice_item_id     Invoice item ID (read-only)
+ * @property bool   $invoiced            Whether expense is billed (read-only)
+ * @property int    $invoice_item_id     Invoice item ID when billed
  * @property string $file                Receipt file URL (read-only)
  * @property string $image_thumb_small   Small thumbnail URL (read-only)
  * @property string $image_thumb_medium  Medium thumbnail URL (read-only)

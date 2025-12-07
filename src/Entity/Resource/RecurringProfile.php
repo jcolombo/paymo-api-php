@@ -223,6 +223,16 @@ class RecurringProfile extends AbstractResource
     public const API_PATH = 'recurringprofiles';
 
     /**
+     * API response JSON key (differs from endpoint path).
+     *
+     * @override OVERRIDE-009
+     * @see OVERRIDES.md#override-009
+     *
+     * @var string
+     */
+    public const API_RESPONSE_KEY = 'recurring_profiles';
+
+    /**
      * Properties required when creating a new recurring profile.
      *
      * @var array<string>
@@ -246,7 +256,8 @@ class RecurringProfile extends AbstractResource
         'tax2_amount',
         'discount_amount',
         'invoices_created',
-        'last_created'
+        'last_created',
+        'language'  // Deprecated - use invoice templates instead
     ];
 
     /**
@@ -303,7 +314,8 @@ class RecurringProfile extends AbstractResource
         'notes'            => 'text',
         'pay_online'       => 'boolean',
         'send_attachment'  => 'boolean',
-        'options'          => 'object'
+        'options'          => 'object',
+        'language'         => 'text'  // Deprecated - use invoice templates instead
     ];
 
     /**
