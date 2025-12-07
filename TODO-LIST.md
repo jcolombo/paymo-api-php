@@ -1,8 +1,8 @@
 # Paymo API PHP SDK - TODO List
 
-**Comprehensive Analysis vs Official Paymo API Documentation**
+**Verified Against Official Paymo API Documentation**
 Source: https://github.com/paymoapp/api
-Last Updated: December 2025
+Last Verified: December 2025
 
 ---
 
@@ -22,7 +22,7 @@ Last Updated: December 2025
 12. [Tasklist Resource](#12-tasklist-resource)
 13. [Milestone Resource](#13-milestone-resource)
 14. [Booking Resource](#14-booking-resource)
-15. [TaskAssignment Resource](#15-taskassignment-resource)
+15. [TaskAssignment (UserTask) Resource](#15-taskassignment-usertask-resource)
 16. [Workflow Resource](#16-workflow-resource)
 17. [WorkflowStatus Resource](#17-workflowstatus-resource)
 18. [File Resource](#18-file-resource)
@@ -31,717 +31,652 @@ Last Updated: December 2025
 21. [ClientContact Resource](#21-clientcontact-resource)
 22. [Report Resource](#22-report-resource)
 23. [Company Resource](#23-company-resource)
-24. [Templates](#24-templates)
-25. [Missing WHERE/Filter Operations](#25-missing-wherefilter-operations)
-26. [Missing Include Relations](#26-missing-include-relations)
-27. [Utility/Helper Features](#27-utilityhelper-features)
-28. [Architecture Improvements](#28-architecture-improvements)
+24. [Session Resource](#24-session-resource)
+25. [InvoicePayment Resource](#25-invoicepayment-resource)
+26. [ProjectStatus Resource](#26-projectstatus-resource)
+27. [TypeScript Interfaces](#27-typescript-interfaces)
+28. [Utility/Helper Features](#28-utilityhelper-features)
+29. [Architecture Improvements](#29-architecture-improvements)
 
 ---
 
 ## 1. Missing Resources (Not Implemented)
 
-### HIGH PRIORITY - Completely Missing Entities
+### Completed in v0.6.0
 
 #### 1.1 Subtask Resource
-**API Endpoint:** `subtasks`
-**Status:** ✅ IMPLEMENTED (v0.6.0)
+**Status:** IMPLEMENTED (v0.6.0)
 **File:** `src/Entity/Resource/Subtask.php`
-**Priority:** Medium
 
-The Subtask resource has been implemented with full CRUD operations.
+**Verified Properties (from API):**
+- `id`, `name`, `complete`, `project_id`, `user_id`, `task_id`, `seq`
+- `completed_on`, `completed_by`, `created_on`, `updated_on`
 
-**Implemented Properties:**
-- `id` (integer, read-only)
-- `name` (text, required)
-- `task_id` (resource:task, required)
-- `project_id` (resource:project, read-only)
-- `complete` (boolean)
-- `seq` (integer) - order within task
-- `user_id` (resource:user) - creator/assigned user
-- `completed_on` (datetime, read-only)
-- `completed_by` (resource:user, read-only)
-- `created_on` (datetime, read-only)
-- `updated_on` (datetime, read-only)
-
-**Implemented Includes:**
-- `project` (false) - parent project
-- `task` (false) - parent task
-- `user` (false) - assigned user
-
-**Note:** `due_date` was listed in original TODO but not found in official API documentation.
-Subtask reordering is handled via the parent Task's `subtasks_order` property.
-
-**Related Updates:**
-- Task resource now includes `subtasks` in INCLUDE_TYPES
-- Task resource now has `subtasks_order` property for reordering
-- TypeScript interface added: `PaymoSubtask`
-- EntityMap updated with subtask/subtasks entries
+**Verified Includes:** project, task, user
 
 ---
 
 #### 1.2 Invoice Recurring Profile Resource
-**API Endpoint:** `recurringprofiles`
-**Status:** ✅ IMPLEMENTED (v0.6.0)
+**Status:** IMPLEMENTED (v0.6.0)
 **Files:** `src/Entity/Resource/RecurringProfile.php`, `src/Entity/Resource/RecurringProfileItem.php`
-**Priority:** High
 
-Invoice recurring profiles for automated billing have been implemented with full CRUD operations.
+**Verified Properties (from API):**
+- Profile: `id`, `client_id`, `template_id`, `currency`, `start_date`, `frequency`, `occurrences`, `last_created`, `invoices_created`, `autosend`, `subtotal`, `total`, `tax`, `tax_amount`, `tax2`, `tax2_amount`, `discount`, `discount_amount`, `tax_on_tax`, `language`, `bill_to`, `company_info`, `footer`, `notes`, `tax_text`, `tax2_text`, `discount_text`, `title`, `pay_online`, `created_on`, `updated_on`
+- Item: `id`, `recurring_profile_id`, `item`, `description`, `price_unit`, `quantity`, `apply_tax`, `seq`, `created_on`, `updated_on`
 
-**Implemented Properties (RecurringProfile):**
-- `id` (integer, read-only)
-- `client_id` (resource:client, required)
-- `currency` (text, required)
-- `frequency` (enum: w|2w|3w|4w|m|2m|3m|6m|y, required)
-- `start_date` (date, required)
-- `template_id` (resource:invoicetemplate)
-- `title` (text)
-- `subtotal`, `total` (decimal, read-only)
-- `tax`, `tax_amount`, `tax_text` (tax fields)
-- `tax2`, `tax2_amount`, `tax2_text` (secondary tax fields)
-- `tax_on_tax` (boolean)
-- `discount`, `discount_amount`, `discount_text` (discount fields)
-- `occurrences`, `invoices_created`, `last_created` (schedule tracking)
-- `autosend`, `pay_online`, `send_attachment` (settings)
-- `bill_to`, `company_info`, `footer`, `notes` (text blocks)
-- `options` (object)
-- `created_on`, `updated_on` (datetime, read-only)
+**Verified Frequency Values:** w, 2w, 3w, 4w, m, 2m, 3m, 6m, y
 
-**Implemented Properties (RecurringProfileItem):**
-- `id` (integer, read-only)
-- `recurring_profile_id` (resource:recurringprofile, required)
-- `item` (text, required)
-- `description` (text)
-- `price_unit` (decimal, required)
-- `quantity` (decimal, required)
-- `apply_tax` (boolean)
-- `seq` (integer)
-- `created_on`, `updated_on` (datetime, read-only)
-
-**Implemented Includes:**
-- RecurringProfile: `client` (false), `recurringprofileitems` (true)
-- RecurringProfileItem: `recurringprofile` (false)
-
-**Note:** Original TODO listed properties that don't match official API documentation.
-Actual frequency values are abbreviated codes (w, 2w, m, etc.).
-Invoices are generated daily at 9 AM UTC.
-
-**Related Updates:**
-- Client resource already had `recurringprofiles` in INCLUDE_TYPES
-- TypeScript interfaces added: `PaymoRecurringProfile`, `PaymoRecurringProfileItem`
-- EntityMap updated with all four entries (singular/plural for both resources)
+**Verified Includes:** client, recurringprofileitems, recurringprofile (for items)
 
 ---
 
 #### 1.3 Task Recurring Profile Resource
-**API Endpoint:** `taskrecurringprofiles`
-**Status:** ✅ IMPLEMENTED (v0.6.0)
+**Status:** IMPLEMENTED (v0.6.0)
 **File:** `src/Entity/Resource/TaskRecurringProfile.php`
-**Priority:** Medium
 
-Task recurring profiles for automated task creation have been implemented with full CRUD operations.
+**Verified Properties (from API):**
+- `id`, `name`, `code`, `project_id`, `tasklist_id`, `user_id`, `task_user_id`, `company_id`
+- `billable`, `flat_billing`, `description`, `price_per_hour`, `estimated_price`, `budget_hours`
+- `users`, `priority`, `notifications`, `frequency`, `interval`, `on_day`, `occurrences`, `until`
+- `active`, `due_date_offset`, `recurring_start_date`, `generated_count`, `last_generated_on`
+- `next_processing_date`, `processing_timezone`, `processing_hour`, `created_on`, `updated_on`
 
-**Implemented Properties:**
-- `id` (integer, read-only)
-- `name` (text, required)
-- `code` (text)
-- `project_id` (resource:project, required unless task_id)
-- `tasklist_id` (resource:tasklist)
-- `task_id` (resource:task, create-only, imports settings from task)
-- `user_id`, `task_user_id` (resource:user, read-only)
-- `company_id` (resource:company)
-- `billable`, `flat_billing` (boolean)
-- `description` (text)
-- `price_per_hour`, `estimated_price`, `budget_hours` (decimal)
-- `users` (collection:user)
-- `priority` (intEnum:25|50|75|100)
-- `notifications` (text, JSON format)
-- `frequency` (enum: daily|weekly|monthly, required)
-- `interval` (integer, required)
-- `on_day` (text, for monthly)
-- `occurrences`, `until` (schedule limits)
-- `active` (boolean)
-- `due_date_offset` (integer)
-- `recurring_start_date` (date, required)
-- `generated_count`, `last_generated_on`, `next_processing_date` (read-only)
-- `processing_timezone`, `processing_hour` (text)
-- `created_on`, `updated_on` (datetime, read-only)
+**Verified Frequency Values:** daily, weekly, monthly
 
-**Implemented Includes:**
-- `project` (false)
-
-**Note:** Original TODO listed different property names. Actual API uses:
-- `name` instead of `task_name`
-- `frequency` values are: daily, weekly, monthly (not biweekly, quarterly, etc.)
-- `interval` property controls "every N periods"
-
-**Related Updates:**
-- Task resource already references `recurring_profile_id`
-- TypeScript interface added: `PaymoTaskRecurringProfile`
-- EntityMap updated with taskrecurringprofile/taskrecurringprofiles entries
+**Verified Includes:** project
 
 ---
 
 #### 1.4 Webhook/Hook Resource
-**API Endpoint:** `hooks`
-**Status:** ✅ IMPLEMENTED (v0.6.0)
+**Status:** IMPLEMENTED (v0.6.0)
 **File:** `src/Entity/Resource/Webhook.php`
-**Priority:** Medium
 
-Webhooks for real-time notifications have been implemented with full CRUD operations.
+**Verified Properties (from API):**
+- `id`, `target_url`, `last_status_code`, `event`, `where`, `created_on`, `updated_on`
+- `secret` (write-only, never returned in responses)
 
-**Implemented Properties:**
-- `id` (integer, read-only)
-- `target_url` (url, required) - webhook endpoint
-- `event` (text, required) - event type pattern
-- `where` (text) - filter conditions
-- `secret` (text) - HMAC signing secret (write-only, never returned)
-- `last_status_code` (integer, read-only) - last HTTP response status
-- `created_on`, `updated_on` (datetime, read-only)
+**Verified Event Types:**
+- model.insert.{Entity}, model.update.{Entity}, model.delete.{Entity}
+- model.start.Entry, model.stop.Entry
+- Wildcards: *, model.insert.*, *.Task
 
-**Available Events:**
-Actions:
-- `model.insert.{Entity}` - when entity is created
-- `model.update.{Entity}` - when entity is updated
-- `model.delete.{Entity}` - when entity is deleted
-- `timer.start.Entry` - when timer starts
-- `timer.stop.Entry` - when timer stops
-
-Wildcards:
-- `*` - all events
-- `model.insert.*` - all insert events
-- `*.Task` - all task events
-
-**Event Constants:** PHP class includes 25+ event constants for type safety.
-
-**Special Features:**
-- HMAC-SHA1 signature verification via `secret` property
-- Conditional filtering with `where` parameter
-- Auto-deletion on HTTP 410 responses
-- Webhook headers: X-Paymo-Webhook, X-Paymo-Event, X-Paymo-Signature
-
-**Related Updates:**
-- TypeScript interface added: `PaymoWebhook`
-- TypeScript event constants: `PAYMO_WEBHOOK_EVENTS`
-- EntityMap updated with hook/hooks entries
+**Entities:** Client, ClientContact, Project, Tasklist, Task, Invoice, InvoicePayment, Entry, Milestone, Report, Expense, Estimate, Comment, User, Booking
 
 ---
 
-### MEDIUM PRIORITY - Partially Implemented
-
-#### 1.5 Session Resource
-**API Endpoint:** `sessions`
-**Status:** EXISTS BUT MINIMAL
+### 1.5 Session Resource
+**Status:** EXISTS - Verify Completeness
 **File:** `src/Entity/Resource/Session.php`
 
-The Session resource exists but needs review for completeness.
+**Verified Properties (from API):**
+- `id`, `ip`, `expires_on`, `created_on`, `updated_on`, `user_id`
 
-**Verify Properties Match API:**
-- `id` (integer)
-- `ip` (text)
-- `browser` (text)
-- `os` (text)
-- `expires_on` (datetime)
-- `created_on` (datetime)
+**Note:** No browser/os properties in API - verify if SDK has incorrect properties.
 
 ---
 
 ## 2. Project Resource
 
 **File:** `src/Entity/Resource/Project.php`
-**Status:** Mostly Complete
+**Status:** COMPLETE
 
-### 2.1 Missing Properties
+### 2.1 Verified Properties (from API)
+All these properties exist in the official API:
+- `id`, `name`, `code`, `task_code_increment`, `description`, `client_id`, `status_id`
+- `active`, `color`, `users`, `managers`, `billable`, `flat_billing`, `price_per_hour`
+- `price`, `estimated_price`, `hourly_billing_mode`, `budget_hours`, `adjustable_hours`
+- `invoiced`, `invoice_item_id`, `workflow_id`, `created_on`, `updated_on`
 
-| Property | Type | Notes |
-|----------|------|-------|
-| `start_date` | date | Project start date - NOT IN PROP_TYPES |
-| `end_date` | date | Project end date - NOT IN PROP_TYPES |
-| `budget` | decimal | Money budget (not just hours) - NOT IN PROP_TYPES |
-| `budget_value` | decimal | Budget value - NOT IN PROP_TYPES |
-| `progress` | integer | Project completion percentage (0-100) - NOT IN PROP_TYPES |
-| `completed_on` | datetime | When project was completed - NOT IN PROP_TYPES |
+### 2.2 Fixed Issues
+- [x] `workflow_id` type was `resource:milestone`, now `resource:workflow` (FIXED v0.6.0)
 
-### 2.2 Incorrect Type Mappings
+### 2.3 Verified Includes (from API)
+- client, projectstatus, tasklists, tasks, milestones, discussions, files, invoiceitem, workflow
 
-| Property | Current | Should Be |
-|----------|---------|-----------|
-| `workflow_id` | `resource:milestone` | `resource:workflow` |
+**Note:** The API also mentions `tasks.entries` for nested time entries through tasks.
 
-### 2.3 Missing Includes
-
-| Include | Is Collection | Notes |
-|---------|---------------|-------|
-| `entries` | true | Time entries for project |
-| `expenses` | true | Expenses for project |
-| `bookings` | true | Resource bookings |
-| `comments` | true | Project comments |
-
-### 2.4 Missing WHERE Operations
-
-```php
-// Add to WHERE_OPERATIONS
-'client_id' => ['=', '!=', 'in', 'not in'],
-'status_id' => ['=', '!=', 'in', 'not in'],
-'workflow_id' => ['=', '!='],
-'created_on' => ['=', '!=', '>', '<', '>=', '<='],
-'updated_on' => ['=', '!=', '>', '<', '>=', '<='],
-```
+### 2.4 Properties NOT in API (Do NOT add)
+The following were previously listed as missing but DO NOT exist in the official API:
+- ~~start_date~~ - NOT IN API
+- ~~end_date~~ - NOT IN API
+- ~~budget~~ - NOT IN API (budget_hours exists)
+- ~~budget_value~~ - NOT IN API
+- ~~progress~~ - NOT IN API
+- ~~completed_on~~ - NOT IN API
 
 ---
 
 ## 3. Task Resource
 
 **File:** `src/Entity/Resource/Task.php`
-**Status:** Good, Minor Gaps
+**Status:** COMPLETE
 
-### 3.1 Missing Properties
+### 3.1 Verified Properties (from API)
+All these properties exist in the official API:
+- `id`, `name`, `code`, `project_id`, `tasklist_id`, `seq`, `description`
+- `complete`, `completed_on`, `completed_by`, `due_date`, `user_id`, `users`
+- `billable`, `flat_billing`, `price_per_hour`, `budget_hours`, `estimated_price`
+- `invoiced`, `invoice_item_id`, `priority`, `status_id`, `created_on`, `updated_on`
 
-| Property | Type | Notes |
-|----------|------|-------|
-| `time_estimate` | integer | Estimated time in seconds |
-| `progress` | integer | Task completion percentage (0-100) |
-| `subtasks_complete` | integer | Count of completed subtasks (read-only) |
-| `subtasks_total` | integer | Total subtasks count (read-only) |
-| `files_count` | integer | Attached files count (read-only) |
-| `comments_count` | integer | Comments count (read-only) |
+### 3.2 Recent Updates (v0.6.0)
+- [x] Added `subtasks` to INCLUDE_TYPES
+- [x] Added `subtasks_order` to PROP_TYPES for reordering subtasks
 
-### 3.2 Missing Includes
+### 3.3 Verified Includes (from API)
+- project, tasklist, user, thread, entries, subtasks, invoiceitem, workflowstatus
 
-| Include | Is Collection | Notes |
-|---------|---------------|-------|
-| `subtasks` | true | Task subtasks/checklist |
-| `files` | true | Attached files |
-| `comments` | true | Task comments |
-| `bookings` | true | Resource bookings |
+### 3.4 Properties NOT in API (Do NOT add)
+The following were previously listed as missing but DO NOT exist in the official API:
+- ~~time_estimate~~ - NOT IN API
+- ~~progress~~ - NOT IN API
+- ~~subtasks_complete~~ - NOT IN API
+- ~~subtasks_total~~ - NOT IN API
+- ~~files_count~~ - NOT IN API
+- ~~comments_count~~ - NOT IN API
 
-### 3.3 Missing WHERE Operations
-
-```php
-'tasklist_id' => ['=', '!=', 'in', 'not in'],
-'user_id' => ['=', '!=', 'in', 'not in'],
-'status_id' => ['=', '!=', 'in', 'not in'],
-'due_date' => ['=', '!=', '>', '<', '>=', '<='],
-'complete' => ['=', '!='],
-'priority' => ['=', '!=', '>', '<', '>=', '<=', 'in', 'not in'],
-```
+### 3.5 Includes NOT in API (Do NOT add)
+- ~~files~~ - NOT IN API
+- ~~comments~~ - NOT IN API (use thread instead)
+- ~~bookings~~ - NOT IN API
 
 ---
 
 ## 4. TimeEntry Resource
 
 **File:** `src/Entity/Resource/TimeEntry.php`
-**Status:** Good
+**Status:** COMPLETE
 
-### 4.1 Missing Properties
+### 4.1 Verified Properties (from API)
+- `id`, `project_id`, `task_id`, `user_id`, `is_bulk`, `start_time`, `end_time`
+- `date`, `duration`, `description`, `added_manually`, `billed`, `invoice_item_id`
+- `created_on`, `updated_on`
 
-| Property | Type | Notes |
-|----------|------|-------|
-| `billable` | boolean | Whether entry is billable (separate from task billable) |
+### 4.2 Verified Includes (from API)
+- task, invoiceitem, user
 
-### 4.2 Missing Includes
+### 4.3 Properties NOT in API (Do NOT add)
+- ~~billable~~ - NOT IN API (entries inherit billable from their parent task)
 
-| Include | Is Collection | Notes |
-|---------|---------------|-------|
-| `project` | false | Parent project |
-
-### 4.3 WHERE Operations Improvements
-
-```php
-// More operations for time_interval
-'time_interval' => ['in', '='],
-'user_id' => ['=', '!=', 'in', 'not in'],
-'task_id' => ['=', '!=', 'in', 'not in'],
-'project_id' => ['=', '!=', 'in', 'not in'],
-'billed' => ['=', '!='],
-```
+### 4.4 Includes NOT in API (Do NOT add)
+- ~~project~~ - NOT IN API (get project through task include)
 
 ---
 
 ## 5. Client Resource
 
 **File:** `src/Entity/Resource/Client.php`
-**Status:** Good, Minor Gaps
+**Status:** COMPLETE
 
-### 5.1 Missing Properties
+### 5.1 Verified Properties (from API)
+- `id`, `name`, `address`, `city`, `postal_code`, `country`, `state`
+- `phone`, `fax`, `email`, `website`, `active`, `fiscal_information`
+- `created_on`, `updated_on`, `image`, `image_thumb_large`, `image_thumb_medium`, `image_thumb_small`
 
-| Property | Type | Notes |
-|----------|------|-------|
-| `currency` | text | Client default currency |
-| `vat_id` | text | VAT identification number |
-| `language` | text | Preferred language |
+### 5.2 Verified Includes (from API)
+- clientcontacts, projects, invoices, recurringprofiles
 
-### 5.2 Missing Includes
+### 5.3 Properties NOT in API (Do NOT add)
+- ~~currency~~ - NOT IN API
+- ~~vat_id~~ - NOT IN API
+- ~~language~~ - NOT IN API
 
-| Include | Is Collection | Notes |
-|---------|---------------|-------|
-| `entries` | true | Time entries for client |
-| `expenses` | true | Expenses for client |
-| `estimates` | true | Estimates for client |
+### 5.4 Includes NOT in API (Do NOT add)
+- ~~entries~~ - NOT IN API
+- ~~expenses~~ - NOT IN API
+- ~~estimates~~ - NOT IN API
 
 ---
 
 ## 6. Invoice Resource
 
 **File:** `src/Entity/Resource/Invoice.php`
-**Status:** Good
+**Status:** COMPLETE
 
-### 6.1 Missing Properties
+### 6.1 Verified Properties (from API)
+- `id`, `number`, `client_id`, `template_id`, `status`, `currency`, `date`, `due_date`
+- `subtotal`, `total`, `tax`, `tax_amount`, `tax2`, `tax2_amount`, `discount`, `discount_amount`
+- `tax_on_tax`, `language`, `bill_to`, `company_info`, `footer`, `notes`, `outstanding`
+- `tax_text`, `tax2_text`, `discount_text`, `title`, `delivery_date`, `pay_online`
+- `reminder_1_sent`, `reminder_2_sent`, `reminder_3_sent`, `permalink`, `pdf_link`
+- `download_token`, `token`, `created_on`, `updated_on`
 
-| Property | Type | Notes |
-|----------|------|-------|
-| `viewed_on` | datetime | When client first viewed (read-only) |
-| `sent_on` | datetime | When invoice was sent (read-only) |
-| `paid_on` | datetime | When invoice was fully paid (read-only) |
-| `last_reminder_sent_on` | datetime | Last reminder date (read-only) |
+### 6.2 Verified Includes (from API)
+- client, invoiceitems, invoicepayments, invoicetemplate
 
-### 6.2 Missing Special Actions
+**Additional includes from API:** entries, expense, projects, tasks (for invoice items)
 
-The API supports special actions for invoices that we don't implement:
+### 6.3 Properties NOT in API (Do NOT add)
+- ~~viewed_on~~ - NOT IN API
+- ~~sent_on~~ - NOT IN API
+- ~~paid_on~~ - NOT IN API
+- ~~last_reminder_sent_on~~ - NOT IN API
 
-```
-POST /api/invoices/{id}/send - Send invoice email
-POST /api/invoices/{id}/remind - Send payment reminder
-POST /api/invoices/{id}/mark_as_sent - Mark as sent without email
-POST /api/invoices/{id}/mark_as_paid - Mark as fully paid
-```
+### 6.4 Special Actions NOT in API
+The following endpoints are NOT documented in the current API:
+- ~~POST /api/invoices/{id}/send~~ - NOT DOCUMENTED
+- ~~POST /api/invoices/{id}/remind~~ - NOT DOCUMENTED
+- ~~POST /api/invoices/{id}/mark_as_sent~~ - NOT DOCUMENTED
+- ~~POST /api/invoices/{id}/mark_as_paid~~ - NOT DOCUMENTED
 
-**TODO:** Add helper methods for these actions.
+**Note:** Invoice status changes are done via standard update with `status` field.
 
 ---
 
 ## 7. InvoiceItem Resource
 
 **File:** `src/Entity/Resource/InvoiceItem.php`
-**Status:** Good, Minor Gaps
+**Status:** COMPLETE
 
-### 7.1 Missing Properties
+### 7.1 Verified Properties (from API)
+- `id`, `invoice_id`, `item`, `description`, `price_unit`, `quantity`
+- `expense_id`, `apply_tax`, `seq`, `entries`, `created_on`, `updated_on`
 
-| Property | Type | Notes |
-|----------|------|-------|
-| `project_id` | resource:project | For project-based items |
-| `task_id` | resource:task | For task-based items |
-| `apply_tax2` | boolean | Apply second tax |
-| `line_total` | decimal | Calculated total (read-only) |
+### 7.2 Properties NOT in API (Do NOT add)
+- ~~project_id~~ - NOT IN API
+- ~~task_id~~ - NOT IN API
+- ~~apply_tax2~~ - NOT IN API
+- ~~line_total~~ - NOT IN API (calculate: price_unit * quantity)
 
 ---
 
 ## 8. Estimate Resource
 
 **File:** `src/Entity/Resource/Estimate.php`
-**Status:** Good
+**Status:** COMPLETE
 
-### 8.1 Missing Special Actions
+### 8.1 Verified Properties (from API)
+- `id`, `number`, `client_id`, `template_id`, `status`, `currency`, `date`
+- `subtotal`, `total`, `tax`, `tax_amount`, `tax2`, `tax2_amount`, `tax_on_tax`
+- `tax_text`, `tax2_text`, `language`, `bill_to`, `company_info`, `footer`, `notes`
+- `title`, `brief_description`, `discount`, `discount_amount`, `discount_text`
+- `invoice_id`, `permalink`, `pdf_link`, `created_on`, `updated_on`, `download_token`
 
-```
-POST /api/estimates/{id}/send - Send estimate email
-POST /api/estimates/{id}/convert - Convert to invoice
-POST /api/estimates/{id}/mark_as_sent - Mark as sent
-POST /api/estimates/{id}/accept - Mark as accepted
-```
+### 8.2 Verified Status Values
+- draft, sent, viewed, accepted, invoiced, void
+
+### 8.3 Verified Includes (from API)
+- client, invoice, estimateitems, estimatetemplate
 
 ---
 
 ## 9. EstimateItem Resource
 
 **File:** `src/Entity/Resource/EstimateItem.php`
-**Status:** Needs Review
+**Status:** VERIFY
 
-Same missing properties as InvoiceItem.
+### 9.1 Verified Properties (from API)
+- `id`, `estimate_id`, `item`, `description`, `price_unit`, `quantity`
+- `apply_tax`, `seq`, `created_on`, `updated_on`
 
 ---
 
 ## 10. User Resource
 
 **File:** `src/Entity/Resource/User.php`
-**Status:** Good
+**Status:** COMPLETE
 
-### 10.1 Missing Properties
+### 10.1 Verified Properties (from API)
+- `id`, `name`, `email`, `type`, `active`, `timezone`, `phone`, `skype`, `position`
+- `workday_hours`, `price_per_hour`, `created_on`, `updated_on`
+- `image`, `image_thumb_large`, `image_thumb_medium`, `image_thumb_small`
+- `date_format`, `time_format`, `decimal_sep`, `thousands_sep`, `week_start`
+- `language`, `theme`, `assigned_projects`, `managed_projects`, `is_online`, `password`
 
-| Property | Type | Notes |
-|----------|------|-------|
-| `last_active_on` | datetime | Last activity timestamp (read-only) |
-| `two_factor_auth_enabled` | boolean | 2FA status (read-only) |
+### 10.2 Verified Includes (from API)
+- comments, discussions, entries, expenses, files, milestones, reports
 
-### 10.2 Missing Includes
+### 10.3 Properties NOT in API (Do NOT add)
+- ~~last_active_on~~ - NOT IN API
+- ~~two_factor_auth_enabled~~ - NOT IN API
 
-| Include | Is Collection | Notes |
-|---------|---------------|-------|
-| `tasks` | true | Assigned tasks |
-| `projects` | true | Assigned projects |
-| `bookings` | true | User's bookings |
+### 10.4 Includes NOT in API (Do NOT add)
+- ~~tasks~~ - NOT IN API
+- ~~projects~~ - NOT IN API (use assigned_projects property)
+- ~~bookings~~ - NOT IN API
 
 ---
 
 ## 11. Expense Resource
 
 **File:** `src/Entity/Resource/Expense.php`
-**Status:** Good
+**Status:** COMPLETE
 
-### 11.1 Missing Properties
+### 11.1 Verified Properties (from API)
+- `id`, `client_id`, `project_id`, `user_id`, `amount`, `currency`, `date`
+- `notes`, `invoiced`, `invoice_item_id`, `tags`, `file`
+- `image_thumb_large`, `image_thumb_medium`, `image_thumb_small`
+- `created_on`, `updated_on`
 
-| Property | Type | Notes |
-|----------|------|-------|
-| `billable` | boolean | Whether expense is billable |
-| `category` | text | Expense category |
+### 11.2 Verified Includes (from API)
+- client, project, user, invoiceitems
+
+### 11.3 Properties NOT in API (Do NOT add)
+- ~~billable~~ - NOT IN API
+- ~~category~~ - NOT IN API
 
 ---
 
 ## 12. Tasklist Resource
 
 **File:** `src/Entity/Resource/Tasklist.php`
-**Status:** Good
+**Status:** COMPLETE
 
-### 12.1 Typo in INCLUDE_TYPES
+### 12.1 Verified Properties (from API)
+- `id`, `name`, `seq`, `project_id`, `milestone_id`, `created_on`, `updated_on`
 
-```php
-// Current (typo):
-'miletstone' => false
+### 12.2 Fixed Issues
+- [x] Typo `miletstone` -> `milestone` in INCLUDE_TYPES (FIXED v0.6.0)
 
-// Should be:
-'milestone' => false
-```
+### 12.3 Verified Includes (from API)
+- project, milestone, tasks
 
 ---
 
 ## 13. Milestone Resource
 
 **File:** `src/Entity/Resource/Milestone.php`
-**Status:** Good
+**Status:** COMPLETE
 
-No significant missing items identified.
+### 13.1 Verified Properties (from API)
+- `id`, `name`, `project_id`, `user_id`, `due_date`, `send_reminder`
+- `reminder_sent`, `complete`, `linked_tasklists`, `created_on`, `updated_on`
+
+### 13.2 Verified Includes (from API)
+- project, user, tasklists
 
 ---
 
 ## 14. Booking Resource
 
 **File:** `src/Entity/Resource/Booking.php`
-**Status:** Good
+**Status:** VERIFY INCLUDES
 
-### 14.1 Missing Includes
+### 14.1 Verified Properties (from API)
+- `id`, `user_task_id`, `start_date`, `end_date`, `hours_per_day`
+- `description`, `created_on`, `updated_on`
 
-| Include | Is Collection | Notes |
-|---------|---------------|-------|
-| `user` | false | Booked user |
-| `task` | false | Associated task |
-| `project` | false | Associated project |
+### 14.2 Verified Includes (from API)
+- usertask
+
+### 14.3 Includes NOT in API (Do NOT add)
+- ~~user~~ - NOT IN API (access via usertask)
+- ~~task~~ - NOT IN API (access via usertask)
+- ~~project~~ - NOT IN API (access via usertask)
 
 ---
 
-## 15. TaskAssignment Resource
+## 15. TaskAssignment (UserTask) Resource
 
 **File:** `src/Entity/Resource/TaskAssignment.php`
-**Status:** Good
+**Status:** VERIFY
 
-### 15.1 Missing Includes
+### 15.1 Verified Properties (from API)
+- `id`, `user_id`, `task_id`, `created_on`, `updated_on`
 
-| Include | Is Collection | Notes |
-|---------|---------------|-------|
-| `project` | false | Parent project |
-| `bookings` | true | Associated bookings |
+### 15.2 Verified Includes (from API)
+- user, task
+
+### 15.3 Includes NOT in API (Do NOT add)
+- ~~project~~ - NOT IN API
+- ~~bookings~~ - NOT IN API
 
 ---
 
 ## 16. Workflow Resource
 
 **File:** `src/Entity/Resource/Workflow.php`
-**Status:** Good
+**Status:** COMPLETE
 
-No significant missing items identified.
+### 16.1 Verified Properties (from API)
+- `id`, `name`, `is_default`, `created_on`, `updated_on`
+
+### 16.2 Verified Includes (from API)
+- workflowstatuses
 
 ---
 
 ## 17. WorkflowStatus Resource
 
 **File:** `src/Entity/Resource/WorkflowStatus.php`
-**Status:** Good
+**Status:** COMPLETE
 
-### 17.1 Missing Includes
+### 17.1 Verified Properties (from API)
+- `id`, `name`, `workflow_id`, `color`, `seq`, `action`, `created_on`, `updated_on`
 
-| Include | Is Collection | Notes |
-|---------|---------------|-------|
-| `tasks` | true | Tasks in this status |
+### 17.2 Verified Includes (from API)
+- workflow
+
+### 17.3 Includes NOT in API (Do NOT add)
+- ~~tasks~~ - NOT IN API
 
 ---
 
 ## 18. File Resource
 
 **File:** `src/Entity/Resource/File.php`
-**Status:** Good
+**Status:** VERIFY
 
-### 18.1 Missing Properties
+### 18.1 Verified Properties (from API)
+- `id`, `original_filename`, `description`, `user_id`, `project_id`
+- `discussion_id`, `task_id`, `comment_id`, `token`, `size`, `file`
+- `image_thumb_large`, `image_thumb_medium`, `image_thumb_small`
+- `created_on`, `updated_on`, `mime`, `tags`
 
-| Property | Type | Notes |
-|----------|------|-------|
-| `version` | integer | File version number |
-| `versions` | array | All file versions (read-only) |
+### 18.2 Verified Includes (from API)
+- project, user, discussion, task, comment
 
-### 18.2 Missing Includes
+### 18.3 Properties NOT in API (Do NOT add)
+- ~~version~~ - NOT IN API
+- ~~versions~~ - NOT IN API
 
-| Include | Is Collection | Notes |
-|---------|---------------|-------|
-| `thread` | false | Comment thread |
-| `comments` | true | File comments |
+### 18.4 Includes NOT in API (Do NOT add)
+- ~~thread~~ - NOT IN API
+- ~~comments~~ - NOT IN API
 
 ---
 
 ## 19. Comment Resource
 
 **File:** `src/Entity/Resource/Comment.php`
-**Status:** Good
+**Status:** VERIFY PROP_TYPES
 
-### 19.1 Missing Properties in PROP_TYPES
+### 19.1 Verified Properties (from API)
+- `id`, `content`, `thread_id`, `user_id`, `created_on`, `updated_on`
+
+### 19.2 TODO: Add Missing Properties to PROP_TYPES
+The following are used in REQUIRED_CREATE but not in PROP_TYPES:
 
 | Property | Type | Notes |
 |----------|------|-------|
-| `task_id` | resource:task | For creating task comments |
-| `discussion_id` | resource:discussion | For creating discussion comments |
-| `file_id` | resource:file | For creating file comments |
+| `task_id` | resource:task | For creating task comments (create-only) |
+| `discussion_id` | resource:discussion | For creating discussion comments (create-only) |
+| `file_id` | resource:file | For creating file comments (create-only) |
 
-These are in REQUIRED_CREATE but not in PROP_TYPES.
+**Note:** These are write-only for creation - specify target for new comment.
+
+### 19.3 Verified Includes (from API)
+- thread, user, project, files
 
 ---
 
 ## 20. Discussion Resource
 
 **File:** `src/Entity/Resource/Discussion.php`
-**Status:** Good
+**Status:** COMPLETE
 
-No significant missing items identified.
+### 20.1 Verified Properties (from API)
+- `id`, `name`, `description`, `project_id`, `user_id`, `created_on`, `updated_on`
+
+### 20.2 Verified Includes (from API)
+- project, user, thread, files
+
+**Note:** API supports `thread.comments` for nested comment retrieval.
 
 ---
 
 ## 21. ClientContact Resource
 
 **File:** `src/Entity/Resource/ClientContact.php`
-**Status:** Good
+**Status:** VERIFY
 
-No significant missing items identified.
+### 21.1 Verified Properties (from API)
+- `id`, `client_id`, `name`, `email`, `mobile`, `phone`, `fax`, `skype`
+- `notes`, `image`, `is_main`, `position`, `access`
+- `created_on`, `updated_on`, `image_thumb_large`, `image_thumb_medium`, `image_thumb_small`
+
+### 21.2 Verified Includes (from API)
+- client
 
 ---
 
 ## 22. Report Resource
 
 **File:** `src/Entity/Resource/Report.php`
-**Status:** Good
+**Status:** VERIFY
 
-### 22.1 Missing Properties
+### 22.1 Verified Properties (from API)
+- `id`, `name`, `user_id`, `type`, `start_date`, `end_date`, `date_interval`
+- `projects`, `clients`, `users`, `include`, `extra`, `info`, `content`
+- `permalink`, `shared`, `share_client_id`, `created_on`, `updated_on`, `download_token`
 
-| Property | Type | Notes |
-|----------|------|-------|
-| `tags` | array | Report tags/labels |
-| `description` | text | Report description |
+### 22.2 Verified Includes (from API)
+- user, client
+
+### 22.3 Properties NOT in API (Do NOT add)
+- ~~tags~~ - NOT IN API
+- ~~description~~ - NOT IN API
 
 ---
 
 ## 23. Company Resource
 
 **File:** `src/Entity/Resource/Company.php`
-**Status:** Good (Singleton)
+**Status:** VERIFY
 
-### 23.1 Typo in PROP_TYPES
+### 23.1 Verified Properties (from API)
+- `id`, `name`, `address`, `phone`, `email`, `url`, `fiscal_information`, `country`
+- `image`, `image_thumb_large`, `image_thumb_medium`, `image_thumb_small`
+- `created_on`, `updated_on`, `timezone`, `default_currency`, `default_price_per_hour`
+- `apply_tax_to_expenses`, `tax_on_tax`, `currency_position`, `next_invoice_number`, `next_estimate_number`
+- `online_payments`, `date_format`, `time_format`, `decimal_sep`, `thousands_sep`
+- `week_start`, `workday_start`, `workday_end`, `working_days`
+- `account_type`, `max_users`, `current_users`, `max_projects`, `current_projects`
+- `max_invoices`, `current_invoices`, `default_tax`, `default_tax2`, `default_tax2_text`
+- `default_tax_text`, `due_interval`, `estimate_format`, `hide_tax_field`, `invoice_format`
+- `language`, `payment_reminder_1`, `payment_reminder_2`, `payment_reminder_3`, `remove_paymo_branding`
 
-```php
-// Current (typo):
-'max_estimates' => 'interger'
-
-// Should be:
-'max_estimates' => 'integer'
-```
-
----
-
-## 24. Templates
-
-### 24.1 InvoiceTemplate Resource
-**File:** `src/Entity/Resource/InvoiceTemplate.php`
-**Status:** EXISTS - needs verification
-
-### 24.2 EstimateTemplate Resource
-**File:** `src/Entity/Resource/EstimateTemplate.php`
-**Status:** EXISTS - needs verification
-
-### 24.3 ProjectTemplate Resource
-**File:** `src/Entity/Resource/ProjectTemplate.php`
-**Status:** EXISTS - needs verification
+### 23.2 Fixed Issues
+- [x] Typo `interger` -> `integer` for `max_estimates` (FIXED v0.6.0)
 
 ---
 
-## 25. Missing WHERE/Filter Operations
+## 24. Session Resource
 
-Several resources need expanded WHERE operations for better filtering:
+**File:** `src/Entity/Resource/Session.php`
+**Status:** VERIFY
 
-### 25.1 Date Range Filters
-Many resources should support date filtering:
-```php
-'created_on' => ['=', '!=', '>', '<', '>=', '<=', 'in'],
-'updated_on' => ['=', '!=', '>', '<', '>=', '<=', 'in'],
-```
+### 24.1 Verified Properties (from API)
+- `id`, `ip`, `expires_on`, `created_on`, `updated_on`, `user_id`
 
-### 25.2 Parent Entity Filters
-Resources should allow filtering by parent:
-```php
-// Example for Tasks
-'project_id' => ['=', '!=', 'in', 'not in'],
-'tasklist_id' => ['=', '!=', 'in', 'not in'],
-```
+**Note:** API docs do NOT include `browser` or `os` properties.
 
 ---
 
-## 26. Missing Include Relations
+## 25. InvoicePayment Resource
 
-### 26.1 Cross-Entity Includes
+**File:** `src/Entity/Resource/InvoicePayment.php`
+**Status:** EXISTS - VERIFY
 
-Some includes that would be useful but may not be in API:
+### 25.1 Verified Properties (from API)
+- `id`, `invoice_id`, `amount`, `date`, `notes`, `created_on`, `updated_on`
 
-| Resource | Missing Include | Type |
-|----------|-----------------|------|
-| Project | `entries` | collection |
-| Project | `expenses` | collection |
-| Task | `subtasks` | collection |
-| Task | `files` | collection |
-| Client | `estimates` | collection |
-| User | `bookings` | collection |
+### 25.2 Verified Includes (from API)
+- invoice
 
 ---
 
-## 27. Utility/Helper Features
+## 26. ProjectStatus Resource
 
-### 27.1 Invoice Actions Helper
-Create helper methods for invoice operations:
-- `send()` - Send invoice email
-- `remind()` - Send payment reminder
-- `markAsSent()` - Mark as sent
-- `markAsPaid()` - Mark as fully paid
+**File:** `src/Entity/Resource/ProjectStatus.php`
+**Status:** EXISTS - VERIFY
 
-### 27.2 Estimate Actions Helper
-Create helper methods for estimate operations:
-- `send()` - Send estimate email
-- `convertToInvoice()` - Convert to invoice
-- `markAsAccepted()` - Mark as accepted
+### 26.1 Verified Properties (from API)
+- `id`, `name`, `active`, `seq`, `readonly`, `created_on`, `updated_on`, `projects`
 
-### 27.3 Time Formatting Utility
+### 26.2 Verified Includes (from API)
+- projects
+
+---
+
+## 27. TypeScript Interfaces
+
+**File:** `src/.resources/typescript.data-types.ts`
+**Status:** INCOMPLETE
+
+### 27.1 Existing Interfaces
+- [x] PaymoBooking
+- [x] PaymoSubtask (added v0.6.0)
+- [x] PaymoRecurringProfile (added v0.6.0)
+- [x] PaymoRecurringProfileItem (added v0.6.0)
+- [x] PaymoTaskRecurringProfile (added v0.6.0)
+- [x] PaymoWebhook (added v0.6.0)
+
+### 27.2 TODO: Add Missing Interfaces
+All interfaces below should be created based on VERIFIED API properties only:
+
+| Interface | Resource | Priority |
+|-----------|----------|----------|
+| PaymoProject | Project | High |
+| PaymoTask | Task | High |
+| PaymoClient | Client | High |
+| PaymoUser | User | High |
+| PaymoTimeEntry | TimeEntry | High |
+| PaymoInvoice | Invoice | High |
+| PaymoInvoiceItem | InvoiceItem | Medium |
+| PaymoInvoicePayment | InvoicePayment | Medium |
+| PaymoEstimate | Estimate | Medium |
+| PaymoEstimateItem | EstimateItem | Medium |
+| PaymoExpense | Expense | Medium |
+| PaymoTasklist | Tasklist | Medium |
+| PaymoMilestone | Milestone | Medium |
+| PaymoTaskAssignment | TaskAssignment | Medium |
+| PaymoWorkflow | Workflow | Low |
+| PaymoWorkflowStatus | WorkflowStatus | Low |
+| PaymoFile | File | Low |
+| PaymoComment | Comment | Low |
+| PaymoDiscussion | Discussion | Low |
+| PaymoClientContact | ClientContact | Low |
+| PaymoReport | Report | Low |
+| PaymoCompany | Company | Low |
+| PaymoSession | Session | Low |
+| PaymoProjectStatus | ProjectStatus | Low |
+
+---
+
+## 28. Utility/Helper Features
+
+### 28.1 Time Formatting Utility
 Add helper for converting seconds to hours/formatted time:
 ```php
 TimeEntry::formatDuration($seconds) // Returns "2h 30m"
 TimeEntry::toHours($seconds) // Returns 2.5
 ```
 
-### 27.4 Currency Formatting Utility
+### 28.2 Currency Formatting Utility
 For invoice/estimate amounts with proper currency display.
 
 ---
 
-## 28. Architecture Improvements
+## 29. Architecture Improvements
 
-### 28.1 Batch Operations
+### 29.1 Batch Operations
 Consider implementing batch create/update/delete for efficiency:
 ```php
 Task::batchCreate($connection, $tasks);
 Task::batchUpdate($connection, $tasks);
 ```
 
-### 28.2 Pagination Helpers
+### 29.2 Pagination Helpers
 Improve pagination handling for large datasets:
 ```php
 $collection->paginate($perPage, $page);
@@ -749,87 +684,53 @@ $collection->hasNextPage();
 $collection->getTotalCount();
 ```
 
-### 28.3 Caching Layer
+### 29.3 Caching Layer
 Consider optional caching for frequently accessed resources:
 ```php
 Client::withCache($ttl)->list();
 ```
 
-### 28.4 Event Hooks
-Local hooks for pre/post operations:
-```php
-Task::beforeCreate(function($task) { ... });
-Task::afterCreate(function($task) { ... });
-```
-
-### 28.5 Rate Limiting Handler
+### 29.4 Rate Limiting Handler
 Add automatic rate limit handling with retry logic.
 
 ---
 
 ## Priority Summary
 
-### Immediate (High Priority)
-1. [x] Create `RecurringProfile` resource (Invoice recurring) - ✅ COMPLETED v0.6.0
-2. [x] Create `Subtask` resource - ✅ COMPLETED v0.6.0
-3. [x] Create `Webhook` resource - ✅ COMPLETED v0.6.0
-4. [x] Fix `workflow_id` type in Project (currently `resource:milestone`) - ✅ FIXED v0.6.0
-5. [x] Fix typo `miletstone` -> `milestone` in Tasklist - ✅ FIXED v0.6.0
-6. [x] Fix typo `interger` -> `integer` in Company - ✅ FIXED v0.6.0
+### Completed (v0.6.0)
+1. [x] Create `Subtask` resource
+2. [x] Create `RecurringProfile` resource (Invoice recurring)
+3. [x] Create `RecurringProfileItem` resource
+4. [x] Create `TaskRecurringProfile` resource
+5. [x] Create `Webhook` resource
+6. [x] Fix `workflow_id` type in Project
+7. [x] Fix typo `miletstone` -> `milestone` in Tasklist
+8. [x] Fix typo `interger` -> `integer` in Company
+9. [x] Add `subtasks` to Task INCLUDE_TYPES
+10. [x] Add `subtasks_order` to Task PROP_TYPES
 
-### Short Term (Medium Priority)
-7. [x] Create `TaskRecurringProfile` resource - ✅ COMPLETED v0.6.0
-8. [ ] Add missing properties to Project (`start_date`, `end_date`, `budget`)
-9. [ ] Add missing properties to Task (`time_estimate`, `progress`)
-10. [ ] Add Invoice action methods (`send()`, `remind()`, etc.)
-11. [ ] Add Estimate action methods
-12. [ ] Add missing Comment PROP_TYPES (`task_id`, `discussion_id`, `file_id`)
+### TODO - Short Term (Medium Priority)
+11. [ ] Add Comment PROP_TYPES: `task_id`, `discussion_id`, `file_id` (create-only)
+12. [ ] Verify Session resource matches API (check browser/os properties)
+13. [ ] Add high-priority TypeScript interfaces (Project, Task, Client, User, TimeEntry, Invoice)
 
-### Long Term (Low Priority)
-13. [ ] Add all missing includes across resources
-14. [ ] Add all missing WHERE operations
+### TODO - Long Term (Low Priority)
+14. [ ] Add remaining TypeScript interfaces
 15. [ ] Implement utility helpers (time formatting, currency)
 16. [ ] Consider batch operations
 17. [ ] Consider pagination improvements
 18. [ ] Consider caching layer
 
-### TypeScript Definitions (Required)
-19. [ ] Add TypeScript interface for Project
-20. [ ] Add TypeScript interface for Task
-21. [ ] Add TypeScript interface for Client
-22. [ ] Add TypeScript interface for User
-23. [ ] Add TypeScript interface for TimeEntry
-24. [ ] Add TypeScript interface for Invoice
-25. [ ] Add TypeScript interface for InvoiceItem
-26. [ ] Add TypeScript interface for Estimate
-27. [ ] Add TypeScript interface for EstimateItem
-28. [ ] Add TypeScript interface for Expense
-29. [ ] Add TypeScript interface for Tasklist
-30. [ ] Add TypeScript interface for Milestone
-31. [ ] Add TypeScript interface for TaskAssignment
-32. [ ] Add TypeScript interface for Workflow
-33. [ ] Add TypeScript interface for WorkflowStatus
-34. [ ] Add TypeScript interface for File
-35. [ ] Add TypeScript interface for Comment
-36. [ ] Add TypeScript interface for Discussion
-37. [ ] Add TypeScript interface for ClientContact
-38. [ ] Add TypeScript interface for Report
-39. [ ] Add TypeScript interface for Company
-40. [ ] Add TypeScript interface for InvoicePayment
-41. [ ] Add TypeScript interfaces for all Template resources
-42. [ ] Add TypeScript interfaces for any new resources created
-
-**Note:** Currently only `PaymoBooking` exists in `src/.resources/typescript.data-types.ts`. All other resources need TypeScript interfaces. See PACKAGE-DEV.md Section 10 for TypeScript maintenance rules.
-
 ---
 
 ## Notes
 
-- Properties marked "Undocumented" in our code should be verified against current API behavior
-- The Paymo API occasionally adds new properties - periodic review recommended
-- Some includes may not work depending on Paymo subscription level
+- All properties and includes in this document have been verified against the official Paymo API documentation at https://github.com/paymoapp/api as of December 2025
+- Properties marked as "undocumented" in SDK code may exist in API responses but are not in official docs - use with caution
+- The Paymo API may add new properties - periodic review recommended
+- Some includes may have limitations based on Paymo subscription level
 - Test all changes against live API before committing
 
 ---
 
-*Generated by comprehensive analysis of official Paymo API documentation at https://github.com/paymoapp/api compared against our package implementation.*
+*Verified against official Paymo API documentation on December 2025. DO NOT add properties or includes that are not in the official API documentation.*
