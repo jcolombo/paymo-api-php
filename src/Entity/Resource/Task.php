@@ -234,15 +234,16 @@ class Task extends AbstractResource
       'id',
       'created_on',
       'updated_on',
-      'project_id',
-        // Undocumented types set to readonly for now
+      'code',       // Auto-generated from project code + task number
+      'project_id', // Set by tasklist, can only be set via create with project_id
       'completed_on',
       'completed_by',
+        // Undocumented props set to readonly
       'cover_file_id',
       'price',
       'invoiced',
       'start_date',
-      'recurring_profile_id', // What is a recurring profile object? Not documented?
+      'recurring_profile_id',
       'billing_type'
     ];
 

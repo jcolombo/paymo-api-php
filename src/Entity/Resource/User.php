@@ -305,7 +305,7 @@ class User extends AbstractResource
       'id'                       => 'integer',
       'name'                     => 'text',
       'email'                    => 'email',
-      'type'                     => 'enum:Admin|Employee',
+      'type'                     => 'enum:Admin|Employee|Guest',
       'active'                   => 'boolean',
       'timezone'                 => 'text',
       'phone'                    => 'text',

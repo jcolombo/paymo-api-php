@@ -316,11 +316,11 @@ class Estimate extends AbstractResource
       'invoice_id'        => 'resource:invoice',
       'permalink'         => 'url',
       'pdf_link'          => 'url',
-        // Undocumented Props
       'brief_description' => 'text',
       'discount'          => 'decimal',
       'discount_amount'   => 'decimal',
       'discount_text'     => 'text',
+        // Undocumented Props
       'download_token'    => 'text'
     ];
 

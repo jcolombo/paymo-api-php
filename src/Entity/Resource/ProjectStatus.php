@@ -216,12 +216,12 @@ class ProjectStatus extends AbstractResource
      * Related entities available for inclusion in API requests.
      *
      * Use with the 'include' option in fetch() or list() calls:
-     * - projects: Projects using this status (collection)
+     * - project: Parent project relationship (single)
      *
      * @var array<string, bool>
      */
     public const INCLUDE_TYPES = [
-      'projects' => true,
+      'project' => false,
     ];
 
     /**

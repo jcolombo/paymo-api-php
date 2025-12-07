@@ -2,7 +2,9 @@
 
 **Verified Against Official Paymo API Documentation**
 Source: https://github.com/paymoapp/api
-Last Verified: December 2025
+Last Verified: December 6, 2025
+
+**All 38 Resource Files Verified** - Full audit completed against live API documentation.
 
 ---
 
@@ -73,6 +75,9 @@ Last Verified: December 2025
 #### 1.3 Task Recurring Profile Resource
 **Status:** IMPLEMENTED (v0.6.0)
 **File:** `src/Entity/Resource/TaskRecurringProfile.php`
+
+**Recent Fixes (v0.6.0):**
+- [x] Added `code` to READONLY (read-only per API)
 
 **Verified Properties (from API):**
 - `id`, `name`, `code`, `project_id`, `tasklist_id`, `user_id`, `task_user_id`, `company_id`
@@ -149,7 +154,10 @@ The following were previously listed as missing but DO NOT exist in the official
 ## 3. Task Resource
 
 **File:** `src/Entity/Resource/Task.php`
-**Status:** COMPLETE
+**Status:** COMPLETE - VERIFIED December 2025
+
+### 3.0 Recent Fixes (v0.6.0)
+- [x] Added `code` to READONLY (auto-generated, read-only per API)
 
 ### 3.1 Verified Properties (from API)
 All these properties exist in the official API:
@@ -313,7 +321,10 @@ The following endpoints are NOT documented in the current API:
 ## 10. User Resource
 
 **File:** `src/Entity/Resource/User.php`
-**Status:** COMPLETE
+**Status:** COMPLETE - VERIFIED December 2025
+
+### 10.0 Recent Fixes (v0.6.0)
+- [x] Added `Guest` to type enum (API supports Admin|Employee|Guest)
 
 ### 10.1 Verified Properties (from API)
 - `id`, `name`, `email`, `type`, `active`, `timezone`, `phone`, `skype`, `position`
@@ -339,7 +350,12 @@ The following endpoints are NOT documented in the current API:
 ## 11. Expense Resource
 
 **File:** `src/Entity/Resource/Expense.php`
-**Status:** COMPLETE
+**Status:** COMPLETE - VERIFIED December 2025
+
+### 11.0 Recent Fixes (v0.6.0)
+- [x] Moved `user_id` from undocumented to documented (IS in API docs)
+- [x] Removed `invoice_item_id` from READONLY (NOT read-only per API)
+- [x] Removed incorrect `name` property (NOT in API - use `notes` for description)
 
 ### 11.1 Verified Properties (from API)
 - `id`, `client_id`, `project_id`, `user_id`, `amount`, `currency`, `date`
@@ -599,13 +615,16 @@ The following are now in PROP_TYPES and CREATEONLY:
 ## 26. ProjectStatus Resource
 
 **File:** `src/Entity/Resource/ProjectStatus.php`
-**Status:** EXISTS - VERIFY
+**Status:** COMPLETE - VERIFIED December 2025
+
+### 26.0 Recent Fixes (v0.6.0)
+- [x] Fixed INCLUDE_TYPES from `projects => true` to `project => false` (API uses singular `project`)
 
 ### 26.1 Verified Properties (from API)
-- `id`, `name`, `active`, `seq`, `readonly`, `created_on`, `updated_on`, `projects`
+- `id`, `name`, `active`, `seq`, `readonly`, `created_on`, `updated_on`
 
 ### 26.2 Verified Includes (from API)
-- projects
+- project (singular, not plural)
 
 ---
 
@@ -696,30 +715,46 @@ Add automatic rate limit handling with retry logic.
 
 ## Priority Summary
 
-### Completed (v0.6.0)
+### Completed (v0.6.0) - Full API Verification Audit
+
+**New Resources:**
 1. [x] Create `Subtask` resource
 2. [x] Create `RecurringProfile` resource (Invoice recurring)
 3. [x] Create `RecurringProfileItem` resource
 4. [x] Create `TaskRecurringProfile` resource
 5. [x] Create `Webhook` resource
+
+**Bug Fixes (existing resources):**
 6. [x] Fix `workflow_id` type in Project
 7. [x] Fix typo `miletstone` -> `milestone` in Tasklist
 8. [x] Fix typo `interger` -> `integer` in Company
 9. [x] Add `subtasks` to Task INCLUDE_TYPES
 10. [x] Add `subtasks_order` to Task PROP_TYPES
 
-### TODO - Short Term (Medium Priority)
-11. [x] Add Comment PROP_TYPES: `task_id`, `discussion_id`, `file_id` (create-only) - COMPLETED v0.6.0
-12. [x] Verify Session resource matches API - VERIFIED v0.6.0 (no changes needed)
-13. [x] Add high-priority TypeScript interfaces (Project, Task, Client, User, TimeEntry, Invoice) - COMPLETED v0.6.0
-14. [x] Add medium-priority TypeScript interfaces (InvoiceItem, InvoicePayment, Estimate, EstimateItem, Expense, Tasklist, Milestone, TaskAssignment) - COMPLETED v0.6.0
+**December 2025 Verification Fixes:**
+11. [x] Task: Added `code` to READONLY (auto-generated, read-only per API)
+12. [x] User: Added `Guest` to type enum (API supports Admin|Employee|Guest)
+13. [x] Expense: Moved `user_id` from undocumented to documented
+14. [x] Expense: Removed `invoice_item_id` from READONLY (NOT read-only per API)
+15. [x] Expense: Removed incorrect `name` property (NOT in API)
+16. [x] ProjectStatus: Fixed INCLUDE_TYPES from `projects => true` to `project => false`
+17. [x] TaskRecurringProfile: Added `code` to READONLY (read-only per API)
+18. [x] InvoiceItem: Added `entries` property (array of entry IDs for billing)
+19. [x] Estimate: Moved `brief_description`, `discount`, `discount_amount`, `discount_text` from undocumented to documented
+20. [x] Invoice: Moved `delivery_date` from undocumented to documented
 
-### TODO - Long Term (Low Priority)
-15. [x] Add remaining TypeScript interfaces (Workflow, WorkflowStatus, File, Comment, Discussion, ClientContact, Report, Company, Session, ProjectStatus, Thread) - COMPLETED v0.6.0
-16. [ ] Implement utility helpers (time formatting, currency)
-17. [ ] Consider batch operations
-18. [ ] Consider pagination improvements
-19. [ ] Consider caching layer
+### Previously Completed (v0.6.0)
+21. [x] Add Comment PROP_TYPES: `task_id`, `discussion_id`, `file_id` (create-only)
+22. [x] Verify Session resource matches API (no changes needed)
+23. [x] Add high-priority TypeScript interfaces (Project, Task, Client, User, TimeEntry, Invoice)
+24. [x] Add medium-priority TypeScript interfaces (InvoiceItem, InvoicePayment, Estimate, EstimateItem, Expense, Tasklist, Milestone, TaskAssignment)
+25. [x] Add remaining TypeScript interfaces (Workflow, WorkflowStatus, File, Comment, Discussion, ClientContact, Report, Company, Session, ProjectStatus, Thread)
+
+### TODO - Future Enhancements (Low Priority)
+26. [ ] Implement utility helpers (time formatting, currency)
+27. [ ] Consider batch operations
+28. [ ] Consider pagination improvements
+29. [ ] Consider caching layer
 
 ---
 
@@ -733,4 +768,4 @@ Add automatic rate limit handling with retry logic.
 
 ---
 
-*Verified against official Paymo API documentation on December 2025. DO NOT add properties or includes that are not in the official API documentation.*
+*Verified against official Paymo API documentation on December 6, 2025. All 38 resource files audited. DO NOT add properties or includes that are not in the official API documentation.*

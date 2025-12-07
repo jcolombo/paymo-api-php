@@ -246,8 +246,9 @@ class TaskRecurringProfile extends AbstractResource
         'id',
         'created_on',
         'updated_on',
-        'user_id',
-        'task_user_id',
+        'code',               // Auto-generated task code
+        'user_id',            // Profile creator
+        'task_user_id',       // Task creator if profile is task-based
         'generated_count',
         'last_generated_on',
         'next_processing_date'

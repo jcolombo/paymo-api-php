@@ -219,8 +219,6 @@ class Expense extends AbstractResource
       'image_thumb_small',
       'image_thumb_medium',
       'image_thumb_large',
-      'file',
-      'invoice_item_id',
         // Undocumented
       'download_token'
     ];
@@ -276,9 +274,8 @@ class Expense extends AbstractResource
       'image_thumb_large'  => 'url',
       'image_thumb_medium' => 'url',
       'image_thumb_small'  => 'url',
-        // Undocumented Props
-      'name'               => 'text',
       'user_id'            => 'resource:user',
+        // Undocumented Props
       'download_token'     => 'text'
     ];
 

@@ -318,10 +318,10 @@ class Invoice extends AbstractResource
       'reminder_3_sent' => 'boolean',
       'permalink'       => 'url',
       'pdf_link'        => 'url',
+      'delivery_date'   => 'date',
         // Undocumented Props
       'download_token'  => 'text',
       'active'          => 'boolean',
-      'delivery_date'   => 'date',
       'options'         => 'object',
       'token'           => 'text'
     ];

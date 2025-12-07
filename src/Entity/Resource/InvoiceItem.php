@@ -251,6 +251,7 @@ class InvoiceItem extends AbstractResource
       'apply_tax'   => 'boolean',
       'seq'         => 'integer',
       'expense_id'  => 'resource:expense',
+      'entries'     => 'array',   // Array of entry IDs to mark as billed
         // Undocumented Props
       'invoice_id'  => 'resource:invoice'
     ];
