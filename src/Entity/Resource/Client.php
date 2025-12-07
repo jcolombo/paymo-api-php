@@ -278,13 +278,20 @@ class Client extends AbstractResource
       'website'               => 'url',
       'active'                => 'boolean',
       'fiscal_information'    => 'text',
+      'created_on'            => 'datetime',
+      'updated_on'            => 'datetime',
+
+      // @override OVERRIDE-001
+      // @see OVERRIDES.md#override-001
+      // CONDITIONAL PROPERTIES: These are only returned by the API when the client has an
+      // image uploaded. When no image exists, these properties are absent from the response.
+      // This is expected behavior - not a bug. Use $client->image($filepath) to upload.
       'image'                 => 'url',
       'image_thumb_large'     => 'url',
       'image_thumb_medium'    => 'url',
       'image_thumb_small'     => 'url',
-      'created_on'            => 'datetime',
-      'updated_on'            => 'datetime',
-        // Undocumented Props
+
+      // Undocumented Props
       'due_interval'          => 'integer',
       'additional_privileges' => 'array'
     ];

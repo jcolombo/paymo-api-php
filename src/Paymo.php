@@ -44,6 +44,7 @@ use GuzzleHttp\Exception\GuzzleException;
 use GuzzleHttp\Exception\ServerException;
 use Jcolombo\PaymoApiPhp\Cache\Cache;
 use Jcolombo\PaymoApiPhp\Utility\Log;
+use Jcolombo\PaymoApiPhp\Utility\RateLimiter;
 use Jcolombo\PaymoApiPhp\Utility\RequestAbstraction;
 use Jcolombo\PaymoApiPhp\Utility\RequestResponse;
 use JsonException;
@@ -391,13 +392,25 @@ class Paymo
         'base_uri' => $this->connectionUrl,
         'timeout'  => Configuration::get('connection.timeout'),
       ]);
+
+    // Build request properties
+    $props = $this->buildRequestProps($request);
+
+    // Execute with rate limiting and retry logic
+    return $this->executeWithRateLimiting($client, $request, $props, $cacheKey);
+  }
+
+  /**
+   * Build request properties for Guzzle
+   *
+   * @param RequestAbstraction $request The request abstraction
+   * @return array Guzzle request properties
+   */
+  private function buildRequestProps(RequestAbstraction $request): array
+  {
     $headers = [];
     $props = [];
     $query = [];
-
-    // Rate limiting: 1-second delay between requests to prevent API overload
-    // Paymo API allows 5 requests per 5 seconds, this ensures compliance
-    sleep(1); // @todo Implement smarter queue mechanism for burst requests
 
     // Set request headers
     $headers[] = ['Accept' => 'application/json'];
@@ -426,10 +439,10 @@ class Paymo
     // Handle multipart/form-data for file uploads
     if ($request->mode === 'multipart' || ($request->method === 'POST' && is_array($request->files) && count($request->files) > 0)) {
       $props['multipart'] = [];
-      $openFiles = [];
+      $props['_openFiles'] = [];
       foreach ($request->files as $k => $file) {
         $fHandler = fopen($file, 'rb');
-        $openFiles[] = $fHandler;
+        $props['_openFiles'][] = $fHandler;
         $props['multipart'][] = ['name' => $k, 'contents' => $fHandler];
       }
       if ($request->data && is_array($request->data)) {
@@ -439,71 +452,228 @@ class Paymo
       }
     }
 
-    // Execute the HTTP request
-    $request_start = microtime(true);
+    return $props;
+  }
+
+  /**
+   * Execute request with rate limiting and retry logic
+   *
+   * @param PaymoGuzzleClient  $client   Guzzle HTTP client
+   * @param RequestAbstraction $request  The request abstraction
+   * @param array              $props    Guzzle request properties
+   * @param string|null        $cacheKey Cache key for storing response
+   * @return RequestResponse
+   * @throws JsonException
+   */
+  private function executeWithRateLimiting(
+    PaymoGuzzleClient $client,
+    RequestAbstraction $request,
+    array $props,
+    ?string $cacheKey
+  ): RequestResponse {
+    $attemptNum = 0;
+    $maxAttempts = RateLimiter::isEnabled() ? 4 : 1; // 1 initial + 3 retries
+    $openFiles = $props['_openFiles'] ?? [];
+    unset($props['_openFiles']);
+
     $response = new RequestResponse();
     $response->request = $request;
-    try {
-      $guzzleResponse = $client->request(
-        $request->method,
-        $request->resourceUrl,
-        $props
-      );
-      $response->responseCode = $guzzleResponse->getStatusCode();
-      $response->responseReason = $guzzleResponse->getReasonPhrase();
-      $response->headers = $guzzleResponse->getHeaders();
-      $response->body = json_decode($guzzleResponse->getBody()->getContents(), false, 512, JSON_THROW_ON_ERROR);
-    } catch (ServerException|ClientException $e) {
-      // Handle 4xx and 5xx HTTP errors
-      $msg = $e->getResponse()->getBody()->getContents();
-      if ($msg) {
-        $msg = json_decode($msg, false, 512, JSON_THROW_ON_ERROR)->message;
+
+    while ($attemptNum < $maxAttempts) {
+      $attemptNum++;
+
+      // Apply rate limiting delay before request
+      if (RateLimiter::isEnabled()) {
+        RateLimiter::waitIfNeeded($this->apiKey);
       }
-      $response->body = null;
-      $response->responseCode = $e->getCode();
-      $response->responseReason = $msg;
-      $response->headers = $e->getResponse()->getHeaders();
-    } catch (GuzzleException $e) {
-      // Handle network and other Guzzle errors
-      Log::getLog()->log($this, Log::obj('GUZZLE_ERROR', $e));
-      // @todo Implement proper error handler class
-      echo "UNKNOWN EXCEPTION...\n";
-      var_dump($e);
-      exit;
-    } finally {
-      // Clean up and finalize response
-      $request_end = microtime(true);
-      $request_time = $request_end - $request_start;
-      if (isset($openFiles) && is_array($openFiles)) {
-        foreach ($openFiles as $fH) {
-          fclose($fH);
+
+      $request_start = microtime(true);
+
+      try {
+        $guzzleResponse = $client->request(
+          $request->method,
+          $request->resourceUrl,
+          $props
+        );
+        $response->responseCode = $guzzleResponse->getStatusCode();
+        $response->responseReason = $guzzleResponse->getReasonPhrase();
+        $response->headers = $guzzleResponse->getHeaders();
+        $response->body = json_decode($guzzleResponse->getBody()->getContents(), false, 512, JSON_THROW_ON_ERROR);
+
+        // Update rate limiter with response headers
+        if (RateLimiter::isEnabled()) {
+          RateLimiter::updateFromHeaders($this->apiKey, $response->headers);
         }
+
+        // Success - break out of retry loop
+        break;
+
+      } catch (ClientException $e) {
+        $httpCode = $e->getResponse()->getStatusCode();
+        $responseHeaders = $e->getResponse()->getHeaders();
+
+        // Update rate limiter even on error responses
+        if (RateLimiter::isEnabled()) {
+          RateLimiter::updateFromHeaders($this->apiKey, $responseHeaders);
+        }
+
+        // Handle 429 Too Many Requests with retry
+        if ($httpCode === 429 && RateLimiter::isEnabled() && RateLimiter::shouldRetry($this->apiKey, $attemptNum)) {
+          Log::getLog()->log($this, sprintf(
+            'RATE_LIMIT: 429 Too Many Requests on attempt %d, will retry',
+            $attemptNum
+          ));
+
+          RateLimiter::waitForRetry($this->apiKey, $attemptNum, $responseHeaders);
+          continue; // Retry the request
+        }
+
+        // Non-retryable client error or max retries exceeded
+        $msg = $e->getResponse()->getBody()->getContents();
+        if ($msg) {
+          $decoded = json_decode($msg, false, 512, JSON_THROW_ON_ERROR);
+          $msg = $decoded->message ?? $msg;
+        }
+
+        $response->body = null;
+        $response->responseCode = $httpCode;
+        $response->responseReason = $this->formatErrorMessage($httpCode, $msg, $attemptNum);
+        $response->headers = $responseHeaders;
+        break;
+
+      } catch (ServerException $e) {
+        // Handle 5xx server errors
+        $msg = $e->getResponse()->getBody()->getContents();
+        if ($msg) {
+          $decoded = json_decode($msg, false, 512, JSON_THROW_ON_ERROR);
+          $msg = $decoded->message ?? $msg;
+        }
+        $response->body = null;
+        $response->responseCode = $e->getResponse()->getStatusCode();
+        $response->responseReason = $msg;
+        $response->headers = $e->getResponse()->getHeaders();
+        break;
+
+      } catch (GuzzleException $e) {
+        // Handle network and other Guzzle errors
+        Log::getLog()->log($this, Log::obj('GUZZLE_ERROR', $e));
+        $response->body = null;
+        $response->responseCode = 0;
+        $response->responseReason = 'Network error: ' . $e->getMessage();
+        $response->headers = [];
+        break;
       }
-      $response->responseTime = $request_time;
-      $response->result = null;
-      $response->success = ($response->responseCode >= 200 && $response->responseCode <= 299);
-
-      Log::getLog()->log($this, Log::obj('RESPONSE_DONE', [
-        'code'    => $response->responseCode,
-        'reason'  => $response->responseReason,
-        'time'    => $response->responseTime,
-        'headers' => json_encode($response->headers, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES),
-      ]));
-
-      // Store successful responses in cache
-      if ($this->useCache && $response->success && $cacheKey) {
-        Log::getLog()->log($this, '-- STORE VALID CACHE');
-        Cache::store($cacheKey, $response);
-      }
-
-      // Log failed responses (debugging)
-      if (!$response->success) {
-        echo "FAILED PAYMO RESPONSE...\n";
-        var_dump($response);
-      }
-
-      return $response;
     }
+
+    // Clean up and finalize response
+    $request_end = microtime(true);
+    $request_time = $request_end - ($request_start ?? $request_end);
+
+    // Close any open file handles
+    foreach ($openFiles as $fH) {
+      if (is_resource($fH)) {
+        fclose($fH);
+      }
+    }
+
+    $response->responseTime = $request_time;
+    $response->result = null;
+    $response->success = ($response->responseCode >= 200 && $response->responseCode <= 299);
+
+    Log::getLog()->log($this, Log::obj('RESPONSE_DONE', [
+      'code'    => $response->responseCode,
+      'reason'  => $response->responseReason,
+      'time'    => $response->responseTime,
+      'headers' => json_encode($response->headers, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES),
+    ]));
+
+    // Store successful responses in cache
+    if ($this->useCache && $response->success && $cacheKey) {
+      Log::getLog()->log($this, '-- STORE VALID CACHE');
+      Cache::store($cacheKey, $response);
+    }
+
+    // Log failed responses with improved messaging
+    if (!$response->success) {
+      $this->logFailedResponse($response);
+    }
+
+    return $response;
+  }
+
+  /**
+   * Format error message with additional context
+   *
+   * @param int    $httpCode   HTTP status code
+   * @param string $message    Error message from API
+   * @param int    $attemptNum Attempt number when error occurred
+   * @return string Formatted error message
+   */
+  private function formatErrorMessage(int $httpCode, string $message, int $attemptNum): string
+  {
+    $prefix = '';
+
+    switch ($httpCode) {
+      case 429:
+        $prefix = '[Rate Limit Exceeded] ';
+        if ($attemptNum > 1) {
+          $prefix .= "(after {$attemptNum} attempts) ";
+        }
+        break;
+      case 401:
+        $prefix = '[Authentication Failed] ';
+        break;
+      case 403:
+        $prefix = '[Access Denied] ';
+        break;
+      case 404:
+        $prefix = '[Not Found] ';
+        break;
+      case 400:
+        $prefix = '[Bad Request] ';
+        break;
+      case 422:
+        $prefix = '[Validation Error] ';
+        break;
+    }
+
+    return $prefix . $message;
+  }
+
+  /**
+   * Log a failed response with appropriate detail level
+   *
+   * @param RequestResponse $response The failed response
+   * @return void
+   */
+  private function logFailedResponse(RequestResponse $response): void
+  {
+    $code = $response->responseCode;
+    $reason = $response->responseReason;
+
+    // Rate limit errors get special handling - less verbose output
+    if ($code === 429) {
+      Log::getLog()->log($this, "API_ERROR: Rate limit exceeded - {$reason}");
+      if (PAYMO_DEVELOPMENT_MODE) {
+        echo "[RATE LIMIT] {$reason}\n";
+      }
+      return;
+    }
+
+    // Other errors in development mode
+    if (PAYMO_DEVELOPMENT_MODE) {
+      echo "FAILED PAYMO RESPONSE (HTTP {$code})...\n";
+      echo "Reason: {$reason}\n";
+      if (!empty($response->headers)) {
+        $remaining = $response->headers['x-ratelimit-remaining'][0] ?? 'unknown';
+        echo "Rate limit remaining: {$remaining}\n";
+      }
+    }
+
+    Log::getLog()->log($this, Log::obj('API_ERROR', [
+      'code' => $code,
+      'reason' => $reason,
+    ]));
   }
 
     /**

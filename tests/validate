@@ -1,0 +1,713 @@
+#!/usr/bin/env php
+<?php
+/**
+ * Paymo API PHP SDK - Test Suite Validator
+ *
+ * CLI entry point for running the comprehensive test suite.
+ * Validates all resources, properties, and operations against the Paymo API.
+ *
+ * This script is designed to NEVER crash or leave resources behind:
+ * - Global exception handler catches all errors
+ * - Shutdown function ensures cleanup runs
+ * - Resource tracking ensures nothing is orphaned
+ *
+ * Usage: ./tests/validate [options] [groups...]
+ *
+ * @package    Jcolombo\PaymoApiPhp\Tests
+ * @author     Joel Colombo <jc-dev@360psg.com>
+ * @license    MIT
+ */
+
+// Ensure we're running from CLI
+if (php_sapi_name() !== 'cli') {
+    die("This script must be run from the command line.\n");
+}
+
+// Set error reporting
+error_reporting(E_ALL);
+ini_set('display_errors', '1');
+
+// Bootstrap the test suite
+require_once __DIR__ . '/bootstrap.php';
+
+use Jcolombo\PaymoApiPhp\Tests\TestConfig;
+use Jcolombo\PaymoApiPhp\Tests\ResourceTestRunner;
+use Jcolombo\PaymoApiPhp\Tests\TestOutput;
+use Jcolombo\PaymoApiPhp\Tests\TestResult;
+use Jcolombo\PaymoApiPhp\Tests\TestLogger;
+use Jcolombo\PaymoApiPhp\Paymo;
+
+// Global variables for shutdown handler
+$globalRunner = null;
+$globalOutput = null;
+$globalResults = null;
+$globalLogger = null;
+
+/**
+ * Global exception handler - catches any uncaught exceptions
+ */
+set_exception_handler(function (Throwable $e) use (&$globalRunner, &$globalOutput, &$globalResults, &$globalLogger) {
+    // Log to file
+    if ($globalLogger) {
+        $globalLogger->exception($e, 'Uncaught Exception');
+    }
+
+    if ($globalOutput) {
+        $globalOutput->error("Uncaught Exception: " . $e->getMessage());
+        $globalOutput->error("File: " . $e->getFile() . ":" . $e->getLine());
+    } else {
+        fwrite(STDERR, "FATAL ERROR: " . $e->getMessage() . "\n");
+    }
+
+    // Attempt emergency cleanup (SDK uses singleton connection)
+    if ($globalRunner) {
+        $globalRunner->emergencyCleanup();
+    }
+
+    // Display results if available
+    if ($globalOutput && $globalResults) {
+        $globalResults->finish();
+        $globalOutput->displayResults($globalResults);
+    }
+
+    // Close logger
+    if ($globalLogger) {
+        $globalLogger->close();
+    }
+
+    exit(1);
+});
+
+/**
+ * Global error handler - converts errors to exceptions
+ */
+set_error_handler(function ($severity, $message, $file, $line) {
+    // Don't throw for suppressed errors
+    if (!(error_reporting() & $severity)) {
+        return false;
+    }
+    throw new ErrorException($message, 0, $severity, $file, $line);
+});
+
+/**
+ * Shutdown handler - ensures cleanup runs even on fatal errors
+ */
+register_shutdown_function(function () use (&$globalRunner, &$globalOutput, &$globalResults, &$globalLogger) {
+    $error = error_get_last();
+
+    // Check if this is a fatal error
+    if ($error !== null && in_array($error['type'], [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR])) {
+        // Log to file
+        if ($globalLogger) {
+            $globalLogger->error("Fatal Error: " . $error['message'] . " in " . $error['file'] . ":" . $error['line']);
+        }
+
+        if ($globalOutput) {
+            $globalOutput->error("Fatal Error: " . $error['message']);
+            $globalOutput->error("File: " . $error['file'] . ":" . $error['line']);
+        } else {
+            fwrite(STDERR, "FATAL ERROR: " . $error['message'] . "\n");
+        }
+
+        // Attempt emergency cleanup (SDK uses singleton connection)
+        if ($globalRunner) {
+            $globalRunner->emergencyCleanup();
+        }
+
+        // Display results if available
+        if ($globalOutput && $globalResults) {
+            $globalResults->finish();
+            $globalOutput->displayResults($globalResults);
+        }
+
+        // Close logger
+        if ($globalLogger) {
+            $globalLogger->close();
+        }
+    }
+});
+
+// Parse command line arguments
+$options = getopt('hc:k:vq', [
+    'help',
+    'config:',
+    'api-key:',
+    'client-id:',
+    'user-id:',
+    'project-template-id:',
+    'invoice-template-id:',
+    'estimate-template-id:',
+    'project-status-id:',
+    'workflow-id:',
+    'dry-run',
+    'verbose',
+    'quiet',
+    'stop-on-fail',
+    'no-cleanup',
+    'no-interactive',
+    'reset-log',
+    'list',
+    'validate-config',
+    'show-config',
+    'json',
+], $restIndex);
+
+// Get non-option arguments (test groups)
+$groups = array_slice($argv, $restIndex);
+
+// Initialize output handler
+$output = new TestOutput(
+    isset($options['v']) || isset($options['verbose']),
+    isset($options['q']) || isset($options['quiet']),
+    isset($options['json'])
+);
+
+// Show help
+if (isset($options['h']) || isset($options['help'])) {
+    showHelp($output);
+    exit(0);
+}
+
+// Load configuration
+$configFile = $options['c'] ?? $options['config'] ?? null;
+try {
+    $config = new TestConfig($configFile);
+} catch (Exception $e) {
+    $output->error("Configuration Error: " . $e->getMessage());
+    exit(1);
+}
+
+// Apply command line overrides
+applyOverrides($config, $options);
+
+// Set runtime options BEFORE logger initialization (so reset_log works)
+$config->setRuntimeOption('dry_run', isset($options['dry-run']));
+$config->setRuntimeOption('verbose', isset($options['v']) || isset($options['verbose']));
+$config->setRuntimeOption('quiet', isset($options['q']) || isset($options['quiet']));
+$config->setRuntimeOption('stop_on_failure', isset($options['stop-on-fail']));
+$config->setRuntimeOption('cleanup_on_failure', !isset($options['no-cleanup']));
+$config->setRuntimeOption('interactive', !isset($options['no-interactive']));
+$config->setRuntimeOption('reset_log', isset($options['reset-log']));
+
+// Initialize logger if enabled
+$logger = null;
+if ($config->isLoggingEnabled()) {
+    $logger = new TestLogger($config);
+    $output->setLogger($logger);
+    $globalLogger = $logger;
+
+    // Log configuration at start
+    $logger->logConfiguration($config);
+}
+
+// Validate config only
+if (isset($options['validate-config'])) {
+    validateConfig($config, $output);
+    exit(0);
+}
+
+// Show full config
+if (isset($options['show-config'])) {
+    showConfig($config, $output);
+    exit(0);
+}
+
+// List available tests
+if (isset($options['list'])) {
+    listTests($output);
+    exit(0);
+}
+
+// Check if testing is enabled
+if (!$config->isTestingEnabled()) {
+    $output->error("Testing is not enabled in configuration.");
+    $output->info("Add '\"testing\": { \"enabled\": true, ... }' to your config file.");
+    $output->info("Or use --config to specify a test configuration file.");
+    exit(1);
+}
+
+// Interactive startup if enabled
+if ($config->getRuntimeOption('interactive') && !$config->getRuntimeOption('quiet')) {
+    if (!interactiveStartup($config, $output, $groups)) {
+        $output->info("Test run cancelled.");
+        exit(0);
+    }
+}
+
+// Initialize and run tests
+// Using try/finally to GUARANTEE cleanup and results display
+$exitCode = 0;
+
+try {
+    // Use the new resource-centric test runner
+    $runner = new ResourceTestRunner($config, $output, $logger);
+
+    // Set global references for shutdown handler
+    $globalRunner = $runner;
+    $globalOutput = $output;
+    $globalResults = $runner->getResults();
+
+    // Establish connection for emergency cleanup capability
+    if (!$config->getRuntimeOption('dry_run')) {
+        try {
+            $globalConnection = Paymo::connect($config->getApiKey());
+        } catch (Exception $e) {
+            $output->warning("Could not establish connection for emergency cleanup: " . $e->getMessage());
+        }
+    }
+
+    // Determine which resources to run
+    // $groups now contains resource names (e.g., Project, Task) not group names
+    // Support comma-separated values (e.g., "Project,Task" or "Project Task")
+    $resources = [];
+    foreach ($groups as $group) {
+        // Split on comma if present
+        $parts = explode(',', $group);
+        foreach ($parts as $part) {
+            $trimmed = trim($part);
+            if ($trimmed !== '') {
+                $resources[] = $trimmed;
+            }
+        }
+    }
+
+    if (empty($resources) || in_array('all', $resources)) {
+        $runner->runAllTests();
+    } else {
+        $runner->runResources($resources);
+    }
+
+    // Set exit code based on failures
+    $exitCode = $runner->getResults()->hasFailures() ? 1 : 0;
+
+} catch (Exception $e) {
+    $output->error("Error during test execution: " . $e->getMessage());
+    if ($config->getRuntimeOption('verbose')) {
+        $output->error($e->getTraceAsString());
+    }
+    $exitCode = 1;
+
+} finally {
+    // ALWAYS display results, even if there was an error
+    if (isset($runner)) {
+        $results = $runner->getResults();
+        $results->finish();
+        $output->displayResults($results);
+    }
+
+    // Close logger and show log file location
+    if ($logger) {
+        $logger->close();
+        if (!$config->getRuntimeOption('quiet') && !isset($options['json'])) {
+            $output->info("Log file: " . $logger->getLogPath());
+        }
+    }
+}
+
+// Exit with appropriate code
+exit($exitCode);
+
+// ============================================================================
+// Helper Functions
+// ============================================================================
+
+function showHelp(TestOutput $output): void
+{
+    $help = <<<'HELP'
+
+Paymo API PHP SDK - Test Suite Validator (Resource-Centric)
+
+Usage: ./tests/validate [options] [resources...]
+
+This test suite is RESOURCE-CENTRIC. For each resource:
+  - Property Discovery (compare API response to SDK PROP_TYPES)
+  - Property Selection (verify each prop can be selected)
+  - CRUD operations (if supported)
+  - Where Operations (filtering)
+  - Include Relationships
+
+Options:
+  -h, --help                  Show this help message
+  -c, --config FILE           Use custom config file
+  -k, --api-key KEY           Override API key
+  --client-id ID              Override test client ID
+  --user-id ID                Override test user ID
+  --project-template-id ID    Override project template ID
+  --invoice-template-id ID    Override invoice template ID
+  --estimate-template-id ID   Override estimate template ID
+  --project-status-id ID      Override project status ID
+  --workflow-id ID            Override workflow ID
+  --dry-run                   Simulate without API calls
+  -v, --verbose               Verbose output
+  -q, --quiet                 Minimal output
+  --stop-on-fail              Stop on first failure
+  --no-cleanup                Don't cleanup after failure
+  --no-interactive            Non-interactive mode
+  --reset-log                 Clear the log file before starting
+  --list                      List all available resources
+  --validate-config           Validate configuration only
+  --show-config               Show all current config values
+  --json                      Output results as JSON
+
+Resources (Safe CRUD - can create and delete):
+  Client, Project, Tasklist, Task, Subtask, TimeEntry, Milestone,
+  Discussion, Comment, File, Booking, Invoice, InvoiceItem,
+  Estimate, EstimateItem, Expense, Webhook
+
+Resources (Read-Only):
+  Company, Session, Workflow
+
+Resources (Configured Anchor - require pre-existing IDs):
+  User, ProjectTemplate, InvoiceTemplate, EstimateTemplate, ProjectStatus
+
+Special:
+  all                         Run all resources (default)
+
+Examples:
+  ./tests/validate                        # Interactive mode, all resources
+  ./tests/validate all                    # Run all resources
+  ./tests/validate Project Task           # Test only Project and Task
+  ./tests/validate --dry-run all          # Dry run all resources
+  ./tests/validate -v Project             # Verbose Project tests
+  ./tests/validate --no-interactive all   # CI/CD mode
+
+Configuration:
+  Test configuration is read from the 'testing' section of your
+  paymoapi.config.json file. Required settings:
+
+  {
+    "testing": {
+      "enabled": true,
+      "api_key": "your-api-key",
+      "anchors": {
+        "client_id": 12345,
+        "user_id": 67890
+      },
+      "resources": {
+        "only": ["Project", "Task"],  // Optional: limit to these resources
+        "skip": []                     // Optional: skip these resources
+      }
+    }
+  }
+
+HELP;
+
+    echo $help . "\n";
+}
+
+function applyOverrides(TestConfig $config, array $options): void
+{
+    if (isset($options['k'])) {
+        $config->setApiKey($options['k']);
+    } elseif (isset($options['api-key'])) {
+        $config->setApiKey($options['api-key']);
+    }
+
+    $anchorOverrides = [
+        'client-id' => 'client_id',
+        'user-id' => 'user_id',
+        'project-template-id' => 'project_template_id',
+        'invoice-template-id' => 'invoice_template_id',
+        'estimate-template-id' => 'estimate_template_id',
+        'project-status-id' => 'project_status_id',
+        'workflow-id' => 'workflow_id',
+    ];
+
+    foreach ($anchorOverrides as $optionKey => $configKey) {
+        if (isset($options[$optionKey])) {
+            $config->setAnchor($configKey, (int)$options[$optionKey]);
+        }
+    }
+}
+
+function validateConfig(TestConfig $config, TestOutput $output): void
+{
+    $output->header("Configuration Validation");
+
+    $valid = true;
+
+    // Check API key
+    if ($config->getApiKey()) {
+        $output->success("API Key: " . $config->getMaskedApiKey());
+    } else {
+        $output->error("API Key: NOT CONFIGURED");
+        $valid = false;
+    }
+
+    // Check anchors
+    $anchors = $config->getAnchors();
+    $requiredAnchors = ['client_id', 'user_id'];
+    $optionalAnchors = ['project_template_id', 'invoice_template_id', 'estimate_template_id', 'project_status_id', 'workflow_id'];
+
+    foreach ($requiredAnchors as $anchor) {
+        if (!empty($anchors[$anchor])) {
+            $output->success(ucwords(str_replace('_', ' ', $anchor)) . ": " . $anchors[$anchor]);
+        } else {
+            $output->error(ucwords(str_replace('_', ' ', $anchor)) . ": NOT CONFIGURED (required)");
+            $valid = false;
+        }
+    }
+
+    foreach ($optionalAnchors as $anchor) {
+        if (!empty($anchors[$anchor])) {
+            $output->success(ucwords(str_replace('_', ' ', $anchor)) . ": " . $anchors[$anchor]);
+        } else {
+            $output->warning(ucwords(str_replace('_', ' ', $anchor)) . ": not configured (optional)");
+        }
+    }
+
+    $output->line();
+
+    if ($valid) {
+        $output->success("Configuration is valid.");
+    } else {
+        $output->error("Configuration is incomplete. Some tests will be skipped.");
+    }
+}
+
+function showConfig(TestConfig $config, TestOutput $output): void
+{
+    $output->header("Current Configuration");
+
+    // Config file location
+    $configPath = $config->getConfigPath();
+    if ($configPath) {
+        $output->success("Config File: " . $configPath);
+    } else {
+        $output->warning("Config File: Using defaults (no config file found)");
+    }
+    $output->line();
+
+    // Core settings
+    $output->subHeader("Core Settings");
+    $output->listItem("Testing Enabled: " . ($config->isTestingEnabled() ? "Yes" : "No"));
+    $output->listItem("API Key: " . ($config->getApiKey() ? $config->getMaskedApiKey() : "NOT SET"));
+    $output->listItem("Prefix: " . $config->getPrefix());
+    $output->line();
+
+    // Anchors
+    $output->subHeader("Anchor IDs");
+    $anchors = $config->getAnchors();
+    $anchorLabels = [
+        'client_id' => 'Client ID',
+        'user_id' => 'User ID',
+        'project_template_id' => 'Project Template ID',
+        'invoice_template_id' => 'Invoice Template ID',
+        'estimate_template_id' => 'Estimate Template ID',
+        'project_status_id' => 'Project Status ID',
+        'workflow_id' => 'Workflow ID',
+    ];
+    foreach ($anchorLabels as $key => $label) {
+        $value = $anchors[$key] ?? null;
+        if ($value) {
+            $output->listItem("{$label}: {$value}");
+        } else {
+            $output->listItem("{$label}: not set");
+        }
+    }
+    $output->line();
+
+    // Modes
+    $output->subHeader("Mode Settings");
+    $modes = $config->getModes();
+    $modeLabels = [
+        'dry_run' => 'Dry Run',
+        'verbose' => 'Verbose',
+        'stop_on_failure' => 'Stop on Failure',
+        'cleanup_on_failure' => 'Cleanup on Failure',
+        'interactive' => 'Interactive',
+    ];
+    foreach ($modeLabels as $key => $label) {
+        $value = $modes[$key] ?? false;
+        $output->listItem("{$label}: " . ($value ? "Yes" : "No"));
+    }
+    $output->line();
+
+    // Resources by Category
+    $output->subHeader("Available Resources");
+    $output->listItem("Safe CRUD: Client, Project, Tasklist, Task, Subtask, TimeEntry, etc.");
+    $output->listItem("Read-Only: Company, Session, Workflow");
+    $output->listItem("Configured Anchor: User, ProjectTemplate, InvoiceTemplate, etc.");
+    $output->line();
+
+    // Resource filtering
+    $output->subHeader("Resource Filtering");
+    $skip = $config->getSkippedResources();
+    $only = $config->getOnlyResources();
+
+    if (empty($only)) {
+        $output->listItem("Only: (not set - all resources will run)");
+    } else {
+        $output->listItem("Only: " . implode(', ', $only));
+    }
+
+    if (empty($skip)) {
+        $output->listItem("Skip: (none)");
+    } else {
+        $output->listItem("Skip: " . implode(', ', $skip));
+    }
+    $output->line();
+
+    // Timeouts
+    $output->subHeader("Timeouts");
+    $timeouts = $config->getTimeouts();
+    $output->listItem("Per Test: " . ($timeouts['per_test'] ?? 30) . "s");
+    $output->listItem("Per Group: " . ($timeouts['per_group'] ?? 300) . "s");
+    $output->listItem("Total: " . ($timeouts['total'] ?? 1800) . "s");
+    $output->warning("Note: Timeouts are not currently enforced");
+    $output->line();
+
+    // Logging
+    $output->subHeader("Logging");
+    $logging = $config->getLogging();
+    $output->listItem("Enabled: " . ($config->isLoggingEnabled() ? "Yes" : "No"));
+    if ($config->isLoggingEnabled()) {
+        $output->listItem("Log File: " . $config->getLogPath());
+        $output->listItem("Log Level: " . $config->getLogLevel());
+        $output->listItem("Include Timestamps: " . ($config->shouldIncludeTimestamps() ? "Yes" : "No"));
+        $output->listItem("Include Stack Traces: " . ($config->shouldIncludeStackTraces() ? "Yes" : "No"));
+    }
+    $output->line();
+
+    // Summary of what will run
+    $output->subHeader("What Will Run");
+
+    if (!empty($only)) {
+        $output->listItem("Resources limited to: " . implode(', ', $only));
+    } else {
+        $output->listItem("All resources will be tested");
+    }
+    if (!empty($skip)) {
+        $output->listItem("Resources excluded: " . implode(', ', $skip));
+    }
+}
+
+function listTests(TestOutput $output): void
+{
+    $output->header("Available Resources (Resource-Centric Testing)");
+    $output->line();
+    $output->info("Each resource gets a complete test cycle:");
+    $output->info("  - Property Discovery (compare API to SDK PROP_TYPES)");
+    $output->info("  - Property Selection (verify each prop can be selected)");
+    $output->info("  - CRUD operations (if supported)");
+    $output->info("  - Where Operations (filtering)");
+    $output->info("  - Include Relationships");
+    $output->line();
+
+    $categories = [
+        'Safe CRUD (can create and delete)' => [
+            'Client', 'Project', 'Tasklist', 'Task', 'Subtask',
+            'TimeEntry', 'Milestone', 'Discussion', 'Comment', 'File',
+            'Booking', 'Invoice', 'InvoiceItem', 'Estimate', 'EstimateItem',
+            'Expense', 'Webhook'
+        ],
+        'Read-Only' => [
+            'Company', 'Session', 'Workflow'
+        ],
+        'Configured Anchor (require pre-existing IDs)' => [
+            'User', 'ProjectTemplate', 'InvoiceTemplate',
+            'EstimateTemplate', 'ProjectStatus'
+        ],
+    ];
+
+    foreach ($categories as $category => $resources) {
+        $output->subHeader($category);
+        foreach ($resources as $resource) {
+            $output->listItem($resource);
+        }
+        $output->line();
+    }
+
+    $output->info("Use 'all' or specify resource names on command line.");
+    $output->info("Use 'resources.only' in config to limit scope.");
+}
+
+function interactiveStartup(TestConfig $config, TestOutput $output, array &$resources): bool
+{
+    $output->banner();
+
+    // Show warning
+    $output->warning("This will make API calls to your Paymo account.");
+    $output->info("Only test resources will be created and cleaned up.");
+    $output->line();
+
+    // Show configuration status
+    $output->subHeader("Configuration Status");
+
+    $apiKey = $config->getApiKey();
+    if ($apiKey) {
+        $output->success("API Key: " . $config->getMaskedApiKey());
+    } else {
+        $output->error("API Key: NOT CONFIGURED");
+        $output->line();
+        $output->error("Cannot proceed without API key.");
+        return false;
+    }
+
+    $anchors = $config->getAnchors();
+
+    $anchorLabels = [
+        'client_id' => 'Test Client ID',
+        'user_id' => 'Test User ID',
+        'project_template_id' => 'Project Template ID',
+        'invoice_template_id' => 'Invoice Template ID',
+        'estimate_template_id' => 'Estimate Template ID',
+        'project_status_id' => 'Project Status ID',
+        'workflow_id' => 'Workflow ID',
+    ];
+
+    foreach ($anchorLabels as $key => $label) {
+        if (!empty($anchors[$key])) {
+            $output->success("$label: " . $anchors[$key]);
+        } else {
+            $output->warning("$label: NOT CONFIGURED");
+        }
+    }
+
+    $output->line();
+
+    // Show resource categories
+    $output->subHeader("Resources to Test");
+
+    $safeCrud = ['Client', 'Project', 'Tasklist', 'Task', 'Subtask', 'TimeEntry',
+                 'Milestone', 'Discussion', 'Comment', 'File', 'Booking',
+                 'Invoice', 'InvoiceItem', 'Estimate', 'EstimateItem', 'Expense', 'Webhook'];
+    $readOnly = ['Company', 'Session', 'Workflow'];
+    $anchored = ['User', 'ProjectTemplate', 'InvoiceTemplate', 'EstimateTemplate', 'ProjectStatus'];
+
+    $output->listItem("Safe CRUD: " . count($safeCrud) . " resources");
+    $output->listItem("Read-Only: " . count($readOnly) . " resources");
+    $output->listItem("Configured Anchor: " . count($anchored) . " resources");
+
+    // Show config restrictions
+    $only = $config->getOnlyResources();
+    $skip = $config->getSkippedResources();
+    if (!empty($only)) {
+        $output->info("Limited to: " . implode(', ', $only));
+    }
+    if (!empty($skip)) {
+        $output->info("Skipping: " . implode(', ', $skip));
+    }
+
+    $output->line();
+
+    // Confirm to proceed
+    $output->info("Press ENTER to run all resources, or 'q' to quit.");
+    $output->info("Or enter specific resource names (comma-separated):");
+
+    $input = trim(fgets(STDIN));
+
+    if (strtolower($input) === 'q') {
+        return false;
+    }
+
+    // Parse user input for specific resources
+    if (!empty($input) && strtolower($input) !== 'all') {
+        $resources = array_map('trim', explode(',', $input));
+    } else {
+        // Run all resources - set to empty to trigger runAllTests()
+        $resources = [];
+    }
+
+    return true;
+}

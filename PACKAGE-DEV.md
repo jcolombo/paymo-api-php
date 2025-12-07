@@ -6,6 +6,21 @@ Last Updated: December 2025
 
 ---
 
+## ⚠️ IMPORTANT: Read OVERRIDES.md First
+
+Before investigating "missing" properties or "discrepancies" between the SDK and API responses, **check `OVERRIDES.md`**. This file documents:
+
+- **Conditional properties** - Properties that only appear under certain conditions (e.g., Client image thumbnails only appear when an image is uploaded)
+- **Deprecated/unused properties** - Properties in the SDK that the API no longer returns
+- **Undocumented API features** - Properties returned by the API but not in official docs
+- **Type mismatches** - Where actual API types differ from documentation
+
+The Paymo API documentation hasn't been updated since 2022, so discrepancies are expected and documented.
+
+**DO NOT "fix" properties marked with `@override` comments without explicit approval.**
+
+---
+
 ## Table of Contents
 
 1. [Quick Reference](#1-quick-reference)
@@ -1334,28 +1349,211 @@ class {ResourceName} extends AbstractResource
 
 ---
 
+## 15. Handling API Deviations and Overrides
+
+### The Override Problem
+
+The official Paymo API documentation (https://github.com/paymoapp/api) has not been updated since 2022, yet Paymo continues to release new features monthly. This creates situations where:
+
+1. **Undocumented properties** appear in API responses
+2. **New endpoints** exist that are not documented
+3. **Documented behavior** differs from actual behavior
+4. **Property types** don't match documentation
+
+### Override Policy
+
+When the actual API behavior differs from documentation, we implement **overrides** - intentional deviations from the documented API that are:
+- **Discovered** through testing against the live API
+- **Documented** in OVERRIDES.md
+- **Marked** in code with special comments
+- **Protected** from cleanup by AI assistants
+
+### Discovering Deviations
+
+The test suite (`./tests/validate`) automatically discovers deviations:
+
+```bash
+# Run property discovery tests
+./tests/validate properties --verbose --reset-log
+
+# Check the log for discoveries
+cat tests/validation-results.log | grep -i "discovered\|mismatch\|extra\|missing"
+```
+
+The test suite:
+1. Fetches resources with no field restrictions
+2. Compares returned properties against SDK `PROP_TYPES`
+3. Attempts to select each defined property
+4. Logs any discrepancies for review
+
+### Adding an Override
+
+When you discover an undocumented property or behavior:
+
+1. **Document in OVERRIDES.md:**
+   ```markdown
+   ### OVERRIDE-XXX: Property 'new_field' on Resource
+
+   **Resource:** ResourceName
+   **Type:** New Property
+   **Discovery Date:** YYYY-MM-DD
+
+   **Actual API Behavior:**
+   [Description and example response]
+
+   **SDK Implementation:**
+   [How we handle it]
+   ```
+
+2. **Mark in code with special comment:**
+   ```php
+   /**
+    * @override OVERRIDE-XXX
+    * @see OVERRIDES.md#override-xxx
+    *
+    * Property 'new_field' is not documented in the official API but is
+    * returned in API responses as of YYYY-MM.
+    */
+   'new_field' => 'string',
+   ```
+
+3. **Add to test discovery whitelist** (if applicable)
+
+### Override Comment Format
+
+All overrides MUST use this exact comment format:
+
+```php
+/**
+ * @override OVERRIDE-NNN
+ * @see OVERRIDES.md#override-nnn
+ *
+ * [Explanation of what's different from documented behavior]
+ */
+```
+
+This format:
+- Clearly marks intentional deviations
+- Provides traceability to documentation
+- Prevents AI cleanup sessions from removing intentional code
+- Enables grep/search for all overrides: `grep -r "@override" src/`
+
+### Protecting Overrides from AI Cleanup
+
+When working with AI assistants (Claude, Copilot, etc.):
+
+1. **AI should NEVER remove code marked with `@override`**
+2. **AI should reference OVERRIDES.md before suggesting changes**
+3. **AI should ask before modifying override-marked code**
+
+Add this to any AI context/instructions:
+```
+IMPORTANT: Code marked with @override comments represents intentional
+deviations from official documentation. Do NOT remove or modify these
+without explicit user approval. Check OVERRIDES.md for context.
+```
+
+### Override Categories
+
+| Category | Description | Example |
+|----------|-------------|---------|
+| New Property | Property in API not in docs | `new_field` appears in response |
+| Missing Property | Property in docs not in API | `old_field` never returned |
+| Type Mismatch | Different type than documented | Documented as string, returns int |
+| Behavior Change | Endpoint works differently | Different required fields |
+| New Endpoint | Undocumented API endpoint | `/api/v2/projects` exists |
+
+### Test Suite Property Discovery
+
+The property discovery tests perform:
+
+1. **Raw Response Analysis:**
+   - Fetch resource with no field selections
+   - Compare all returned fields against `PROP_TYPES`
+   - Log extra fields (potential new properties)
+   - Log missing fields (potential removed properties)
+
+2. **Property Selection Test:**
+   - Attempt to select each `PROP_TYPES` property individually
+   - Verify API accepts the selection
+   - Log failures (property may not exist or be queryable)
+
+3. **Where Clause Test:**
+   - Test filtering on each non-readonly property
+   - Verify filter operations work as expected
+   - Log restrictions not in `WHERE_OPERATIONS`
+
+### Running Discovery
+
+```bash
+# Full discovery run with fresh log
+./tests/validate properties --verbose --reset-log
+
+# Check for new properties
+grep "EXTRA PROPERTY" tests/validation-results.log
+
+# Check for removed properties
+grep "MISSING PROPERTY" tests/validation-results.log
+
+# Check for type issues
+grep "TYPE MISMATCH" tests/validation-results.log
+```
+
+### Review Process
+
+After discovery run:
+
+1. Review log for new findings
+2. Verify findings against live API (manual curl/postman)
+3. Check official docs one more time (may have been updated)
+4. If confirmed undocumented:
+   - Add to OVERRIDES.md
+   - Add to SDK code with `@override` comment
+   - Add test coverage
+5. If documented but we missed it:
+   - Update SDK without override
+   - Just fix the code normally
+
+### Finding All Overrides
+
+```bash
+# List all override comments in code
+grep -rn "@override" src/
+
+# Count overrides
+grep -r "@override" src/ | wc -l
+
+# List by resource file
+grep -l "@override" src/Entity/Resource/*.php
+```
+
+---
+
 ## Final Notes
 
 ### Golden Rules
 
-1. **The official API docs are the source of truth**
-2. **Never add what isn't documented**
-3. **Never assume - verify**
-4. **Mark undocumented observations with comments**
-5. **Test against live API before committing**
+1. **The official API docs are the source of truth** - when they're current
+2. **Test against live API** - the real source of truth
+3. **Document deviations** - in OVERRIDES.md with `@override` comments
+4. **Never assume - verify** - especially for undocumented features
+5. **Protect overrides** - they're intentional, not mistakes
 
 ### When In Doubt
 
-1. Read the official API docs again
-2. Test against the live API
-3. Check the TODO-LIST.md for known issues
-4. Compare with similar existing resources in the package
+1. Test against the live API first
+2. Read the official API docs
+3. Check OVERRIDES.md for known deviations
+4. Check TODO-LIST.md for known issues
+5. Compare with similar existing resources in the package
 
 ### Keeping Up To Date
 
 - Periodically check official API for changes
+- Run property discovery tests monthly
 - Update TODO-LIST.md when new features appear
 - Run verification tests after Paymo updates
+- Review and update OVERRIDES.md as needed
 
 ---
 

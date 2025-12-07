@@ -356,8 +356,15 @@ class Company extends AbstractResource
       'timezone'                            => 'text',
       'default_currency'                    => 'text',
       'default_price_per_hour'              => 'text',
+
+      // @override OVERRIDE-002
+      // @see OVERRIDES.md#override-002
+      // CONDITIONAL/DEPRECATED PROPERTIES: These may not be returned by the API.
+      // They are either deprecated, conditional on account settings, or subscription-dependent.
+      // Keep in SDK for backwards compatibility but don't treat as error if missing.
       'apply_tax_to_expenses'               => 'text',
       'tax_on_tax'                          => 'text',
+
       'currency_position'                   => 'enum:left|right',
       'next_invoice_number'                 => 'text',
       'next_estimate_number'                => 'text',

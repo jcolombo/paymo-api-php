@@ -4,6 +4,31 @@
 
 ---
 
+## ⚠️ CRITICAL: Check OVERRIDES.md Before "Fixing" Discrepancies
+
+The Paymo API documentation hasn't been updated since 2022. When you encounter:
+
+- Properties "missing" from API responses
+- Properties in API responses not in `PROP_TYPES`
+- Type mismatches between code and API
+- Any apparent discrepancy
+
+**FIRST check `OVERRIDES.md`** - it documents known deviations that are **intentional**.
+
+### What NOT to Do:
+- ❌ Remove properties marked with `@override` comments
+- ❌ Add "missing" properties without checking if they're conditional
+- ❌ "Fix" discrepancies that are documented overrides
+
+### What to Do:
+- ✅ Read `OVERRIDES.md` to understand known API deviations
+- ✅ Look for `@override OVERRIDE-XXX` comments in code before modifying
+- ✅ Ask before modifying any override-marked code
+
+Code with `@override` comments represents **tested, verified behavior** - do not change without explicit approval.
+
+---
+
 ## Quick Reference
 
 ### Package Namespace

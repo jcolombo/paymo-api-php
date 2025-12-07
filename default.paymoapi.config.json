@@ -13,11 +13,57 @@
     "cache": false,
     "logging": false
   },
+  "rateLimit": {
+    "enabled": true,
+    "minDelayMs": 200,
+    "safetyBuffer": 1,
+    "maxRetries": 3,
+    "retryDelayMs": 1000
+  },
   "log": {
     "connections": false,
     "requests": true
   },
   "devMode": false,
+  "testing": {
+    "enabled": false,
+    "api_key": "",
+    "prefix": "[TEST]",
+    "anchors": {
+      "client_id": null,
+      "user_id": null,
+      "project_template_id": null,
+      "invoice_template_id": null,
+      "estimate_template_id": null,
+      "project_status_id": null,
+      "workflow_id": null
+    },
+    "modes": {
+      "dry_run": false,
+      "verbose": false,
+      "stop_on_failure": false,
+      "cleanup_on_failure": true,
+      "interactive": true,
+      "reset_log": false
+    },
+    "groups": {
+      "core": true,
+      "safe_crud": true,
+      "read_only": true,
+      "configured_anchors": true,
+      "properties": true,
+      "includes": true
+    },
+    "resources": {
+      "skip": [],
+      "only": []
+    },
+    "timeouts": {
+      "per_test": 30,
+      "per_group": 300,
+      "total": 1800
+    }
+  },
   "error": {
     "enabled": true,
     "handlers": {
