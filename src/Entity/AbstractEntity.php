@@ -671,9 +671,22 @@ abstract class AbstractEntity
     {
         $select = [];
         $include = [];
+
+        // Get UNSELECTABLE properties for this entity (if defined)
+        // @override OVERRIDE-013
+        // @see OVERRIDES.md#override-013
+        $resClass = EntityMap::resource($entityKey);
+        $unselectable = ($resClass && defined($resClass . '::UNSELECTABLE'))
+            ? $resClass::UNSELECTABLE
+            : [];
+
         foreach ($fields as $k) {
             if (self::isProp($entityKey, $k)) {
-                $select[] = $k;
+                // Skip UNSELECTABLE properties - they cause HTTP 400 when explicitly selected
+                // These fields are still returned when fetching the full object (no select param)
+                if (!in_array($k, $unselectable)) {
+                    $select[] = $k;
+                }
             } else {
                 $include[] = $k;
             }

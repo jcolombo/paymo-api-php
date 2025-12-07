@@ -691,6 +691,91 @@ Property included for backwards compatibility despite deprecation. Placed in REA
 
 ---
 
+### OVERRIDE-013: Unselectable Properties (API Query Restriction)
+
+**Affected Resources:** Client, User, Task, Milestone, Expense
+**Type:** API Query Behavior
+**Discovery Date:** 2025-12-07
+**Status:** Active
+
+**Issue:**
+Certain properties exist in API responses but **cannot be explicitly selected** via the `select` query parameter. Attempting to select these properties returns HTTP 400 "Unknown field or reference: {property}".
+
+**Affected Properties:**
+
+| Resource | Property | Notes |
+|----------|----------|-------|
+| Client | `additional_privileges` | Internal field, returned but not selectable |
+| User | `additional_privileges` | Internal field, returned but not selectable |
+| Task | `subtasks_order` | Write-only field for reordering subtasks |
+| Milestone | `linked_tasklists` | Array of linked tasklist IDs |
+| Expense | `image_thumb_large` | Thumbnail URL, conditionally returned |
+| Expense | `image_thumb_medium` | Thumbnail URL, conditionally returned |
+| Expense | `image_thumb_small` | Thumbnail URL, conditionally returned |
+
+**API Behavior:**
+```bash
+# This FAILS with HTTP 400:
+GET /api/clients?select=id,name,additional_privileges
+# Response: {"message": "Unknown field or reference: additional_privileges"}
+
+# But the field IS returned when fetching all fields:
+GET /api/clients/123
+# Response includes: {"additional_privileges": [...]}
+```
+
+**SDK Implementation:**
+
+A new `UNSELECTABLE` constant is added to `AbstractResource` and affected resource classes:
+
+```php
+// In AbstractResource.php
+/**
+ * Properties that exist in API responses but CANNOT be requested via select.
+ *
+ * @override OVERRIDE-013
+ * @see OVERRIDES.md#override-013
+ *
+ * @var string[] Property names that cannot be selected
+ */
+public const UNSELECTABLE = [];
+
+// In Client.php
+public const UNSELECTABLE = ['additional_privileges'];
+
+// In User.php
+public const UNSELECTABLE = ['additional_privileges'];
+
+// In Task.php
+public const UNSELECTABLE = ['subtasks_order'];
+
+// In Milestone.php
+public const UNSELECTABLE = ['linked_tasklists'];
+
+// In Expense.php
+public const UNSELECTABLE = ['image_thumb_large', 'image_thumb_medium', 'image_thumb_small'];
+```
+
+**Test Framework Handling:**
+
+The `ResourceTest::runPropertySelection()` method filters out UNSELECTABLE properties before testing field selection:
+
+```php
+// Get UNSELECTABLE properties (if defined)
+$unselectable = defined($class . '::UNSELECTABLE') ? $class::UNSELECTABLE : [];
+
+// Filter out UNSELECTABLE properties
+$propNames = array_filter($propNames, fn($prop) => !in_array($prop, $unselectable));
+```
+
+**Notes:**
+- These properties are still valid in PROP_TYPES and should be processed when returned
+- They just cannot be explicitly requested via select queries
+- The API returns them when no select is specified (full resource fetch)
+- This is distinct from READONLY (can't be set) - UNSELECTABLE means can't be queried
+
+---
+
 ## Changelog
 
 ### 2025-12-07 - Gemini/Codex Audit Response
@@ -701,6 +786,7 @@ Property included for backwards compatibility despite deprecation. Placed in REA
 - Added OVERRIDE-010: Gallery response key anomalies
 - Added OVERRIDE-011: Undocumented properties policy
 - Added OVERRIDE-012: Deprecated property retention
+- Added OVERRIDE-013: Unselectable properties (API query restriction)
 
 ### 2024-12 - Initial Setup
 - Created OVERRIDES.md structure

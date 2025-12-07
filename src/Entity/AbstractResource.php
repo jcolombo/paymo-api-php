@@ -97,6 +97,7 @@ use stdClass;
  * | `REQUIRED_CREATE` | string[] | Props required for create() operation            |
  * | `READONLY`        | string[] | Props that cannot be manually set                |
  * | `CREATEONLY`      | string[] | Props that can only be set during create()       |
+ * | `UNSELECTABLE`    | string[] | Props returned by API but cannot be selected     |
  * | `INCLUDE_TYPES`   | array    | Valid includable relations with their types      |
  * | `PROP_TYPES`      | array    | Property definitions with data types             |
  * | `WHERE_OPERATIONS`| array    | Allowed WHERE operators per property             |
@@ -185,6 +186,20 @@ abstract class AbstractResource extends AbstractEntity
      * @example TaskAssignment uses API_PATH='userstasks' but API_RESPONSE_KEY='taskassignments'
      */
     public const API_RESPONSE_KEY = null;
+
+    /**
+     * Properties that exist in API responses but CANNOT be requested via select.
+     *
+     * Some properties are returned by the API when fetching full objects, but
+     * will cause an error if explicitly requested in the select/fields parameter.
+     * These are typically computed fields, internal fields, or conditional props.
+     *
+     * @override OVERRIDE-013
+     * @see OVERRIDES.md#override-013
+     *
+     * @var string[] Property names that cannot be selected
+     */
+    public const UNSELECTABLE = [];
 
     /**
      * Current property values for this entity instance.

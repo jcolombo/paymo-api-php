@@ -22,6 +22,17 @@ class SessionResourceTest extends ResourceTest
         return 'read_only';
     }
 
+    /**
+     * Skip fetch test for Session - uses string tokens, not integer IDs.
+     *
+     * @override OVERRIDE-004
+     * @see OVERRIDES.md#override-004
+     */
+    protected function getSkipFetchReason(): ?string
+    {
+        return 'Session uses string tokens as IDs (OVERRIDE-004)';
+    }
+
     protected function createTestResource(): ?AbstractResource
     {
         // Session is read-only

@@ -232,6 +232,18 @@ class Expense extends AbstractResource
     public const CREATEONLY = [];
 
     /**
+     * Properties returned by API but cannot be explicitly selected.
+     *
+     * @override OVERRIDE-013
+     * @see OVERRIDES.md#override-013
+     *
+     * Image thumbnails are conditionally returned but cause HTTP 400 when selected
+     *
+     * @var array<string>
+     */
+    public const UNSELECTABLE = ['image_thumb_large', 'image_thumb_medium', 'image_thumb_small'];
+
+    /**
      * Related entities available for inclusion in API requests.
      *
      * Use with the 'include' option in fetch() or list() calls:

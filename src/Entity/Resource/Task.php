@@ -259,6 +259,18 @@ class Task extends AbstractResource
     public const CREATEONLY = ['project_id'];
 
     /**
+     * Properties returned by API but cannot be explicitly selected.
+     *
+     * @override OVERRIDE-013
+     * @see OVERRIDES.md#override-013
+     *
+     * subtasks_order: Write-only field for reordering subtasks, cannot be selected
+     *
+     * @var array<string>
+     */
+    public const UNSELECTABLE = ['subtasks_order'];
+
+    /**
      * Related entities available for inclusion in API requests.
      *
      * Use with the 'include' option in fetch() or list() calls.

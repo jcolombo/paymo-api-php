@@ -236,6 +236,18 @@ class Client extends AbstractResource
     public const CREATEONLY = [];
 
     /**
+     * Properties returned by API but cannot be explicitly selected.
+     *
+     * @override OVERRIDE-013
+     * @see OVERRIDES.md#override-013
+     *
+     * additional_privileges: Internal field, causes HTTP 400 when selected
+     *
+     * @var array<string>
+     */
+    public const UNSELECTABLE = ['additional_privileges'];
+
+    /**
      * Related entities available for inclusion in API requests.
      *
      * Use with the 'include' option in fetch() or list() calls.

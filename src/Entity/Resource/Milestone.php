@@ -212,6 +212,18 @@ class Milestone extends AbstractResource
     public const CREATEONLY = [];
 
     /**
+     * Properties returned by API but cannot be explicitly selected.
+     *
+     * @override OVERRIDE-013
+     * @see OVERRIDES.md#override-013
+     *
+     * linked_tasklists: Array of linked tasklist IDs, cannot be selected
+     *
+     * @var array<string>
+     */
+    public const UNSELECTABLE = ['linked_tasklists'];
+
+    /**
      * Related entities available for inclusion in API requests.
      *
      * Use with the 'include' option in fetch() or list() calls:

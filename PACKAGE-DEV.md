@@ -247,6 +247,7 @@ public const API_PATH = '';           // API endpoint (usually plural)
 public const REQUIRED_CREATE = [];    // Required props for create()
 public const READONLY = [];           // Props that cannot be set
 public const CREATEONLY = [];         // Props only settable on create
+public const UNSELECTABLE = [];       // Props that exist but can't be selected
 public const INCLUDE_TYPES = [];      // Includable relations
 public const PROP_TYPES = [];         // All property definitions
 public const WHERE_OPERATIONS = [];   // Restricted operators per prop
@@ -384,6 +385,58 @@ public const CREATEONLY = [
 - Props that establish entity relationships
 - Props that determine entity placement
 - Props that the API doesn't allow in PUT requests
+
+---
+
+### UNSELECTABLE
+
+Properties that exist in API responses but CANNOT be explicitly selected via the `select` query parameter.
+
+```php
+public const UNSELECTABLE = [
+    'additional_privileges',  // Internal field
+    'subtasks_order',         // Write-only field
+    'linked_tasklists',       // Array, cannot be selected
+];
+```
+
+**Important:** This is NOT the same as READONLY:
+- **READONLY** = Properties you can READ but not SET
+- **UNSELECTABLE** = Properties you can't REQUEST via select, but ARE returned when fetching full objects
+
+**When to use UNSELECTABLE:**
+- The property is in PROP_TYPES (SDK knows about it)
+- The property is returned when fetching the full object (no select param)
+- The API returns HTTP 400 when you try to explicitly select it
+
+**Behavior examples:**
+```bash
+# This WORKS - full object returned with all fields
+GET /api/clients/123
+# Response includes: { "additional_privileges": [...] }
+
+# This FAILS with HTTP 400
+GET /api/clients?select=id,name,additional_privileges
+# Response: { "message": "Unknown field or reference: additional_privileges" }
+```
+
+**Setting UNSELECTABLE properties:**
+- Properties in UNSELECTABLE may or may not be settable depending on whether they're also in READONLY
+- If a property is in BOTH UNSELECTABLE and READONLY, it cannot be set
+- If a property is ONLY in UNSELECTABLE (e.g., `subtasks_order`), it MAY be settable (write-only fields)
+
+**Current UNSELECTABLE resources:**
+
+| Resource | Property | Also READONLY? | Notes |
+|----------|----------|----------------|-------|
+| Client | `additional_privileges` | Yes | Internal field |
+| User | `additional_privileges` | Yes | Internal field |
+| Task | `subtasks_order` | No | Write-only for reordering |
+| Milestone | `linked_tasklists` | No | Array of linked IDs |
+| Expense | `image_thumb_*` | Yes | Thumbnail URLs |
+
+**@override OVERRIDE-013**
+**@see OVERRIDES.md#override-013**
 
 ---
 
@@ -1057,6 +1110,7 @@ When creating a NEW resource class:
 - [ ] `READONLY` includes `id`, `created_on`, `updated_on` minimum
 - [ ] `READONLY` includes all server-computed fields
 - [ ] `CREATEONLY` includes relationship fields that can't change
+- [ ] `UNSELECTABLE` includes any fields that cause HTTP 400 when selected
 - [ ] `INCLUDE_TYPES` matches official "Include related resources"
 - [ ] `INCLUDE_TYPES` booleans correct (false=single, true=collection)
 - [ ] `PROP_TYPES` includes ALL fields from official docs
@@ -1346,6 +1400,12 @@ class {ResourceName} extends AbstractResource
      * Properties that can be set during creation but not updated.
      */
     public const CREATEONLY = [];
+
+    /**
+     * Properties that exist in API responses but cannot be explicitly selected.
+     * @override OVERRIDE-013
+     */
+    public const UNSELECTABLE = [];
 
     /**
      * Related entities available for inclusion in API requests.

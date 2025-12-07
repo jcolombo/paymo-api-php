@@ -644,9 +644,16 @@ abstract class ResourceTest
             $class = $this->getResourceClass();
             $sdkProps = $class::PROP_TYPES;
 
+            // Get UNSELECTABLE properties (if defined)
+            $unselectable = defined($class . '::UNSELECTABLE') ? $class::UNSELECTABLE : [];
+
             // Get readable properties (not arrays/objects - those are relations)
             $selectableProps = array_filter($sdkProps, fn($type) => !is_array($type));
             $propNames = array_keys($selectableProps);
+
+            // Filter out UNSELECTABLE properties
+            $propNames = array_filter($propNames, fn($prop) => !in_array($prop, $unselectable));
+            $propNames = array_values($propNames); // Re-index
 
             $this->logDetail("");
             $this->logDetail("SELECTABLE PROPERTIES (" . count($propNames) . " total):");
@@ -662,6 +669,15 @@ abstract class ResourceTest
                 $this->logDetail("SKIPPED RELATION PROPERTIES (" . count($relationProps) . "):");
                 foreach ($relationProps as $prop => $type) {
                     $this->logDetail("  - {$prop}: [relation]");
+                }
+            }
+
+            // Log UNSELECTABLE properties
+            if (!empty($unselectable)) {
+                $this->logDetail("");
+                $this->logDetail("UNSELECTABLE PROPERTIES (" . count($unselectable) . "):");
+                foreach ($unselectable as $prop) {
+                    $this->logDetail("  - {$prop}: [unselectable - API returns HTTP 400]");
                 }
             }
 
@@ -860,12 +876,39 @@ abstract class ResourceTest
         }
     }
 
+    /**
+     * Returns the reason to skip fetch test, or null if fetch should run.
+     *
+     * Override in resource tests that cannot support fetch (e.g., Session uses string tokens).
+     *
+     * @override OVERRIDE-004
+     * @see OVERRIDES.md#override-004
+     *
+     * @return string|null Skip reason, or null to run the test
+     */
+    protected function getSkipFetchReason(): ?string
+    {
+        return null;
+    }
+
     protected function runFetchTest(): void
     {
         $testName = $this->getResourceName() . "::fetch";
 
         if ($this->dryRun) {
             $this->output->dryRun("Would test fetch");
+            return;
+        }
+
+        // Check if this test should be skipped
+        $skipReason = $this->getSkipFetchReason();
+        if ($skipReason !== null) {
+            $this->logTestStart($testName);
+            $this->logDetail("--- FETCH Test ---");
+            $this->logDetail("SKIPPED: {$skipReason}");
+            $this->results->recordSkip($testName, $skipReason);
+            $this->output->testSkipped($testName, $skipReason);
+            $this->logTestComplete($testName, true, 0);
             return;
         }
 
