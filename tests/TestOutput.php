@@ -509,6 +509,12 @@ class TestOutput
 
         echo $this->color(self::BOX_BOTTOM_LEFT . $line . self::BOX_BOTTOM_RIGHT, self::CYAN) . "\n";
 
+        // Display auto-discovered IDs (if any)
+        $this->displayAutoDiscoveredIds();
+
+        // Display ownership registry (test-created resources)
+        $this->displayOwnershipRegistry();
+
         // Display resource tracking summary
         $this->displayResourceSummary($results);
 
@@ -576,6 +582,35 @@ class TestOutput
         if ($summary['delete_failures'] > 0) {
             $failedIcon = $this->color("\u{2717}", self::RED);
             echo "  {$failedIcon} Delete Failures: " . $this->color((string)$summary['delete_failures'], self::RED) . "\n";
+        }
+    }
+
+    /**
+     * Display auto-discovered parent IDs used in read-only mode
+     * These IDs were found dynamically instead of being pre-configured
+     */
+    private function displayAutoDiscoveredIds(): void
+    {
+        $discovered = \Jcolombo\PaymoApiPhp\Tests\ResourceTest::getAutoDiscoveredIds();
+
+        if (empty($discovered)) {
+            return;
+        }
+
+        echo "\n" . $this->color("Auto-Discovered Parent IDs (for read-only tests):", self::BOLD . self::YELLOW) . "\n";
+        echo $this->color("  These IDs were found dynamically. Configure them to avoid extra API calls:", self::DIM . self::WHITE) . "\n";
+
+        foreach ($discovered as $filterKey => $info) {
+            $icon = $this->color("\u{26A1}", self::YELLOW);  // Lightning bolt
+            echo "  {$icon} " . $this->color($filterKey, self::WHITE . self::BOLD);
+            echo ": " . $this->color("#{$info['id']}", self::CYAN);
+            echo " (from " . $this->color($info['resource'], self::DIM . self::WHITE) . ")";
+            echo " - used by " . $this->color($info['usedBy'], self::DIM . self::WHITE) . "\n";
+        }
+
+        echo "\n" . $this->color("  Add to config to skip auto-discovery:", self::DIM . self::WHITE) . "\n";
+        foreach ($discovered as $filterKey => $info) {
+            echo $this->color("    anchors.{$filterKey}: {$info['id']}", self::DIM . self::CYAN) . "\n";
         }
     }
 
@@ -680,6 +715,44 @@ class TestOutput
             if ($this->logger !== null) {
                 echo "\n  " . $this->color("Log file: " . $this->logger->getLogPath(), self::DIM . self::WHITE) . "\n";
             }
+        }
+    }
+
+    /**
+     * Display ownership registry summary (test-created resources)
+     *
+     * Shows all resources that were created during the test run and registered
+     * with TestOwnershipRegistry. This provides visibility into what resources
+     * were tracked for mutation safety.
+     */
+    public function displayOwnershipRegistry(): void
+    {
+        if ($this->quiet || $this->jsonMode) {
+            return;
+        }
+
+        $registry = TestOwnershipRegistry::getAll();
+        $count = TestOwnershipRegistry::getCount();
+
+        if ($count === 0) {
+            return;  // Don't show anything in read-only mode or when no resources created
+        }
+
+        echo "\n" . $this->color("Test-Created Resources (Ownership Registry):", self::BOLD . self::MAGENTA) . "\n";
+        echo $this->color("  Tracked for mutation safety - {$count} total:", self::DIM . self::WHITE) . "\n";
+
+        foreach ($registry as $type => $ids) {
+            if (empty($ids)) {
+                continue;
+            }
+            $idList = array_slice($ids, 0, 5);
+            $idStr = implode(', ', array_map(fn($id) => "#{$id}", $idList));
+            if (count($ids) > 5) {
+                $idStr .= ' ... +' . (count($ids) - 5) . ' more';
+            }
+            echo "  " . $this->color("\u{2022}", self::MAGENTA);
+            echo " " . $this->color($type, self::WHITE . self::BOLD);
+            echo ": " . $this->color($idStr, self::CYAN) . "\n";
         }
     }
 

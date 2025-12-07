@@ -12,6 +12,7 @@
 namespace Jcolombo\PaymoApiPhp\Tests\ResourceTests;
 
 use Jcolombo\PaymoApiPhp\Tests\ResourceTest;
+use Jcolombo\PaymoApiPhp\Tests\TestOwnershipRegistry;
 use Jcolombo\PaymoApiPhp\Entity\Resource\Client;
 use Jcolombo\PaymoApiPhp\Entity\AbstractResource;
 use Throwable;
@@ -88,6 +89,12 @@ class ClientResourceTest extends ResourceTest
         $this->logDetail("=== IMAGE PROPERTY DISCOVERY ===");
         $this->logDetail("Purpose: Verify image_thumb_* properties appear when client has an image");
 
+        // Skip in read-only mode - we cannot create test clients
+        if ($this->readOnlyMode) {
+            $this->logDetail("SKIP: Read-only mode - cannot create test client for image upload");
+            return;
+        }
+
         $startTime = microtime(true);
 
         try {
@@ -100,6 +107,13 @@ class ClientResourceTest extends ResourceTest
 
             $this->logDetail("Created test client #{$client->id} for image property test");
             $this->cleanupManager->track('Client', $client->id, Client::class);
+
+            // CRITICAL SAFETY CHECK: Verify this resource was created by tests before mutation
+            if (!TestOwnershipRegistry::verifyTestCreated('Client', $client->id)) {
+                $this->logDetail("SAFETY BLOCK: Client #{$client->id} not in test ownership registry");
+                $this->logDetail("  Cannot upload image to clients that were not created by tests");
+                return;
+            }
 
             // Upload an image
             $this->logApiCall(

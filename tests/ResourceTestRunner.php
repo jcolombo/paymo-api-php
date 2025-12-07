@@ -16,6 +16,7 @@
 namespace Jcolombo\PaymoApiPhp\Tests;
 
 use Jcolombo\PaymoApiPhp\Tests\Fixtures\CleanupManager;
+use Jcolombo\PaymoApiPhp\Tests\TestOwnershipRegistry;
 use Throwable;
 
 class ResourceTestRunner
@@ -53,6 +54,8 @@ class ResourceTestRunner
 
     /**
      * Constructor
+     *
+     * Clears the TestOwnershipRegistry at start to ensure clean slate for mutation safety.
      */
     public function __construct(TestConfig $config, TestOutput $output, ?TestLogger $logger = null)
     {
@@ -65,6 +68,10 @@ class ResourceTestRunner
             !$config->getRuntimeOption('dry_run')
         );
         $this->resourceRegistry = $this->buildResourceRegistry();
+
+        // CRITICAL: Clear ownership registry at start of each test run
+        // This ensures clean slate for mutation safety checks
+        TestOwnershipRegistry::clear();
     }
 
     /**

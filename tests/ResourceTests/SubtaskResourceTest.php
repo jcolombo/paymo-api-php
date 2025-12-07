@@ -28,6 +28,14 @@ class SubtaskResourceTest extends ResourceTest
         return 'safe_crud';
     }
 
+    /**
+     * Subtasks require task_id filter for API listing
+     */
+    public function getRequiredParentFilter(): ?array
+    {
+        return ['task_id', 'ensureTask'];
+    }
+
     protected function createTestResource(): ?AbstractResource
     {
         if (!$this->taskId) {

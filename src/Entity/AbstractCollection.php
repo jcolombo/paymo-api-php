@@ -341,6 +341,24 @@ abstract class AbstractCollection extends AbstractEntity implements Iterator, Ar
     protected array $options = [];
 
     /**
+     * Accumulated WHERE conditions for query building.
+     *
+     * These conditions are accumulated via the fluent where() method and applied
+     * when fetch() is called. Allows building up complex queries before execution.
+     *
+     * CONDITIONS ARE COMBINED:
+     * ------------------------
+     * Each call to where() adds a condition to the array. All conditions are
+     * passed to fetch() and combined with an implicit AND (as per API behavior).
+     *
+     * @var RequestCondition[] Array of WHERE conditions to apply on fetch
+     *
+     * @see where() Method to add conditions
+     * @see fetch() Method where conditions are applied
+     */
+    protected array $whereConditions = [];
+
+    /**
      * The page number for paginated requests (0-indexed).
      *
      * @override OVERRIDE-003
@@ -679,6 +697,59 @@ abstract class AbstractCollection extends AbstractEntity implements Iterator, Ar
     }
 
     /**
+     * Add a WHERE condition to filter the collection results.
+     *
+     * This method provides fluent query building by accumulating WHERE conditions
+     * that are applied when fetch() is called. Conditions are combined with
+     * implicit AND logic (as per Paymo API behavior).
+     *
+     * FLUENT INTERFACE:
+     * -----------------
+     * Multiple conditions can be chained together for readable query building:
+     * ```php
+     * $tasks = Task::list()
+     *     ->where(Task::where('complete', false))
+     *     ->where(Task::where('project_id', 12345))
+     *     ->limit(50)
+     *     ->fetch();
+     * ```
+     *
+     * CONDITION CREATION:
+     * -------------------
+     * Conditions should be created using the static where() method on the
+     * resource class, which creates properly typed RequestCondition objects:
+     * ```php
+     * // Using Resource::where() (recommended)
+     * $collection->where(Task::where('status', 'active'));
+     *
+     * // Direct RequestCondition (advanced usage)
+     * $collection->where(RequestCondition::where('status', 'active', '=', true, 'task'));
+     * ```
+     *
+     * ALTERNATIVE: FETCH WITH CONDITIONS:
+     * ------------------------------------
+     * Conditions can also be passed directly to fetch():
+     * ```php
+     * $tasks = Task::list()->fetch(
+     *     ['name', 'status'],
+     *     [Task::where('complete', false)]
+     * );
+     * ```
+     *
+     * @param RequestCondition $condition The WHERE condition to add
+     *
+     * @return $this Returns the collection instance for method chaining
+     *
+     * @see AbstractResource::where() For creating WHERE conditions
+     * @see fetch() For executing the query with accumulated conditions
+     */
+    public function where(RequestCondition $condition): AbstractCollection
+    {
+        $this->whereConditions[] = $condition;
+        return $this;
+    }
+
+    /**
      * Merge additional option arrays with the collection's stored options.
      *
      * Combines the collection's stored options with one or more additional option arrays.
@@ -1006,6 +1077,9 @@ abstract class AbstractCollection extends AbstractEntity implements Iterator, Ar
         if (!is_array($where)) {
             $where = [$where];
         }
+        // Merge accumulated where conditions from fluent where() calls with passed $where
+        // The fluent conditions come first, then any conditions passed directly to fetch()
+        $where = array_merge($this->whereConditions, $where);
         $this->validateFetch($fields, $where);
         /** @var AbstractResource $resClass */
         $resClass = $this->entityClass;

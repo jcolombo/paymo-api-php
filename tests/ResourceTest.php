@@ -215,6 +215,17 @@ abstract class ResourceTest
     /**
      * Get the parent filter value, calling the ensure method if needed
      */
+    /**
+     * Track whether the parent filter value was auto-discovered (vs configured)
+     */
+    protected bool $parentFilterAutoDiscovered = false;
+
+    /**
+     * Static collection of auto-discovered IDs for summary output
+     * @var array<string, array{id: int, resource: string}>
+     */
+    protected static array $autoDiscoveredIds = [];
+
     protected function getParentFilterValue(): ?int
     {
         if ($this->parentFilterValue !== null) {
@@ -236,7 +247,17 @@ abstract class ResourceTest
                 $this->logDetail("Using anchored {$filterKey}: {$anchorValue}");
                 return $this->parentFilterValue;
             }
-            // No anchor available, skip tests that require this filter
+
+            // No anchor configured - try to auto-discover by fetching parent resource
+            $discoveredId = $this->autoDiscoverParentId($filterKey);
+            if ($discoveredId !== null) {
+                $this->parentFilterValue = $discoveredId;
+                $this->parentFilterAutoDiscovered = true;
+                $this->logDetail("Auto-discovered {$filterKey}: {$discoveredId} (READ-ONLY)");
+                return $this->parentFilterValue;
+            }
+
+            // No anchor available and couldn't auto-discover
             $this->logWarning("No anchored {$filterKey} available for read-only mode");
             return null;
         }
@@ -247,6 +268,82 @@ abstract class ResourceTest
         }
 
         return $this->parentFilterValue;
+    }
+
+    /**
+     * Auto-discover a parent ID by fetching the first available parent resource.
+     * ONLY used in read-only mode for READ operations.
+     *
+     * @param string $filterKey The filter key (e.g., 'project_id', 'invoice_id')
+     * @return int|null The discovered ID, or null if none found
+     */
+    protected function autoDiscoverParentId(string $filterKey): ?int
+    {
+        // Map filter keys to their parent resource classes
+        $parentResourceMap = [
+            'project_id'  => \Jcolombo\PaymoApiPhp\Entity\Resource\Project::class,
+            'invoice_id'  => \Jcolombo\PaymoApiPhp\Entity\Resource\Invoice::class,
+            'estimate_id' => \Jcolombo\PaymoApiPhp\Entity\Resource\Estimate::class,
+            'task_id'     => \Jcolombo\PaymoApiPhp\Entity\Resource\Task::class,
+            'client_id'   => \Jcolombo\PaymoApiPhp\Entity\Resource\Client::class,
+            'user_id'     => \Jcolombo\PaymoApiPhp\Entity\Resource\User::class,
+            'tasklist_id' => \Jcolombo\PaymoApiPhp\Entity\Resource\Tasklist::class,
+        ];
+
+        if (!isset($parentResourceMap[$filterKey])) {
+            $this->logDetail("No auto-discovery mapping for {$filterKey}");
+            return null;
+        }
+
+        $parentClass = $parentResourceMap[$filterKey];
+        $parentName = basename(str_replace('\\', '/', $parentClass));
+
+        $this->logDetail("Attempting auto-discovery of {$filterKey} from {$parentName}...");
+
+        try {
+            // Fetch first available parent resource (limit 1 for efficiency)
+            $collection = $parentClass::list()->limit(1)->fetch();
+            $raw = $collection->raw();
+
+            if (!empty($raw)) {
+                $parent = reset($raw);
+                $id = $parent->id;
+
+                // Track for summary output
+                self::$autoDiscoveredIds[$filterKey] = [
+                    'id' => $id,
+                    'resource' => $parentName,
+                    'usedBy' => $this->getResourceName()
+                ];
+
+                $this->logDetail("  Found {$parentName} #{$id}");
+                return $id;
+            }
+
+            $this->logDetail("  No {$parentName} resources found");
+            return null;
+
+        } catch (\Throwable $e) {
+            $this->logDetail("  Auto-discovery failed: " . $e->getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Get the list of auto-discovered IDs for summary output
+     * @return array<string, array{id: int, resource: string, usedBy: string}>
+     */
+    public static function getAutoDiscoveredIds(): array
+    {
+        return self::$autoDiscoveredIds;
+    }
+
+    /**
+     * Clear auto-discovered IDs (call before test run)
+     */
+    public static function clearAutoDiscoveredIds(): void
+    {
+        self::$autoDiscoveredIds = [];
     }
 
     // ========================================================================
@@ -1122,10 +1219,20 @@ abstract class ResourceTest
 
     /**
      * Perform an update on a resource - override to customize
+     *
+     * SAFETY: Verifies resource was created by tests before attempting update.
      */
     protected function performUpdate(AbstractResource $resource): bool
     {
         $class = get_class($resource);
+
+        // CRITICAL SAFETY CHECK: Verify this resource was created by tests
+        if (!TestOwnershipRegistry::verifyTestCreated($this->getResourceName(), $resource->id)) {
+            $this->logDetail("");
+            $this->logDetail("SAFETY BLOCK: Resource #{$resource->id} not in test ownership registry");
+            $this->logDetail("  Cannot update resources that were not created by tests");
+            return false;
+        }
 
         $this->logDetail("");
         $this->logDetail("SEARCHING FOR UPDATABLE PROPERTY:");
@@ -1372,6 +1479,14 @@ abstract class ResourceTest
             $id = $resource->id;
             $this->logDetail("  Created resource #{$id} for deletion test");
 
+            // CRITICAL: Track via CleanupManager which also registers with ownership registry
+            // If delete fails, CleanupManager will handle cleanup
+            $this->cleanupManager->track(
+                $this->getResourceName(),
+                $id,
+                $this->getResourceClass()
+            );
+
             // Log resource before deletion
             $rawProps = $resource->raw();
             $this->logDetail("");
@@ -1379,6 +1494,16 @@ abstract class ResourceTest
             foreach ($rawProps as $prop => $value) {
                 $preview = $this->getValuePreview($value);
                 $this->logDetail("  {$prop}: {$preview}");
+            }
+
+            // CRITICAL SAFETY CHECK: Verify this resource was created by tests
+            if (!TestOwnershipRegistry::verifyTestCreated($this->getResourceName(), $id)) {
+                $this->logDetail("");
+                $this->logDetail("SAFETY BLOCK: Resource #{$id} not in test ownership registry");
+                $this->logDetail("  Cannot delete resources that were not created by tests");
+                $this->results->recordSkip($testName, "Safety block - resource not in ownership registry");
+                $this->output->testSkipped($testName, "Safety block - resource not in ownership registry");
+                return;
             }
 
             $this->logApiCall(
@@ -1389,6 +1514,9 @@ abstract class ResourceTest
             );
 
             $resource->delete();
+
+            // Remove from registry after successful deletion
+            TestOwnershipRegistry::unregister($this->getResourceName(), $id);
 
             $this->logDetail("  Result: SUCCESS");
             $this->logDetail("  Resource #{$id} has been deleted");

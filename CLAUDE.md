@@ -350,13 +350,13 @@ $response->projects = $projects;  // Will serialize as array in JSON output
 // Fetch with specific fields only
 $projects = Project::list()->fetch(['id', 'name', 'client_id']);
 
-// Fetch with WHERE conditions
+// Fetch with WHERE conditions (passed to fetch)
 $tasks = Task::list()->fetch(
     ['id', 'name', 'complete'],
     [Task::where('complete', false)]
 );
 
-// Multiple WHERE conditions
+// Multiple WHERE conditions (passed to fetch)
 $tasks = Task::list()->fetch(
     ['id', 'name', 'due_date'],
     [
@@ -366,6 +366,48 @@ $tasks = Task::list()->fetch(
     ]
 );
 ```
+
+### Fluent WHERE Conditions
+
+The SDK supports a fluent API for building WHERE conditions using the `where()` method
+on collections. This provides a more readable query-builder style syntax:
+
+```php
+use Jcolombo\PaymoApiPhp\Entity\Resource\Task;
+use Jcolombo\PaymoApiPhp\Entity\Resource\Project;
+
+// Single condition - fluent style
+$incompleteTasks = Task::list()
+    ->where(Task::where('complete', false))
+    ->fetch();
+
+// Multiple conditions - chained fluently
+$urgentTasks = Task::list()
+    ->where(Task::where('project_id', 12345))
+    ->where(Task::where('complete', false))
+    ->where(Task::where('due_date', '2024-12-31', '<='))
+    ->fetch(['id', 'name', 'due_date']);
+
+// Combine with limit() for pagination
+$tasks = Task::list()
+    ->where(Task::where('complete', false))
+    ->where(Task::where('priority', 50, '>='))
+    ->limit(25)
+    ->fetch();
+
+// Active projects with specific users
+$projects = Project::list()
+    ->where(Project::where('active', true))
+    ->where(Project::where('users', [100, 101, 102], 'in'))
+    ->fetch(['name', 'client_id']);
+```
+
+**Key Points:**
+- Conditions are accumulated with implicit AND logic
+- `where()` returns `$this` for chaining
+- Can be combined with `limit()` in any order
+- You can still pass conditions directly to `fetch()` - they are merged
+- Use `Resource::where()` to create properly typed conditions
 
 ### Pagination (Limiting Results)
 

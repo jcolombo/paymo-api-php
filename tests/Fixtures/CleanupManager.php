@@ -14,6 +14,7 @@
 namespace Jcolombo\PaymoApiPhp\Tests\Fixtures;
 
 use Jcolombo\PaymoApiPhp\Tests\TestOutput;
+use Jcolombo\PaymoApiPhp\Tests\TestOwnershipRegistry;
 use Jcolombo\PaymoApiPhp\Tests\TestResult;
 use Throwable;
 
@@ -115,6 +116,8 @@ class CleanupManager
     /**
      * Track a resource for later cleanup
      *
+     * Also registers with TestOwnershipRegistry for mutation safety verification.
+     *
      * @param string $type Resource type (e.g., 'Project', 'Task')
      * @param int $id Resource ID
      * @param string $className Full class name for deletion
@@ -132,6 +135,10 @@ class CleanupManager
             'tracked_at' => time(),
             'name' => $name,
         ];
+
+        // CRITICAL: Register with central ownership registry for mutation safety
+        // This allows verifyTestCreated() checks before any update/delete
+        TestOwnershipRegistry::register($type, $id, $name ?: $type);
 
         // Record creation in results tracker
         if ($this->results !== null) {
@@ -261,6 +268,8 @@ class CleanupManager
      * Delete a single resource
      * SDK uses singleton connection - no connection parameter needed
      *
+     * SAFETY: Verifies resource was created by tests before attempting deletion.
+     *
      * @param string $type Resource type
      * @param array $resource Resource info
      * @return bool Success
@@ -269,6 +278,20 @@ class CleanupManager
     {
         $id = $resource['id'];
         $className = $resource['class'];
+
+        // CRITICAL SAFETY CHECK: Verify this resource was created by tests
+        // This is a final safeguard against accidentally deleting production data
+        if (!TestOwnershipRegistry::verifyTestCreated($type, $id)) {
+            $this->failedDeletes[] = [
+                'type' => $type,
+                'id' => $id,
+                'error' => 'SAFETY BLOCK: Resource not in test ownership registry - refusing to delete',
+            ];
+            if ($this->output) {
+                $this->output->cleanup("BLOCKED: {$type} #{$id} not in ownership registry - skipping delete", false);
+            }
+            return false;
+        }
 
         if (!$this->executeDeletes) {
             if ($this->output) {
@@ -295,6 +318,9 @@ class CleanupManager
                 $this->results->recordDeletion($type, $id);
             }
 
+            // Remove from ownership registry after successful deletion
+            TestOwnershipRegistry::unregister($type, $id);
+
             return true;
 
         } catch (Throwable $e) {
@@ -305,6 +331,8 @@ class CleanupManager
                 if ($this->output) {
                     $this->output->cleanup("Already deleted {$type} #{$id} (not found)");
                 }
+                // Also unregister - resource is gone
+                TestOwnershipRegistry::unregister($type, $id);
                 return true;
             }
 

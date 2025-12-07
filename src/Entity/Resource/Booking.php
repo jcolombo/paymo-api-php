@@ -215,7 +215,11 @@ class Booking extends AbstractResource
       'user_id',
       'start_time',
       'end_time',
-      'booked_hours'
+      'booked_hours',
+      // Filter-only props: valid for WHERE filters but not resource properties
+      'project_id',
+      'task_id',
+      'date_interval'
     ];
 
     /**
@@ -260,7 +264,12 @@ class Booking extends AbstractResource
       'user_id'       => 'resource:user',
       'start_time'    => 'text', // Unsure what this datatype is
       'end_time'      => 'text',   // Unsure what this datatype is
-      'booked_hours'  => 'decimal'
+      'booked_hours'  => 'decimal',
+        // Filter-only props: valid for WHERE but not returned in response
+        // Per API docs: Bookings can be filtered by project_id, task_id, or date_interval
+      'project_id'    => 'resource:project',
+      'task_id'       => 'resource:task',
+      'date_interval' => 'text'  // Filter format: in ("YYYY-MM-DD","YYYY-MM-DD")
     ];
 
     /**
