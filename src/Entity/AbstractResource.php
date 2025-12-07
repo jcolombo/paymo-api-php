@@ -1579,4 +1579,17 @@ abstract class AbstractResource extends AbstractEntity
         return $response;
     }
 
+    /**
+     * Get the raw properties array.
+     *
+     * Returns the internal properties array without any transformation.
+     * Useful for debugging and testing.
+     *
+     * @return array Raw properties array
+     */
+    public function raw(): array
+    {
+        return $this->props;
+    }
+
 }

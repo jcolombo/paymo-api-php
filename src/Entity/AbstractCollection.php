@@ -36,7 +36,7 @@
  *
  * KEY FEATURES:
  * -------------
- * - Implements PHP's Iterator and ArrayAccess interfaces for native array-like behavior
+ * - Implements PHP's Iterator, ArrayAccess, JsonSerializable, and Countable interfaces
  * - Automatic hydration of API response data into typed resource objects
  * - WHERE and HAS condition support for filtered API queries
  * - Field selection and relationship includes for optimized data retrieval
@@ -112,11 +112,13 @@
 namespace Jcolombo\PaymoApiPhp\Entity;
 
 use ArrayAccess;
+use Countable;
 use Exception;
 use Iterator;
 use Jcolombo\PaymoApiPhp\Paymo;
 use Jcolombo\PaymoApiPhp\Request;
 use Jcolombo\PaymoApiPhp\Utility\RequestCondition;
+use JsonSerializable;
 use RuntimeException;
 use stdClass;
 
@@ -170,7 +172,7 @@ use stdClass;
  *
  * @package Jcolombo\PaymoApiPhp\Entity
  */
-abstract class AbstractCollection extends AbstractEntity implements Iterator, ArrayAccess
+abstract class AbstractCollection extends AbstractEntity implements Iterator, ArrayAccess, JsonSerializable, Countable
 {
     /**
      * The entity key identifying the type of resources this collection contains.
@@ -243,27 +245,34 @@ abstract class AbstractCollection extends AbstractEntity implements Iterator, Ar
     protected ?string $collectionClass = null;
 
     /**
+     * Array of keys for Iterator interface implementation.
+     *
+     * Since $data is keyed by resource ID (not sequential integers), we need
+     * to store the keys separately to enable proper iteration. This array is
+     * populated by rewind() and used by current(), key(), next(), and valid().
+     *
+     * @var array Array of resource IDs (keys from $data)
+     */
+    private array $iteratorKeys = [];
+
+    /**
      * The current position pointer for Iterator interface implementation.
      *
-     * This private integer tracks the current position within the data array when
-     * iterating. It's used by the Iterator interface methods (rewind, current, key,
-     * next, valid) to enable foreach loops over the collection.
+     * This integer tracks the current position within the $iteratorKeys array.
+     * Combined with $iteratorKeys, this enables proper foreach iteration over
+     * the associative $data array.
      *
      * ITERATOR IMPLEMENTATION:
      * ------------------------
-     * - rewind() sets index to 0
-     * - current() returns $data[$index]
-     * - key() returns $index
+     * - rewind() populates $iteratorKeys and sets $index to 0
+     * - current() returns $data[$iteratorKeys[$index]]
+     * - key() returns $iteratorKeys[$index] (the resource ID)
      * - next() increments $index
-     * - valid() checks isset($data[$index])
+     * - valid() checks if $index < count($iteratorKeys)
      *
-     * NOTE: The index iterates over array positions, but the data array itself
-     * is keyed by resource IDs. This enables sequential iteration while maintaining
-     * ID-based direct access.
-     *
-     * @var int Current position in the iteration, starting at 0
+     * @var int Current position in the $iteratorKeys array, starting at 0
      */
-    private int $index;
+    private int $index = 0;
 
     /**
      * The internal storage array containing all hydrated resource instances.
@@ -1138,6 +1147,12 @@ abstract class AbstractCollection extends AbstractEntity implements Iterator, Ar
      * Implements Iterator::rewind(). This method is called automatically by PHP
      * when starting a foreach loop, and can be called manually to restart iteration.
      *
+     * IMPLEMENTATION NOTE:
+     * --------------------
+     * Since $data is keyed by resource IDs (not sequential integers), this method
+     * populates $iteratorKeys with array_keys($data) and sets $index to 0.
+     * This allows current(), key(), and valid() to properly traverse the associative array.
+     *
      * USAGE IN FOREACH:
      * -----------------
      * ```php
@@ -1163,6 +1178,7 @@ abstract class AbstractCollection extends AbstractEntity implements Iterator, Ar
      */
     public function rewind() : void
     {
+        $this->iteratorKeys = array_keys($this->data);
         $this->index = 0;
     }
 
@@ -1172,6 +1188,12 @@ abstract class AbstractCollection extends AbstractEntity implements Iterator, Ar
      * Implements Iterator::current(). Returns the AbstractResource instance
      * at the current index position. This is called automatically during
      * foreach iteration to get each element.
+     *
+     * IMPLEMENTATION NOTE:
+     * --------------------
+     * Uses $iteratorKeys[$index] to get the actual resource ID, then looks up
+     * that ID in $data. This is necessary because $data is keyed by resource IDs,
+     * not sequential integers.
      *
      * USAGE:
      * ------
@@ -1198,21 +1220,31 @@ abstract class AbstractCollection extends AbstractEntity implements Iterator, Ar
     #[\ReturnTypeWillChange]
     public function current()
     {
-        return $this->data[$this->index];
+        if (!isset($this->iteratorKeys[$this->index])) {
+            return null;
+        }
+        $resourceId = $this->iteratorKeys[$this->index];
+        return $this->data[$resourceId];
     }
 
     /**
      * Get the key (resource ID) at the current iterator position.
      *
-     * Implements Iterator::key(). Returns the current index value, which
-     * corresponds to the resource ID since the data array is keyed by ID.
+     * Implements Iterator::key(). Returns the actual resource ID at the current
+     * position, enabling proper `foreach ($collection as $id => $resource)` syntax.
+     *
+     * IMPLEMENTATION NOTE:
+     * --------------------
+     * Returns $iteratorKeys[$index], which is the actual resource ID stored in $data.
+     * This ensures that `foreach ($projects as $id => $project)` provides the correct
+     * resource ID as $id, not the sequential position.
      *
      * USAGE:
      * ------
      * ```php
      * // In foreach (automatic)
      * foreach ($projects as $id => $project) {
-     *     // $id is the result of key() for each iteration
+     *     // $id is the result of key() for each iteration - the actual resource ID
      *     echo "Project #{$id}: {$project->name}";
      * }
      *
@@ -1221,14 +1253,15 @@ abstract class AbstractCollection extends AbstractEntity implements Iterator, Ar
      * $firstId = $projects->key();  // Returns the ID of first resource
      * ```
      *
-     * @return int The current index/key value (typically the resource ID)
+     * @return int|null The current resource ID, or null if position is invalid
      *
      * @see Iterator PHP's Iterator interface
      * @see current() Gets the element at current position
      */
-    public function key() : int
+    #[\ReturnTypeWillChange]
+    public function key()
     {
-        return $this->index;
+        return $this->iteratorKeys[$this->index] ?? null;
     }
 
     /**
@@ -1272,6 +1305,12 @@ abstract class AbstractCollection extends AbstractEntity implements Iterator, Ar
      * the current index position. Used by PHP to determine when a foreach
      * loop should terminate.
      *
+     * IMPLEMENTATION NOTE:
+     * --------------------
+     * Checks if $index is within bounds of $iteratorKeys array. This ensures
+     * proper iteration termination since $data is keyed by resource IDs, not
+     * sequential integers.
+     *
      * USAGE:
      * ------
      * ```php
@@ -1301,7 +1340,7 @@ abstract class AbstractCollection extends AbstractEntity implements Iterator, Ar
      */
     public function valid() : bool
     {
-        return isset($this->data[$this->index]);
+        return $this->index < count($this->iteratorKeys);
     }
 
     /**
@@ -1533,6 +1572,95 @@ abstract class AbstractCollection extends AbstractEntity implements Iterator, Ar
     public function raw() : array
     {
         return $this->data;
+    }
+
+    /**
+     * Get the number of resources in the collection.
+     *
+     * Implements Countable::count(). Allows using count() directly on the collection
+     * instead of requiring count($collection->raw()).
+     *
+     * USAGE:
+     * ------
+     * ```php
+     * $projects = Project::collection()->fetch(['name']);
+     *
+     * // Direct count on collection
+     * echo count($projects);  // e.g., 25
+     *
+     * // Equivalent to:
+     * echo count($projects->raw());  // Also 25
+     * ```
+     *
+     * @return int The number of resources in the collection
+     *
+     * @see Countable PHP's Countable interface
+     * @see raw() Returns the underlying array
+     */
+    public function count() : int
+    {
+        return count($this->data);
+    }
+
+    /**
+     * Specify data for JSON serialization.
+     *
+     * Implements JsonSerializable::jsonSerialize(). This method is called automatically
+     * by json_encode() when encoding the collection. Returns the flattened data so that
+     * collections serialize as arrays of plain objects rather than empty objects.
+     *
+     * USAGE:
+     * ------
+     * ```php
+     * $projects = Project::collection()->fetch(['id', 'name']);
+     *
+     * // Direct JSON encoding works correctly
+     * $json = json_encode($projects);
+     * // Result: [{"id": 123, "name": "Project A"}, {"id": 456, "name": "Project B"}]
+     *
+     * // Can be used directly in API responses
+     * $data->paymoProjects = $projects;  // Will serialize properly
+     * echo json_encode($data);
+     * ```
+     *
+     * NOTE: Returns array_values() of flatten() to produce a JSON array with
+     * sequential indices rather than an object with ID keys. This is the more
+     * common expectation for JSON API responses.
+     *
+     * @return array Array of flattened resource data suitable for JSON encoding
+     *
+     * @see JsonSerializable PHP's JsonSerializable interface
+     * @see flatten() The underlying method that converts resources to plain objects
+     */
+    public function jsonSerialize() : array
+    {
+        return array_values($this->flatten());
+    }
+
+    /**
+     * Provide debug information for var_dump().
+     *
+     * This magic method controls what is shown when var_dump() is called on
+     * the collection. Instead of showing internal implementation details,
+     * it shows useful debugging information including the count and data.
+     *
+     * USAGE:
+     * ------
+     * ```php
+     * $projects = Project::collection()->fetch(['id', 'name']);
+     * var_dump($projects);
+     * // Shows: entityKey, count, and the data array
+     * ```
+     *
+     * @return array Debug information array
+     */
+    public function __debugInfo() : array
+    {
+        return [
+            'entityKey' => $this->entityKey,
+            'count' => count($this->data),
+            'data' => $this->data
+        ];
     }
 
 }

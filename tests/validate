@@ -35,6 +35,7 @@ use Jcolombo\PaymoApiPhp\Tests\ResourceTestRunner;
 use Jcolombo\PaymoApiPhp\Tests\TestOutput;
 use Jcolombo\PaymoApiPhp\Tests\TestResult;
 use Jcolombo\PaymoApiPhp\Tests\TestLogger;
+use Jcolombo\PaymoApiPhp\Tests\DependencyAnalyzer;
 use Jcolombo\PaymoApiPhp\Paymo;
 
 // Global variables for shutdown handler
@@ -181,13 +182,28 @@ try {
 applyOverrides($config, $options);
 
 // Set runtime options BEFORE logger initialization (so reset_log works)
-$config->setRuntimeOption('dry_run', isset($options['dry-run']));
-$config->setRuntimeOption('verbose', isset($options['v']) || isset($options['verbose']));
-$config->setRuntimeOption('quiet', isset($options['q']) || isset($options['quiet']));
-$config->setRuntimeOption('stop_on_failure', isset($options['stop-on-fail']));
-$config->setRuntimeOption('cleanup_on_failure', !isset($options['no-cleanup']));
-$config->setRuntimeOption('interactive', !isset($options['no-interactive']));
-$config->setRuntimeOption('reset_log', isset($options['reset-log']));
+// ONLY set runtime options when CLI flag is actually passed - otherwise config file values apply
+if (isset($options['dry-run'])) {
+    $config->setRuntimeOption('dry_run', true);
+}
+if (isset($options['v']) || isset($options['verbose'])) {
+    $config->setRuntimeOption('verbose', true);
+}
+if (isset($options['q']) || isset($options['quiet'])) {
+    $config->setRuntimeOption('quiet', true);
+}
+if (isset($options['stop-on-fail'])) {
+    $config->setRuntimeOption('stop_on_failure', true);
+}
+if (isset($options['no-cleanup'])) {
+    $config->setRuntimeOption('cleanup_on_failure', false);
+}
+if (isset($options['no-interactive'])) {
+    $config->setRuntimeOption('interactive', false);
+}
+if (isset($options['reset-log'])) {
+    $config->setRuntimeOption('reset_log', true);
+}
 
 // Initialize logger if enabled
 $logger = null;
@@ -628,72 +644,62 @@ function interactiveStartup(TestConfig $config, TestOutput $output, array &$reso
 
     // Show warning
     $output->warning("This will make API calls to your Paymo account.");
-    $output->info("Only test resources will be created and cleaned up.");
     $output->line();
 
-    // Show configuration status
-    $output->subHeader("Configuration Status");
-
+    // Check API key first
     $apiKey = $config->getApiKey();
-    if ($apiKey) {
-        $output->success("API Key: " . $config->getMaskedApiKey());
-    } else {
+    if (!$apiKey) {
         $output->error("API Key: NOT CONFIGURED");
-        $output->line();
         $output->error("Cannot proceed without API key.");
         return false;
     }
 
+    // Show configured anchors
+    $output->subHeader("Configured Anchors");
     $anchors = $config->getAnchors();
-
     $anchorLabels = [
-        'client_id' => 'Test Client ID',
-        'user_id' => 'Test User ID',
-        'project_template_id' => 'Project Template ID',
-        'invoice_template_id' => 'Invoice Template ID',
-        'estimate_template_id' => 'Estimate Template ID',
-        'project_status_id' => 'Project Status ID',
-        'workflow_id' => 'Workflow ID',
+        'client_id' => 'Client',
+        'user_id' => 'User',
+        'project_id' => 'Project',
+        'project_template_id' => 'Project Template',
+        'invoice_template_id' => 'Invoice Template',
+        'estimate_template_id' => 'Estimate Template',
+        'project_status_id' => 'Project Status',
+        'workflow_id' => 'Workflow',
     ];
 
+    $hasAnchors = false;
     foreach ($anchorLabels as $key => $label) {
         if (!empty($anchors[$key])) {
-            $output->success("$label: " . $anchors[$key]);
-        } else {
-            $output->warning("$label: NOT CONFIGURED");
+            $output->success("{$label}: #{$anchors[$key]}");
+            $hasAnchors = true;
         }
     }
-
+    if (!$hasAnchors) {
+        $output->warning("No anchors configured - all dependencies will be created temporarily");
+    }
     $output->line();
 
-    // Show resource categories
-    $output->subHeader("Resources to Test");
-
-    $safeCrud = ['Client', 'Project', 'Tasklist', 'Task', 'Subtask', 'TimeEntry',
-                 'Milestone', 'Discussion', 'Comment', 'File', 'Booking',
-                 'Invoice', 'InvoiceItem', 'Estimate', 'EstimateItem', 'Expense', 'Webhook'];
-    $readOnly = ['Company', 'Session', 'Workflow'];
-    $anchored = ['User', 'ProjectTemplate', 'InvoiceTemplate', 'EstimateTemplate', 'ProjectStatus'];
-
-    $output->listItem("Safe CRUD: " . count($safeCrud) . " resources");
-    $output->listItem("Read-Only: " . count($readOnly) . " resources");
-    $output->listItem("Configured Anchor: " . count($anchored) . " resources");
-
-    // Show config restrictions
+    // Determine resources to test
     $only = $config->getOnlyResources();
     $skip = $config->getSkippedResources();
+
     if (!empty($only)) {
-        $output->info("Limited to: " . implode(', ', $only));
+        $output->info("Config limits testing to: " . implode(', ', $only));
     }
     if (!empty($skip)) {
-        $output->info("Skipping: " . implode(', ', $skip));
+        $output->info("Config skips: " . implode(', ', $skip));
     }
-
     $output->line();
 
-    // Confirm to proceed
-    $output->info("Press ENTER to run all resources, or 'q' to quit.");
-    $output->info("Or enter specific resource names (comma-separated):");
+    // Ask user what to test
+    $output->subHeader("Select Resources to Test");
+    $output->info("Options:");
+    $output->listItem("ENTER = Run configured resources" . (!empty($only) ? " (" . implode(', ', $only) . ")" : " (all)"));
+    $output->listItem("Type resource names (comma-separated) to test specific ones");
+    $output->listItem("'q' = Quit");
+    $output->line();
+    echo "Your choice: ";
 
     $input = trim(fgets(STDIN));
 
@@ -704,10 +710,130 @@ function interactiveStartup(TestConfig $config, TestOutput $output, array &$reso
     // Parse user input for specific resources
     if (!empty($input) && strtolower($input) !== 'all') {
         $resources = array_map('trim', explode(',', $input));
-    } else {
-        // Run all resources - set to empty to trigger runAllTests()
-        $resources = [];
     }
+    // else $resources stays as passed in (empty = use config filtering)
+
+    // Now analyze dependencies
+    $analyzer = new DependencyAnalyzer($config);
+    $analysis = $analyzer->analyze($resources);
+    $summary = $analyzer->getSummary($analysis);
+
+    $output->line();
+    $output->subHeader("Dependency Analysis");
+
+    // Show what will be tested
+    $output->info("Resources to test: " . count($analysis['resources_to_test']));
+    foreach ($analysis['resources_to_test'] as $res) {
+        $deps = $analysis['dependencies'][$res] ?? [];
+        if (empty($deps)) {
+            $output->listItem("{$res} (no dependencies)");
+        } else {
+            $output->listItem("{$res} → requires: " . implode(', ', $deps));
+        }
+    }
+    $output->line();
+
+    // Show what anchors will be used
+    if (!empty($analysis['will_use_anchors'])) {
+        $output->subHeader("Will Use Existing (Anchored) Resources");
+        foreach ($analysis['will_use_anchors'] as $resource => $id) {
+            $output->success("{$resource} #{$id} (from config)");
+        }
+        $output->line();
+    }
+
+    // Show what will be created temporarily
+    if (!empty($analysis['will_create'])) {
+        $output->subHeader("Will Create Temporarily (then cleanup)");
+        foreach ($analysis['will_create'] as $resource) {
+            // Show what it will be attached to
+            $deps = DependencyAnalyzer::getDirectDependencies($resource);
+            if (!empty($deps)) {
+                $attachedTo = [];
+                foreach ($deps as $dep) {
+                    if (isset($analysis['will_use_anchors'][$dep])) {
+                        $attachedTo[] = "{$dep} #{$analysis['will_use_anchors'][$dep]}";
+                    } else {
+                        $attachedTo[] = "{$dep} (also temporary)";
+                    }
+                }
+                $output->warning("{$resource} → attached to: " . implode(', ', $attachedTo));
+            } else {
+                $output->warning("{$resource} (top-level, will be deleted)");
+            }
+        }
+        $output->line();
+    }
+
+    // Show what cannot be tested
+    if (!empty($analysis['cannot_test'])) {
+        $output->subHeader("Cannot Test (missing required anchors)");
+        foreach ($analysis['cannot_test'] as $resource => $missing) {
+            $output->error("{$resource} - needs: " . implode(', ', $missing));
+        }
+        $output->line();
+
+        // Suggest adding anchors
+        if (!empty($analysis['missing_anchors'])) {
+            $output->info("To test these resources, add these anchors to your config:");
+            foreach ($analysis['missing_anchors'] as $resource => $anchorKey) {
+                if ($anchorKey) {
+                    $output->listItem("\"{$anchorKey}\": <id>  // for {$resource}");
+                }
+            }
+            $output->line();
+        }
+    }
+
+    // Final confirmation with clear summary
+    $output->subHeader("Summary of API Operations");
+    $testCount = count($analysis['resources_to_test']);
+    $createCount = count($analysis['will_create']);
+    $anchorCount = count($analysis['will_use_anchors']);
+
+    $output->info("• Testing {$testCount} resource(s)");
+    if ($anchorCount > 0) {
+        $output->info("• Using {$anchorCount} anchored resource(s) from config");
+    }
+    if ($createCount > 0) {
+        $output->warning("• Will CREATE {$createCount} temporary resource(s)");
+        $output->warning("• All temporary resources will be DELETED after tests");
+    }
+    $output->line();
+
+    // Offer options if we're creating things
+    if ($createCount > 0) {
+        $output->info("Options:");
+        $output->listItem("ENTER = Proceed (create temporary resources, cleanup after)");
+        $output->listItem("'a' = Add project_id anchor to use existing project for child resources");
+        $output->listItem("'q' = Quit");
+        echo "Your choice: ";
+
+        $confirm = trim(fgets(STDIN));
+
+        if (strtolower($confirm) === 'q') {
+            return false;
+        }
+
+        if (strtolower($confirm) === 'a') {
+            // Prompt for project_id
+            echo "Enter Project ID to use as anchor: ";
+            $projectId = trim(fgets(STDIN));
+            if (is_numeric($projectId) && (int)$projectId > 0) {
+                $config->setAnchor('project_id', (int)$projectId);
+                $output->success("Project #{$projectId} set as anchor for this session");
+
+                // Re-analyze with new anchor
+                $analysis = $analyzer->analyze($resources);
+                $createCount = count($analysis['will_create']);
+                $output->info("Updated: Will now create {$createCount} temporary resource(s)");
+            }
+            $output->line();
+        }
+    }
+
+    $output->success("Proceeding with tests...");
+    $output->line();
 
     return true;
 }

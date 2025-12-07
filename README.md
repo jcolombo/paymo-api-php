@@ -23,6 +23,7 @@ This independently developed package provides a developer-friendly toolkit to si
 - **Full CRUD Operations** - Create, Read, Update, and Delete for all 33 Paymo resource types
 - **Fluent Interface** - Chainable methods for clean, readable code
 - **Smart Query Building** - WHERE filters, HAS relationship conditions, and INCLUDE for eager loading
+- **JSON-Ready Collections** - Collections are directly JSON-serializable for API responses
 - **Response Caching** - Built-in file-based caching to reduce API calls and avoid rate limits
 - **Request Logging** - Comprehensive logging for debugging and monitoring
 - **Type Safety** - Property type validation for each resource type
@@ -92,6 +93,12 @@ $projects = Project::list()->fetch();
 foreach ($projects as $project) {
     echo $project->name . "\n";
 }
+
+// Get count directly
+echo "Total projects: " . count($projects);
+
+// JSON encode directly for API responses
+$json = json_encode($projects);  // Returns array of flattened objects
 
 // Get all tasks with filters
 $tasks = Task::list()
@@ -403,6 +410,21 @@ $data = $project->flatten();
 
 // Strip null values
 $data = $project->flatten(['stripNull' => true]);
+```
+
+### JSON Serialization
+
+Collections can be directly JSON-encoded for API responses:
+
+```php
+$projects = Project::list()->fetch(['id', 'name', 'active']);
+
+// Direct JSON encoding - collections implement JsonSerializable
+echo json_encode($projects);
+// Output: [{"id": 123, "name": "Project A", "active": true}, ...]
+
+// Assign directly to response data structures
+$response->projects = $projects;  // Auto-serializes correctly
 ```
 
 ---

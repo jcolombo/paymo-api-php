@@ -338,6 +338,15 @@ foreach ($projects as $project) {
     echo $project->name . "\n";
 }
 
+// Get count directly (implements Countable)
+echo count($projects);  // e.g., 25
+
+// JSON encode directly (implements JsonSerializable)
+$json = json_encode($projects);  // Returns array of flattened objects
+
+// Assign to response object - auto-serializes correctly
+$response->projects = $projects;  // Will serialize as array in JSON output
+
 // Fetch with specific fields only
 $projects = Project::list()->fetch(['id', 'name', 'client_id']);
 
@@ -571,6 +580,25 @@ $data = $project->flatten();
 
 // Strip null values
 $data = $project->flatten(['stripNull' => true]);
+```
+
+### JSON Serialization
+
+Collections implement `JsonSerializable` for direct JSON encoding:
+
+```php
+$projects = Project::list()->fetch(['id', 'name']);
+
+// Direct JSON encoding - returns array of flattened objects
+echo json_encode($projects);
+// Output: [{"id": 123, "name": "Project A"}, {"id": 456, "name": "Project B"}]
+
+// Assign directly to response objects
+$response->data = $projects;  // Auto-serializes when response is encoded
+
+// For explicit control, use flatten() on collections
+$array = $projects->flatten();  // Returns array keyed by resource ID
+$array = array_values($projects->flatten());  // Sequential array
 ```
 
 ---
@@ -869,6 +897,8 @@ $task = Task::new()->set([
 12. **Dirty tracking** means only modified fields are sent on update()
 13. **Collections are iterable** - use foreach to process results
 14. **flatten()** converts resources to plain stdClass objects
+15. **Collections are JSON-serializable** - can be directly assigned to response data
+16. **Collections are countable** - use `count($collection)` directly
 
 ### Settings State
 

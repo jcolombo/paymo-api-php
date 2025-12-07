@@ -25,6 +25,11 @@ class TestConfig
         'anchors' => [
             'client_id' => null,
             'user_id' => null,
+            'project_id' => null,
+            'tasklist_id' => null,
+            'task_id' => null,
+            'invoice_id' => null,
+            'estimate_id' => null,
             'project_template_id' => null,
             'invoice_template_id' => null,
             'estimate_template_id' => null,

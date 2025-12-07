@@ -3,6 +3,7 @@
  * Paymo API PHP SDK - Project Resource Test
  *
  * Comprehensive tests for the Project resource.
+ * Uses base class ensureClient() for dependency management.
  *
  * @package    Jcolombo\PaymoApiPhp\Tests\ResourceTests
  * @author     Joel Colombo <jc-dev@360psg.com>
@@ -13,7 +14,6 @@ namespace Jcolombo\PaymoApiPhp\Tests\ResourceTests;
 
 use Jcolombo\PaymoApiPhp\Tests\ResourceTest;
 use Jcolombo\PaymoApiPhp\Entity\Resource\Project;
-use Jcolombo\PaymoApiPhp\Entity\Resource\Client;
 use Jcolombo\PaymoApiPhp\Entity\AbstractResource;
 
 class ProjectResourceTest extends ResourceTest
@@ -35,17 +35,12 @@ class ProjectResourceTest extends ResourceTest
 
     protected function createTestResource(): ?AbstractResource
     {
-        // Use configured client or create one
-        $clientId = $this->config->getAnchor('client_id');
+        // Use base class method for client (with anchor support)
+        $clientId = $this->ensureClient();
 
         if (!$clientId) {
-            // Create a test client
-            $clientData = $this->factory->clientData();
-            $client = new Client();
-            $client->name = $clientData['name'];
-            $client->create();
-            $this->cleanupManager->track('Client', $client->id, Client::class);
-            $clientId = $client->id;
+            $this->logWarning("Could not get/create client for project");
+            return null;
         }
 
         $data = $this->factory->projectData($clientId);

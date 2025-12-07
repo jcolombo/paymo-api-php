@@ -196,6 +196,7 @@ AbstractEntity
     │   ├── Client
     │   └── ...
     └── AbstractCollection (list operations)
+        │   implements Iterator, ArrayAccess, JsonSerializable, Countable
         ├── EntityCollection (default)
         ├── TaskAssignmentCollection
         ├── BookingCollection
@@ -574,6 +575,42 @@ default.paymoapi.config.json
 ---
 
 ## 8. Collection Classes
+
+### Collection Interface Implementation
+
+`AbstractCollection` implements four PHP interfaces:
+
+| Interface | Purpose |
+|-----------|---------|
+| `Iterator` | Enables `foreach` iteration over resources |
+| `ArrayAccess` | Enables array-style access `$collection[$id]` |
+| `JsonSerializable` | Enables direct `json_encode($collection)` |
+| `Countable` | Enables `count($collection)` |
+
+**Important Implementation Details:**
+
+- **Iterator**: The internal `$data` array is keyed by resource ID (not sequential integers). The Iterator implementation uses an `$iteratorKeys` array to properly traverse the associative array.
+- **JsonSerializable**: Returns `array_values($this->flatten())` to produce a JSON array with sequential indices rather than an object with ID keys.
+- **Countable**: Returns `count($this->data)` for the number of resources.
+
+```php
+$projects = Project::list()->fetch(['id', 'name']);
+
+// Iterator - foreach works correctly
+foreach ($projects as $id => $project) {
+    echo "Project #{$id}: {$project->name}\n";
+}
+
+// Countable - count() works directly
+echo "Total: " . count($projects);
+
+// JsonSerializable - json_encode() returns array of objects
+$json = json_encode($projects);
+// Output: [{"id": 123, "name": "A"}, {"id": 456, "name": "B"}]
+
+// ArrayAccess - access by resource ID
+$project = $projects[123];  // Get project with ID 123
+```
 
 ### When to Create a Custom Collection
 

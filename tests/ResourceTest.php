@@ -1529,6 +1529,241 @@ abstract class ResourceTest
     }
 
     // ========================================================================
+    // Dependency Helpers - Get or Create Required Resources
+    // ========================================================================
+
+    /**
+     * Get or create a Client for testing
+     * Uses anchored client_id if configured, otherwise creates a temporary one
+     *
+     * @return int|null Client ID
+     */
+    protected function ensureClient(): ?int
+    {
+        // Check for anchored client first
+        $anchoredClientId = $this->config->getAnchor('client_id');
+        if ($anchoredClientId) {
+            $this->logDetail("Using anchored Client #{$anchoredClientId}");
+            return $anchoredClientId;
+        }
+
+        // Need to create a temporary client
+        $clientClass = 'Jcolombo\\PaymoApiPhp\\Entity\\Resource\\Client';
+        $clientData = $this->factory->clientData();
+
+        $client = new $clientClass();
+        $client->name = $clientData['name'];
+        $client->create();
+
+        $this->logDetail("Created temporary Client #{$client->id}");
+        $this->cleanupManager->track('Client', $client->id, $clientClass);
+
+        return $client->id;
+    }
+
+    /**
+     * Get or create a Project for testing
+     * Uses anchored project_id if configured, otherwise creates a temporary one
+     *
+     * @return int|null Project ID
+     */
+    protected function ensureProject(): ?int
+    {
+        // Check for anchored project first
+        $anchoredProjectId = $this->config->getAnchor('project_id');
+        if ($anchoredProjectId) {
+            $this->logDetail("Using anchored Project #{$anchoredProjectId}");
+            return $anchoredProjectId;
+        }
+
+        // Need a client first
+        $clientId = $this->ensureClient();
+        if (!$clientId) {
+            return null;
+        }
+
+        // Create a temporary project
+        $projectClass = 'Jcolombo\\PaymoApiPhp\\Entity\\Resource\\Project';
+        $projectData = $this->factory->projectData($clientId);
+
+        $project = new $projectClass();
+        $project->name = $projectData['name'];
+        $project->client_id = $clientId;
+        $project->create();
+
+        $this->logDetail("Created temporary Project #{$project->id}");
+        $this->cleanupManager->track('Project', $project->id, $projectClass);
+
+        return $project->id;
+    }
+
+    /**
+     * Get or create a Tasklist for testing
+     * Uses anchored tasklist_id if configured, otherwise creates a temporary one
+     *
+     * @return int|null Tasklist ID
+     */
+    protected function ensureTasklist(): ?int
+    {
+        // Check for anchored tasklist first
+        $anchoredTasklistId = $this->config->getAnchor('tasklist_id');
+        if ($anchoredTasklistId) {
+            $this->logDetail("Using anchored Tasklist #{$anchoredTasklistId}");
+            return $anchoredTasklistId;
+        }
+
+        // Need a project first
+        $projectId = $this->ensureProject();
+        if (!$projectId) {
+            return null;
+        }
+
+        // Create a temporary tasklist
+        $tasklistClass = 'Jcolombo\\PaymoApiPhp\\Entity\\Resource\\Tasklist';
+        $tasklistData = $this->factory->tasklistData($projectId);
+
+        $tasklist = new $tasklistClass();
+        $tasklist->name = $tasklistData['name'];
+        $tasklist->project_id = $projectId;
+        $tasklist->create();
+
+        $this->logDetail("Created temporary Tasklist #{$tasklist->id}");
+        $this->cleanupManager->track('Tasklist', $tasklist->id, $tasklistClass);
+
+        return $tasklist->id;
+    }
+
+    /**
+     * Get or create a Task for testing
+     * Uses anchored task_id if configured, otherwise creates a temporary one
+     *
+     * @return int|null Task ID
+     */
+    protected function ensureTask(): ?int
+    {
+        // Check for anchored task first
+        $anchoredTaskId = $this->config->getAnchor('task_id');
+        if ($anchoredTaskId) {
+            $this->logDetail("Using anchored Task #{$anchoredTaskId}");
+            return $anchoredTaskId;
+        }
+
+        // Need a tasklist first
+        $tasklistId = $this->ensureTasklist();
+        if (!$tasklistId) {
+            return null;
+        }
+
+        // Create a temporary task
+        $taskClass = 'Jcolombo\\PaymoApiPhp\\Entity\\Resource\\Task';
+        $taskData = $this->factory->taskData($tasklistId);
+
+        $task = new $taskClass();
+        $task->name = $taskData['name'];
+        $task->tasklist_id = $tasklistId;
+        $task->create();
+
+        $this->logDetail("Created temporary Task #{$task->id}");
+        $this->cleanupManager->track('Task', $task->id, $taskClass);
+
+        return $task->id;
+    }
+
+    /**
+     * Get or create an Invoice for testing
+     * Uses anchored invoice_id if configured, otherwise creates a temporary one
+     *
+     * @return int|null Invoice ID
+     */
+    protected function ensureInvoice(): ?int
+    {
+        // Check for anchored invoice first
+        $anchoredInvoiceId = $this->config->getAnchor('invoice_id');
+        if ($anchoredInvoiceId) {
+            $this->logDetail("Using anchored Invoice #{$anchoredInvoiceId}");
+            return $anchoredInvoiceId;
+        }
+
+        // Need a client first
+        $clientId = $this->ensureClient();
+        if (!$clientId) {
+            return null;
+        }
+
+        // Create a temporary invoice
+        $invoiceClass = 'Jcolombo\\PaymoApiPhp\\Entity\\Resource\\Invoice';
+        $invoiceData = $this->factory->invoiceData($clientId);
+
+        $invoice = new $invoiceClass();
+        $invoice->client_id = $clientId;
+        $invoice->number = $invoiceData['number'];
+        $invoice->currency = $invoiceData['currency'] ?? 'USD';
+        $invoice->date = $invoiceData['date'];
+        $invoice->due_date = $invoiceData['due_date'];
+        $invoice->create();
+
+        $this->logDetail("Created temporary Invoice #{$invoice->id}");
+        $this->cleanupManager->track('Invoice', $invoice->id, $invoiceClass);
+
+        return $invoice->id;
+    }
+
+    /**
+     * Get or create an Estimate for testing
+     * Uses anchored estimate_id if configured, otherwise creates a temporary one
+     *
+     * @return int|null Estimate ID
+     */
+    protected function ensureEstimate(): ?int
+    {
+        // Check for anchored estimate first
+        $anchoredEstimateId = $this->config->getAnchor('estimate_id');
+        if ($anchoredEstimateId) {
+            $this->logDetail("Using anchored Estimate #{$anchoredEstimateId}");
+            return $anchoredEstimateId;
+        }
+
+        // Need a client first
+        $clientId = $this->ensureClient();
+        if (!$clientId) {
+            return null;
+        }
+
+        // Create a temporary estimate
+        $estimateClass = 'Jcolombo\\PaymoApiPhp\\Entity\\Resource\\Estimate';
+        $estimateData = $this->factory->estimateData($clientId);
+
+        $estimate = new $estimateClass();
+        $estimate->client_id = $clientId;
+        $estimate->number = $estimateData['number'];
+        $estimate->currency = $estimateData['currency'] ?? 'USD';
+        $estimate->date = $estimateData['date'];
+        $estimate->create();
+
+        $this->logDetail("Created temporary Estimate #{$estimate->id}");
+        $this->cleanupManager->track('Estimate', $estimate->id, $estimateClass);
+
+        return $estimate->id;
+    }
+
+    /**
+     * Get anchor for User (cannot be created via API)
+     *
+     * @return int|null User ID
+     */
+    protected function ensureUser(): ?int
+    {
+        $userId = $this->config->getAnchor('user_id');
+        if ($userId) {
+            $this->logDetail("Using anchored User #{$userId}");
+            return $userId;
+        }
+
+        $this->logWarning("No user_id anchor configured - cannot create users via API");
+        return null;
+    }
+
+    // ========================================================================
     // Cleanup
     // ========================================================================
 
