@@ -258,26 +258,6 @@
         "resourceKey": "projecttemplatestask",
         "collection": true
       },
-      "projecttemplatetasklist": {
-        "type": "resource",
-        "resource": "Jcolombo\\PaymoApiPhp\\Entity\\Resource\\ProjectTemplateTasklist",
-        "collectionKey": "projecttemplatetasklists"
-      },
-      "projecttemplatetasklists": {
-        "type": "collection",
-        "resourceKey": "projecttemplatetasklist",
-        "collection": true
-      },
-      "projecttemplatetask": {
-        "type": "resource",
-        "resource": "Jcolombo\\PaymoApiPhp\\Entity\\Resource\\ProjectTemplateTask",
-        "collectionKey": "projecttemplatetasks"
-      },
-      "projecttemplatetasks": {
-        "type": "collection",
-        "resourceKey": "projecttemplatetask",
-        "collection": true
-      },
       "thread": {
         "type": "resource",
         "resource": "Jcolombo\\PaymoApiPhp\\Entity\\Resource\\CommentThread",
@@ -311,12 +291,7 @@
       "estimatetemplatesgallery": {
         "type": "resource",
         "resource": "Jcolombo\\PaymoApiPhp\\Entity\\Resource\\EstimateTemplateGallery",
-        "collectionKey": "estimatetemplatesgallerys"
-      },
-      "estimatetemplatesgallerys": {
-        "type": "collection",
-        "resourceKey": "estimatetemplatesgallery",
-        "collection": true
+        "collectionKey": "estimatetemplatesgallery"
       },
       "estimatetemplate": {
         "type": "resource",
@@ -371,12 +346,7 @@
       "invoicetemplatesgallery": {
         "type": "resource",
         "resource": "Jcolombo\\PaymoApiPhp\\Entity\\Resource\\InvoiceTemplateGallery",
-        "collectionKey": "invoicetemplatesgallerys"
-      },
-      "invoicetemplatesgallerys": {
-        "type": "collection",
-        "resourceKey": "invoicetemplatesgallery",
-        "collection": true
+        "collectionKey": "invoicetemplatesgallery"
       },
       "invoicetemplate": {
         "type": "resource",

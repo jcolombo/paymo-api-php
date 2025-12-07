@@ -20,7 +20,7 @@ This independently developed package provides a developer-friendly toolkit to si
 
 ## Features
 
-- **Full CRUD Operations** - Create, Read, Update, and Delete for all 33 Paymo resource types
+- **Full CRUD Operations** - Create, Read, Update, and Delete for all 38 Paymo resource types
 - **Fluent Interface** - Chainable methods for clean, readable code
 - **Smart Query Building** - WHERE filters, HAS relationship conditions, and INCLUDE for eager loading
 - **JSON-Ready Collections** - Collections are directly JSON-serializable for API responses
@@ -160,19 +160,21 @@ Project::deleteById(12345);
 
 ## Supported Resources
 
-The SDK supports all 33 Paymo API resource types:
+The SDK supports all 38 Paymo API resource types:
 
 | Category | Resources |
 |----------|-----------|
-| **Projects & Tasks** | `Project`, `ProjectStatus`, `ProjectTemplate`, `Tasklist`, `Task`, `TaskAssignment` |
+| **Projects & Tasks** | `Project`, `ProjectStatus`, `ProjectTemplate`, `Tasklist`, `Task`, `Subtask`, `TaskAssignment` |
 | **Time Tracking** | `TimeEntry`, `Booking` |
 | **Financial** | `Invoice`, `InvoiceItem`, `InvoicePayment`, `InvoiceTemplate`, `Estimate`, `EstimateItem`, `EstimateTemplate`, `Expense` |
+| **Recurring** | `RecurringProfile`, `RecurringProfileItem`, `TaskRecurringProfile` |
 | **Users & Clients** | `User`, `Client`, `ClientContact`, `Company` |
 | **Collaboration** | `Discussion`, `Comment`, `CommentThread`, `Milestone` |
 | **Workflows** | `Workflow`, `WorkflowStatus` |
 | **Files & Sessions** | `File`, `Session` |
 | **Reports** | `Report` |
 | **Templates** | `ProjectTemplateTask`, `ProjectTemplateTasklist`, `EstimateTemplateGallery`, `InvoiceTemplateGallery` |
+| **Integrations** | `Webhook` |
 
 ---
 

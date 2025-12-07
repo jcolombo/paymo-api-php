@@ -633,8 +633,8 @@ The following are now in PROP_TYPES and CREATEONLY:
 **File:** `src/.resources/typescript.data-types.ts`
 **Status:** COMPLETE
 
-### 27.1 All Interfaces (32 total)
-- [x] PaymoBooking
+### 27.1 All Interfaces (39 total)
+- [x] PaymoBooking (fixed hours_per_day typo Dec 2025)
 - [x] PaymoSubtask (added v0.6.0)
 - [x] PaymoRecurringProfile (added v0.6.0)
 - [x] PaymoRecurringProfileItem (added v0.6.0)
@@ -643,7 +643,7 @@ The following are now in PROP_TYPES and CREATEONLY:
 - [x] PaymoProject (added v0.6.0)
 - [x] PaymoTask (added v0.6.0)
 - [x] PaymoClient (added v0.6.0)
-- [x] PaymoUser (added v0.6.0)
+- [x] PaymoUser (added v0.6.0, fixed Guest type Dec 2025)
 - [x] PaymoTimeEntry (added v0.6.0)
 - [x] PaymoInvoice (added v0.6.0)
 - [x] PaymoInvoiceItem (added v0.6.0)
@@ -665,6 +665,14 @@ The following are now in PROP_TYPES and CREATEONLY:
 - [x] PaymoSession (added v0.6.0)
 - [x] PaymoProjectStatus (added v0.6.0)
 - [x] PaymoThread (added v0.6.0)
+- [x] PaymoProjectTemplate (added Dec 2025)
+- [x] PaymoProjectTemplateTasklist (added Dec 2025)
+- [x] PaymoProjectTemplateTask (added Dec 2025)
+- [x] PaymoInvoiceTemplate (added Dec 2025)
+- [x] PaymoEstimateTemplate (added Dec 2025)
+- [x] PaymoInvoiceTemplateGallery (added Dec 2025)
+- [x] PaymoEstimateTemplateGallery (added Dec 2025)
+- [x] PaymoCommentThread (added Dec 2025)
 - [x] PAYMO_WEBHOOK_EVENTS constants (added v0.6.0)
 
 **Note:** All interfaces verified against official Paymo API documentation.

@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **TypeScript interfaces** - Added 8 missing interfaces to typescript.data-types.ts:
+  - PaymoProjectTemplate
+  - PaymoProjectTemplateTasklist
+  - PaymoProjectTemplateTask
+  - PaymoInvoiceTemplate
+  - PaymoEstimateTemplate
+  - PaymoInvoiceTemplateGallery
+  - PaymoEstimateTemplateGallery
+  - PaymoCommentThread
+
+### Fixed
+- **ProjectTemplate.php** - Added missing `project_id` to PROP_TYPES (was in CREATEONLY but not typed)
+- **typescript.data-types.ts** - Fixed `hours_per_date` typo → `hours_per_day` in PaymoBooking
+- **typescript.data-types.ts** - Added missing `Guest` option to PaymoUser.type enum
+- **default.paymoapi.config.json** - Removed duplicate EntityMap entries for projecttemplatetask/projecttemplatetasklist
+- **default.paymoapi.config.json** - Fixed gallery collection keys to match API (singular form)
+- **README.md** - Updated resource count from 33 to 38, added 5 missing resources to table
+
 ---
 
 ## [0.5.7] - 2025-12-06

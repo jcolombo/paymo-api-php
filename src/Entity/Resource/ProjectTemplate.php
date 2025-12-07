@@ -225,7 +225,8 @@ class ProjectTemplate extends AbstractResource
       'id'         => 'integer',
       'created_on' => 'datetime',
       'updated_on' => 'datetime',
-      'name'       => 'text'
+      'name'       => 'text',
+      'project_id' => 'resource:project'
         // Undocumented Props
     ];
 

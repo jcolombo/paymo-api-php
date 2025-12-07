@@ -5,7 +5,7 @@
  * .
  * MIT License
  * Copyright (c) 2020 - Joel Colombo <jc-dev@360psg.com>
- * Last Updated : 3/19/20, 1:43 PM
+ * Last Updated : 12/7/25
  * .
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -35,7 +35,7 @@ export interface PaymoBooking {
   user_task_id: number;
   start_date: string;
   end_date: string;
-  hours_per_date: number;
+  hours_per_day: number;
   description?: string;
   creator_id: number;
   user_id: number;
@@ -442,7 +442,7 @@ export interface PaymoUser {
 
   // Optional properties
   name?: string;
-  type?: 'Admin' | 'Employee';
+  type?: 'Admin' | 'Employee' | 'Guest';
   active?: boolean;
   timezone?: string;
   phone?: string;
@@ -1261,7 +1261,215 @@ export interface PaymoThread {
   comments?: PaymoComment[];
 }
 
-// Forward declarations for template types (rarely used directly)
-declare interface PaymoInvoiceTemplate {}
-declare interface PaymoEstimateTemplate {}
+/**
+ * TypeScript interface for Paymo Project Template entity.
+ *
+ * Corresponds to: src/Entity/Resource/ProjectTemplate.php
+ * Official API: https://github.com/paymoapp/api/blob/master/sections/project_templates.md
+ *
+ * Project templates define reusable project structures including
+ * tasklists and tasks that can be applied when creating new projects.
+ */
+export interface PaymoProjectTemplate {
+  // Read-only properties
+  id: number;
+  created_on: string;
+  updated_on: string;
+
+  // Required properties
+  name: string;
+
+  // Create-only properties (used when creating from existing project)
+  project_id?: number;
+
+  // Included relations (optional - only present when requested)
+  projecttemplatestasklists?: PaymoProjectTemplateTasklist[];
+  projecttemplatestasks?: PaymoProjectTemplateTask[];
+}
+
+/**
+ * TypeScript interface for Paymo Project Template Tasklist entity.
+ *
+ * Corresponds to: src/Entity/Resource/ProjectTemplateTasklist.php
+ * Official API: https://github.com/paymoapp/api/blob/master/sections/project_templates.md
+ *
+ * Template tasklists are containers for template tasks within a project template.
+ */
+export interface PaymoProjectTemplateTasklist {
+  // Read-only properties
+  id: number;
+  created_on: string;
+  updated_on: string;
+
+  // Required properties
+  name: string;
+  template_id: number;
+
+  // Optional properties
+  seq?: number;
+  milestone_id?: number;
+
+  // Included relations (optional - only present when requested)
+  projecttemplate?: PaymoProjectTemplate;
+  projecttemplatestasks?: PaymoProjectTemplateTask[];
+}
+
+/**
+ * TypeScript interface for Paymo Project Template Task entity.
+ *
+ * Corresponds to: src/Entity/Resource/ProjectTemplateTask.php
+ * Official API: https://github.com/paymoapp/api/blob/master/sections/project_templates.md
+ *
+ * Template tasks define task configurations within project templates.
+ */
+export interface PaymoProjectTemplateTask {
+  // Read-only properties
+  id: number;
+  created_on: string;
+  updated_on: string;
+
+  // Required properties
+  name: string;
+  tasklist_id: number;
+
+  // Optional properties
+  template_id?: number;
+  seq?: number;
+  description?: string;
+  billable?: boolean;
+  budget_hours?: number;
+  price_per_hour?: number;
+  users?: number[];
+  flat_billing?: boolean;
+  estimated_price?: number;
+  price?: number;
+  duration?: number;
+  start_date_offset?: number;
+
+  // Included relations (optional - only present when requested)
+  projecttemplate?: PaymoProjectTemplate;
+  projecttemplatetasklist?: PaymoProjectTemplateTasklist;
+}
+
+/**
+ * TypeScript interface for Paymo Invoice Template entity.
+ *
+ * Corresponds to: src/Entity/Resource/InvoiceTemplate.php
+ * Official API: https://github.com/paymoapp/api/blob/master/sections/invoice_templates.md
+ *
+ * Invoice templates define the layout and styling for invoices.
+ */
+export interface PaymoInvoiceTemplate {
+  // Read-only properties
+  id: number;
+  created_on: string;
+  updated_on: string;
+  invoices_count?: number;
+
+  // Required properties
+  name: string;
+
+  // Optional properties
+  title?: string;
+  html?: string;
+  css?: string;
+  is_default?: boolean;
+
+  // Included relations (optional - only present when requested)
+  invoices?: PaymoInvoice[];
+}
+
+/**
+ * TypeScript interface for Paymo Estimate Template entity.
+ *
+ * Corresponds to: src/Entity/Resource/EstimateTemplate.php
+ * Official API: https://github.com/paymoapp/api/blob/master/sections/estimate_templates.md
+ *
+ * Estimate templates define the layout and styling for estimates.
+ */
+export interface PaymoEstimateTemplate {
+  // Read-only properties
+  id: number;
+  created_on: string;
+  updated_on: string;
+  estimates_count?: number;
+
+  // Required properties
+  name: string;
+
+  // Optional properties
+  title?: string;
+  html?: string;
+  css?: string;
+  is_default?: boolean;
+
+  // Included relations (optional - only present when requested)
+  estimates?: PaymoEstimate[];
+}
+
+/**
+ * TypeScript interface for Paymo Invoice Template Gallery entity.
+ *
+ * Corresponds to: src/Entity/Resource/InvoiceTemplateGallery.php
+ * Official API: https://github.com/paymoapp/api/blob/master/sections/invoice_templates.md
+ *
+ * Gallery templates are pre-made invoice templates provided by Paymo.
+ * These are read-only and cannot be created, updated, or deleted.
+ */
+export interface PaymoInvoiceTemplateGallery {
+  // Read-only properties (all properties are read-only)
+  id: number;
+  created_on: string;
+  updated_on: string;
+  name: string;
+  title: string;
+  html: string;
+  css: string;
+  image: string;
+}
+
+/**
+ * TypeScript interface for Paymo Estimate Template Gallery entity.
+ *
+ * Corresponds to: src/Entity/Resource/EstimateTemplateGallery.php
+ * Official API: https://github.com/paymoapp/api/blob/master/sections/estimate_templates.md
+ *
+ * Gallery templates are pre-made estimate templates provided by Paymo.
+ * These are read-only and cannot be created, updated, or deleted.
+ */
+export interface PaymoEstimateTemplateGallery {
+  // Read-only properties (all properties are read-only)
+  id: number;
+  created_on: string;
+  updated_on: string;
+  name: string;
+  title: string;
+  html: string;
+  css: string;
+  image: string;
+}
+
+/**
+ * TypeScript interface for Paymo Comment Thread entity.
+ *
+ * Corresponds to: src/Entity/Resource/CommentThread.php
+ * Official API: https://github.com/paymoapp/api/blob/master/sections/threads.md
+ *
+ * Comment threads are containers for comments on tasks, discussions, or files.
+ * Threads are typically accessed through their parent entity's include.
+ */
+export interface PaymoCommentThread {
+  // Read-only properties
+  id: number;
+  created_on: string;
+  updated_on: string;
+
+  // Parent references (one of these will be set)
+  project_id?: number;
+  task_id?: number;
+  discussion_id?: number;
+
+  // Included relations (optional - only present when requested)
+  comments?: PaymoComment[];
+}
 
