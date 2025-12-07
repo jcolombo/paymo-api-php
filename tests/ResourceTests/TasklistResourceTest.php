@@ -64,7 +64,7 @@ class TasklistResourceTest extends ResourceTest
     /**
      * Ensure we have a project
      */
-    private function ensureProject(): ?int
+    protected function ensureProject(): ?int
     {
         $clientId = $this->config->getAnchor('client_id');
 

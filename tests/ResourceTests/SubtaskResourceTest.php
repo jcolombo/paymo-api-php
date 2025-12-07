@@ -45,7 +45,7 @@ class SubtaskResourceTest extends ResourceTest
         return $subtask;
     }
 
-    private function ensureTask(): ?int
+    protected function ensureTask(): ?int
     {
         $clientId = $this->config->getAnchor('client_id');
         if (!$clientId) {

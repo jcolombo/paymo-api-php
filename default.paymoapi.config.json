@@ -290,7 +290,8 @@
       },
       "estimatetemplatesgallery": {
         "type": "resource",
-        "resource": "Jcolombo\\PaymoApiPhp\\Entity\\Resource\\EstimateTemplateGallery"
+        "resource": "Jcolombo\\PaymoApiPhp\\Entity\\Resource\\EstimateTemplateGallery",
+        "collection": true
       },
       "estimatetemplate": {
         "type": "resource",
@@ -344,7 +345,8 @@
       },
       "invoicetemplatesgallery": {
         "type": "resource",
-        "resource": "Jcolombo\\PaymoApiPhp\\Entity\\Resource\\InvoiceTemplateGallery"
+        "resource": "Jcolombo\\PaymoApiPhp\\Entity\\Resource\\InvoiceTemplateGallery",
+        "collection": true
       },
       "invoicetemplate": {
         "type": "resource",

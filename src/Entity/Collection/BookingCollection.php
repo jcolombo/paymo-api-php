@@ -37,13 +37,17 @@
  * API FILTER REQUIREMENTS:
  * ------------------------
  * The Paymo API requires specific filters when fetching booking lists to prevent
- * unbounded queries. This collection enforces one of two filter patterns:
+ * unbounded queries. This collection enforces one of three filter patterns:
  *
- * OPTION 1 - Date Range Filter:
+ * OPTION 1 - Date Interval Filter (per API docs):
+ * - date_interval with "in" operator: date_interval in ("2024-01-01","2024-01-31")
+ * - Official Paymo API method for date range filtering
+ *
+ * OPTION 2 - Date Range Filter (SDK convenience):
  * - start_date AND end_date must BOTH be specified
- * - Used for fetching all bookings within a time period
+ * - Alternative approach that also works with Paymo API
  *
- * OPTION 2 - Resource Association Filter:
+ * OPTION 3 - Resource Association Filter:
  * - At least ONE of: user_task_id, task_id, project_id, or user_id
  * - Used for fetching bookings related to specific resources
  *
@@ -141,7 +145,7 @@ class BookingCollection extends EntityCollection
      */
     protected function validateFetch($fields = [], $where = []) : bool
     {
-        $needOne = ['user_task_id', 'task_id', 'project_id', 'user_id'];
+        $needOne = ['user_task_id', 'task_id', 'project_id', 'user_id', 'date_interval'];
         $date1 = $date2 = false;
         $foundOne = false;
         foreach ($where as $w) {

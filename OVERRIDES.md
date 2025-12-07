@@ -300,6 +300,135 @@ Properties that are conditionally returned by the API based on entity state or c
 
 ---
 
+### OVERRIDE-004: Session Resource String ID
+
+**Resource:** Session
+**Type:** Type Mismatch
+**Discovery Date:** 2024-12-07
+**Status:** Active
+
+**Official SDK Assumption:**
+> Most Paymo resources use integer IDs. The base `AbstractResource` class and related tests assumed `$resource->id` would always be an integer.
+
+**Actual API Behavior:**
+
+The Session resource uses **string tokens** as IDs, not integers:
+
+```json
+{
+  "sessions": [
+    {
+      "id": "abc123session-token-string",
+      "user_id": 12345,
+      "ip": "192.168.1.1",
+      "created_on": "2024-12-07T10:00:00Z",
+      "expires_on": "2024-12-14T10:00:00Z"
+    }
+  ]
+}
+```
+
+**SDK Implementation:**
+```php
+// In Session.php PROP_TYPES
+// @override OVERRIDE-004
+// @see OVERRIDES.md#override-004
+// Session ID is a TEXT token, not an integer
+'id' => 'text',
+```
+
+**Test Handling:**
+```php
+// In ResourceTest.php - logApiResponse() and logCrudOperation()
+// @override OVERRIDE-004
+// Accept string|int|null for $id to support Session resources
+protected function logApiResponse(bool $success, string|int|null $id = null, ...): void
+protected function logCrudOperation(string $operation, string $resourceType, string|int|null $id, ...): void
+```
+
+**Notes:**
+- Sessions are authentication tokens, not database entities
+- The Session resource cannot be updated (only created/deleted)
+- Other resources continue to use integer IDs
+
+---
+
+### OVERRIDE-005: Resources Requiring Parent Filters (SDK Validation)
+
+**Resources:** File, Booking, InvoiceItem, EstimateItem
+**Type:** SDK Validation Requirement
+**Discovery Date:** 2024-12-07
+**Status:** Active
+
+**Behavior:**
+
+The SDK enforces parent filter requirements for certain resources. These are **SDK-level validations** to prevent overly broad API queries, not API limitations.
+
+| Resource | Required Filter(s) | Collection Class |
+|----------|-------------------|------------------|
+| File | `task_id`, `project_id`, `discussion_id`, or `comment_id` | FileCollection |
+| Booking | Date range (`start_date` AND `end_date`) OR `user_task_id`, `task_id`, `project_id`, `user_id` | BookingCollection |
+| InvoiceItem | `invoice_id` | InvoiceItemCollection |
+| EstimateItem | `estimate_id` | EstimateItemCollection |
+
+**Exception Messages:**
+```
+File collections require one of the following be set as a filter : task_id, project_id, discussion_id, comment_id
+
+Booking collections require a start_date and end_date OR at least one of the following be set as a filter : user_task_id, task_id, project_id, user_id
+
+Invoice item collections require a where condition filter set on invoice_id
+
+Estimate item collections require a where condition filter set on estimate_id
+```
+
+**SDK Usage:**
+```php
+// File - requires project_id or similar
+$files = File::list()
+    ->where(File::where('project_id', $projectId))
+    ->fetch();
+
+// Booking - requires date range or parent filter
+$bookings = Booking::list()
+    ->where(Booking::where('start_date', '2024-01-01', '>='))
+    ->where(Booking::where('end_date', '2024-12-31', '<='))
+    ->fetch();
+// OR
+$bookings = Booking::list()
+    ->where(Booking::where('project_id', $projectId))
+    ->fetch();
+
+// InvoiceItem - requires invoice_id
+$items = InvoiceItem::list()
+    ->where(InvoiceItem::where('invoice_id', $invoiceId))
+    ->fetch();
+```
+
+**Test Handling:**
+
+For tests running in read-only mode, these resources require an anchored ID in the test configuration:
+
+```php
+// In ResourceTest subclass
+public function getRequiredParentFilter(): ?array
+{
+    return ['invoice_id', 'ensureInvoice'];
+}
+```
+
+The test framework will:
+1. Check for an anchored value in config (e.g., `invoice_id`)
+2. Skip tests if no anchor is available in read-only mode
+3. In non-read-only mode, create the parent resource dynamically
+
+**Notes:**
+- These validations exist to prevent performance issues from unbounded queries
+- The API may actually accept these queries, but results could be very large
+- Always provide the narrowest filter possible for efficiency
+
+---
+
 ## Discovered Undocumented Properties
 
 This section lists properties discovered through API testing that are not in the official documentation. These are automatically detected by the test suite when comparing API responses to documented PROP_TYPES.
@@ -338,7 +467,7 @@ Properties where the actual type differs from documentation:
 
 | Resource | Property | Documented | Actual | Override ID |
 |----------|----------|------------|--------|-------------|
-| (none yet) | | | | |
+| Session | `id` | integer (assumed) | text (string token) | OVERRIDE-004 |
 
 ---
 

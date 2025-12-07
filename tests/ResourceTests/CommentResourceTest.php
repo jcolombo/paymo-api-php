@@ -44,7 +44,7 @@ class CommentResourceTest extends ResourceTest
         return $comment;
     }
 
-    private function ensureDiscussion(): ?int
+    protected function ensureDiscussion(): ?int
     {
         $clientId = $this->config->getAnchor('client_id');
         if (!$clientId) {

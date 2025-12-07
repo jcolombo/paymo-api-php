@@ -53,7 +53,7 @@ class TimeEntryResourceTest extends ResourceTest
         return $entry;
     }
 
-    private function ensureTask(): ?int
+    protected function ensureTask(): ?int
     {
         $clientId = $this->config->getAnchor('client_id');
         if (!$clientId) {

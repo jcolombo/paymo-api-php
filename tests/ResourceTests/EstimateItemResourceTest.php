@@ -7,6 +7,13 @@ use Jcolombo\PaymoApiPhp\Entity\Resource\Estimate;
 use Jcolombo\PaymoApiPhp\Entity\Resource\Client;
 use Jcolombo\PaymoApiPhp\Entity\AbstractResource;
 
+/**
+ * EstimateItem Resource Test
+ *
+ * NOTE: EstimateItem collections require a parent filter (estimate_id).
+ * This is an SDK-enforced validation, not an API limitation.
+ * See EstimateItemCollection::validateFetch() for the validation logic.
+ */
 class EstimateItemResourceTest extends ResourceTest
 {
     private ?int $estimateId = null;
@@ -24,6 +31,15 @@ class EstimateItemResourceTest extends ResourceTest
     public function getResourceCategory(): string
     {
         return 'safe_crud';
+    }
+
+    /**
+     * EstimateItem requires an estimate_id filter for list operations.
+     * Returns the filter key and method to get the value.
+     */
+    public function getRequiredParentFilter(): ?array
+    {
+        return ['estimate_id', 'ensureEstimate'];
     }
 
     protected function createTestResource(): ?AbstractResource
@@ -44,7 +60,7 @@ class EstimateItemResourceTest extends ResourceTest
         return $item;
     }
 
-    private function ensureEstimate(): ?int
+    protected function ensureEstimate(): ?int
     {
         $clientId = $this->config->getAnchor('client_id');
         if (!$clientId) {

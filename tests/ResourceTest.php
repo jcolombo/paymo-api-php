@@ -109,7 +109,10 @@ abstract class ResourceTest
         $this->readOnlyMode = $config->isReadOnlyMode();
         $this->listLimit = $config->getListLimit();
         $this->factory = new TestDataFactory($config);
-        $this->cleanupManager = new CleanupManager($output, !$this->dryRun);
+        // In read-only mode, nothing should be created so nothing should be deleted
+        // In dry-run mode, no API calls are made so no deletes either
+        $executeDeletes = !$this->dryRun && !$this->readOnlyMode;
+        $this->cleanupManager = new CleanupManager($output, $executeDeletes);
     }
 
     // ========================================================================
@@ -188,6 +191,62 @@ abstract class ResourceTest
     public function isSingleton(): bool
     {
         return false;
+    }
+
+    /**
+     * Get the required parent filter for this resource.
+     *
+     * Some resources require a parent filter for list operations (e.g., File requires project_id,
+     * InvoiceItem requires invoice_id). This is an SDK-enforced validation.
+     *
+     * @return array|null Array with [filterKey, ensureMethod] or null if no filter required
+     *                    Example: ['project_id', 'ensureProject']
+     */
+    public function getRequiredParentFilter(): ?array
+    {
+        return null;
+    }
+
+    /**
+     * Cached parent filter value for use across multiple test methods
+     */
+    protected ?int $parentFilterValue = null;
+
+    /**
+     * Get the parent filter value, calling the ensure method if needed
+     */
+    protected function getParentFilterValue(): ?int
+    {
+        if ($this->parentFilterValue !== null) {
+            return $this->parentFilterValue;
+        }
+
+        $filter = $this->getRequiredParentFilter();
+        if ($filter === null) {
+            return null;
+        }
+
+        [$filterKey, $ensureMethod] = $filter;
+
+        // In read-only mode, check for anchored value first
+        if ($this->readOnlyMode) {
+            $anchorValue = $this->config->getAnchor($filterKey);
+            if ($anchorValue) {
+                $this->parentFilterValue = $anchorValue;
+                $this->logDetail("Using anchored {$filterKey}: {$anchorValue}");
+                return $this->parentFilterValue;
+            }
+            // No anchor available, skip tests that require this filter
+            $this->logWarning("No anchored {$filterKey} available for read-only mode");
+            return null;
+        }
+
+        // Not in read-only mode, use ensure method
+        if (method_exists($this, $ensureMethod)) {
+            $this->parentFilterValue = $this->$ensureMethod();
+        }
+
+        return $this->parentFilterValue;
     }
 
     // ========================================================================
@@ -399,6 +458,9 @@ abstract class ResourceTest
      *
      * In read-only mode, uses pagination (limit(1)) to efficiently fetch
      * just one resource for analysis.
+     *
+     * For resources that require parent filters (File, Booking, InvoiceItem, EstimateItem),
+     * applies the required filter before fetching.
      */
     protected function fetchResourceForDiscovery(): ?AbstractResource
     {
@@ -423,14 +485,32 @@ abstract class ResourceTest
             return null;
         }
 
+        // Check if this resource requires a parent filter
+        $parentFilter = $this->getRequiredParentFilter();
+        $collection = $class::list();
+
+        // Apply parent filter if required
+        if ($parentFilter !== null) {
+            [$filterKey, $ensureMethod] = $parentFilter;
+            $filterValue = $this->getParentFilterValue();
+
+            if ($filterValue === null) {
+                $this->logDetail("Cannot fetch discovery resource - no {$filterKey} available");
+                return null;
+            }
+
+            $this->logDetail("Applying parent filter: {$filterKey} = {$filterValue}");
+            $collection = $collection->where($class::where($filterKey, $filterValue));
+        }
+
         // For regular resources, try to fetch the first one via list
         // In read-only mode, use pagination to minimize API response size
         if ($this->readOnlyMode) {
             $this->logDetail("Using pagination: limit(1) for discovery fetch");
-            $collection = $class::list()->limit(1)->fetch();
-        } else {
-            $collection = $class::list()->fetch();
+            $collection = $collection->limit(1);
         }
+
+        $collection = $collection->fetch();
 
         // Get raw data and return first item
         // Note: Collection iterator uses sequential index (0,1,2) but data is keyed by ID
@@ -595,7 +675,23 @@ abstract class ResourceTest
                 ['include' => $includeStr]
             );
 
-            $collection = $class::list()->fetch($propNames);
+            // Build the collection, applying parent filter if required
+            $collection = $class::list();
+            $parentFilter = $this->getRequiredParentFilter();
+            if ($parentFilter !== null) {
+                [$filterKey, $ensureMethod] = $parentFilter;
+                $filterValue = $this->getParentFilterValue();
+                if ($filterValue === null) {
+                    $this->logDetail("Cannot test property selection - no {$filterKey} available");
+                    $this->results->recordSkip($testName, "No {$filterKey} available");
+                    $this->output->testSkipped($testName, "No {$filterKey} available");
+                    return;
+                }
+                $this->logDetail("Applying parent filter: {$filterKey} = {$filterValue}");
+                $collection = $collection->where($class::where($filterKey, $filterValue));
+            }
+
+            $collection = $collection->fetch($propNames);
             $raw = $collection->raw();
 
             $this->logDetail("  Result: SUCCESS");
@@ -782,15 +878,24 @@ abstract class ResourceTest
 
             // Need a resource to fetch
             if (!$this->testResource) {
-                $this->logDetail("No existing test resource, creating one...");
-                $this->testResource = $this->createTestResource();
-                if ($this->testResource) {
-                    $this->logDetail("  Created resource #{$this->testResource->id} for fetch test");
-                    $this->cleanupManager->track(
-                        $this->getResourceName(),
-                        $this->testResource->id,
-                        $this->getResourceClass()
-                    );
+                // In read-only mode, fetch an existing resource instead of creating one
+                if ($this->readOnlyMode) {
+                    $this->logDetail("Read-only mode: fetching existing resource from API...");
+                    $this->testResource = $this->fetchResourceForDiscovery();
+                    if ($this->testResource) {
+                        $this->logDetail("  Using existing resource #{$this->testResource->id}");
+                    }
+                } else {
+                    $this->logDetail("No existing test resource, creating one...");
+                    $this->testResource = $this->createTestResource();
+                    if ($this->testResource) {
+                        $this->logDetail("  Created resource #{$this->testResource->id} for fetch test");
+                        $this->cleanupManager->track(
+                            $this->getResourceName(),
+                            $this->testResource->id,
+                            $this->getResourceClass()
+                        );
+                    }
                 }
             }
 
@@ -1082,6 +1187,22 @@ abstract class ResourceTest
 
             $class = $this->getResourceClass();
 
+            // Build collection with optional parent filter
+            $collection = $class::list();
+            $parentFilter = $this->getRequiredParentFilter();
+            if ($parentFilter !== null) {
+                [$filterKey, $ensureMethod] = $parentFilter;
+                $filterValue = $this->getParentFilterValue();
+                if ($filterValue === null) {
+                    $this->logDetail("Cannot test list - no {$filterKey} available");
+                    $this->results->recordSkip($testName, "No {$filterKey} available");
+                    $this->output->testSkipped($testName, "No {$filterKey} available");
+                    return;
+                }
+                $this->logDetail("Applying parent filter: {$filterKey} = {$filterValue}");
+                $collection = $collection->where($class::where($filterKey, $filterValue));
+            }
+
             // In read-only mode, use pagination to limit API response size
             // Uses undocumented Paymo API pagination (OVERRIDE-003)
             $useLimit = $this->readOnlyMode ? $this->listLimit : null;
@@ -1095,7 +1216,7 @@ abstract class ResourceTest
                     $this->getApiPath(),
                     ['page' => 0, 'page_size' => $useLimit]
                 );
-                $collection = $class::list()->limit($useLimit)->fetch();
+                $collection = $collection->limit($useLimit);
             } else {
                 $this->logApiCall(
                     'GET',
@@ -1103,9 +1224,9 @@ abstract class ResourceTest
                     null,
                     $this->getApiPath()
                 );
-                $collection = $class::list()->fetch();
             }
 
+            $collection = $collection->fetch();
             $raw = $collection->raw();
             $count = count($raw);
 
@@ -1333,6 +1454,20 @@ abstract class ResourceTest
             $testsRun = 0;
             $testsPassed = 0;
 
+            // Check for required parent filter
+            $parentFilter = $this->getRequiredParentFilter();
+            $parentFilterValue = null;
+            if ($parentFilter !== null) {
+                [$filterKey, $ensureMethod] = $parentFilter;
+                $parentFilterValue = $this->getParentFilterValue();
+                if ($parentFilterValue === null) {
+                    $this->logDetail("Cannot test where operations - no {$filterKey} available");
+                    $this->results->recordSkip($testName, "No {$filterKey} available");
+                    $this->output->testSkipped($testName, "No {$filterKey} available");
+                    return;
+                }
+            }
+
             // Test a simple where clause with 'id' if available
             if (isset($whereOps['id'])) {
                 $operators = $whereOps['id'];
@@ -1341,6 +1476,13 @@ abstract class ResourceTest
                 $this->logDetail("  Operators available: " . (is_array($operators) ? implode(', ', $operators) : $operators));
 
                 // First get a resource to test with
+                // Build collection with optional parent filter
+                $collection = $class::list();
+                if ($parentFilter !== null) {
+                    $this->logDetail("  Applying parent filter: {$filterKey} = {$parentFilterValue}");
+                    $collection = $collection->where($class::where($filterKey, $parentFilterValue));
+                }
+
                 // In read-only mode, use pagination to minimize API response
                 if ($this->readOnlyMode) {
                     $this->logApiCall(
@@ -1350,7 +1492,7 @@ abstract class ResourceTest
                         $this->getApiPath(),
                         ['page' => 0, 'page_size' => 1]
                     );
-                    $collection = $class::list()->limit(1)->fetch();
+                    $collection = $collection->limit(1);
                 } else {
                     $this->logApiCall(
                         'GET',
@@ -1358,8 +1500,8 @@ abstract class ResourceTest
                         null,
                         $this->getApiPath()
                     );
-                    $collection = $class::list()->fetch();
                 }
+                $collection = $collection->fetch();
                 $raw = $collection->raw();
 
                 if (!empty($raw)) {
@@ -1367,7 +1509,7 @@ abstract class ResourceTest
                     $testId = $firstItem->id;
                     $this->logDetail("  Using ID: {$testId}");
 
-                    // Test filtering by this ID
+                    // Test filtering by this ID (with parent filter if required)
                     $this->logApiCall(
                         'GET',
                         "Filtering {$this->getResourceName()} where id = {$testId}",
@@ -1376,7 +1518,11 @@ abstract class ResourceTest
                         ['where' => "id={$testId}"]
                     );
 
-                    $filtered = $class::list()->where('id', '=', $testId)->fetch();
+                    $filteredCollection = $class::list()->where('id', '=', $testId);
+                    if ($parentFilter !== null) {
+                        $filteredCollection = $filteredCollection->where($class::where($filterKey, $parentFilterValue));
+                    }
+                    $filtered = $filteredCollection->fetch();
                     $filteredRaw = $filtered->raw();
                     $count = count($filteredRaw);
 
@@ -1518,8 +1664,9 @@ abstract class ResourceTest
                         ['include' => $includeName]
                     );
 
-                    // Fetch with include - SDK pattern: Resource::new()->include('relation')->fetch($id)
-                    $resourceWithInclude = $class::new()->include($includeName)->fetch($testId);
+                    // Fetch with include - SDK pattern: Resource::new()->fetch($id, [$includeName])
+                    // The $fields array can contain include names which get parsed by cleanupForRequest()
+                    $resourceWithInclude = $class::new()->fetch($testId, [$includeName]);
 
                     if ($resourceWithInclude) {
                         $testsRun++;
@@ -2074,8 +2221,10 @@ abstract class ResourceTest
 
     /**
      * Log API response details
+     *
+     * Note: $id accepts string|int|null to support Session resources which use string tokens as IDs.
      */
-    protected function logApiResponse(bool $success, ?int $id = null, ?string $error = null): void
+    protected function logApiResponse(bool $success, string|int|null $id = null, ?string $error = null): void
     {
         if ($success) {
             $this->logDetail("  Result: SUCCESS" . ($id ? " (ID: {$id})" : ""));
@@ -2089,8 +2238,10 @@ abstract class ResourceTest
 
     /**
      * Log CRUD operation with full details
+     *
+     * Note: $id accepts string|int|null to support Session resources which use string tokens as IDs.
      */
-    protected function logCrudOperation(string $operation, string $resourceType, ?int $id, array $fields = [], bool $success = true, ?string $error = null): void
+    protected function logCrudOperation(string $operation, string $resourceType, string|int|null $id, array $fields = [], bool $success = true, ?string $error = null): void
     {
         $this->logDetail("");
         $this->logDetail("CRUD OPERATION: {$operation}");

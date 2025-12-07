@@ -43,7 +43,7 @@ class DiscussionResourceTest extends ResourceTest
         return $discussion;
     }
 
-    private function ensureProject(): ?int
+    protected function ensureProject(): ?int
     {
         $clientId = $this->config->getAnchor('client_id');
         if (!$clientId) {

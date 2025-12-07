@@ -7,6 +7,16 @@ use Jcolombo\PaymoApiPhp\Entity\Resource\Project;
 use Jcolombo\PaymoApiPhp\Entity\Resource\Client;
 use Jcolombo\PaymoApiPhp\Entity\AbstractResource;
 
+/**
+ * Booking Resource Test
+ *
+ * NOTE: Booking collections require either:
+ * - A date range (start_date AND end_date), OR
+ * - A parent filter (user_task_id, task_id, project_id, or user_id)
+ *
+ * This is an SDK-enforced validation, not an API limitation.
+ * See BookingCollection::validateFetch() for the validation logic.
+ */
 class BookingResourceTest extends ResourceTest
 {
     private ?int $projectId = null;
@@ -24,6 +34,15 @@ class BookingResourceTest extends ResourceTest
     public function getResourceCategory(): string
     {
         return 'safe_crud';
+    }
+
+    /**
+     * Booking requires a parent filter or date range for list operations.
+     * Returns the filter key and method to get the value.
+     */
+    public function getRequiredParentFilter(): ?array
+    {
+        return ['project_id', 'ensureProject'];
     }
 
     protected function createTestResource(): ?AbstractResource
@@ -51,7 +70,7 @@ class BookingResourceTest extends ResourceTest
         return $booking;
     }
 
-    private function ensureProject(): ?int
+    protected function ensureProject(): ?int
     {
         $clientId = $this->config->getAnchor('client_id');
         if (!$clientId) {

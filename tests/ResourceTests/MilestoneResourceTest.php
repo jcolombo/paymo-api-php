@@ -44,7 +44,7 @@ class MilestoneResourceTest extends ResourceTest
         return $milestone;
     }
 
-    private function ensureProject(): ?int
+    protected function ensureProject(): ?int
     {
         $clientId = $this->config->getAnchor('client_id');
         if (!$clientId) {

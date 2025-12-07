@@ -7,6 +7,13 @@ use Jcolombo\PaymoApiPhp\Entity\Resource\Invoice;
 use Jcolombo\PaymoApiPhp\Entity\Resource\Client;
 use Jcolombo\PaymoApiPhp\Entity\AbstractResource;
 
+/**
+ * InvoiceItem Resource Test
+ *
+ * NOTE: InvoiceItem collections require a parent filter (invoice_id).
+ * This is an SDK-enforced validation, not an API limitation.
+ * See InvoiceItemCollection::validateFetch() for the validation logic.
+ */
 class InvoiceItemResourceTest extends ResourceTest
 {
     private ?int $invoiceId = null;
@@ -24,6 +31,15 @@ class InvoiceItemResourceTest extends ResourceTest
     public function getResourceCategory(): string
     {
         return 'safe_crud';
+    }
+
+    /**
+     * InvoiceItem requires an invoice_id filter for list operations.
+     * Returns the filter key and method to get the value.
+     */
+    public function getRequiredParentFilter(): ?array
+    {
+        return ['invoice_id', 'ensureInvoice'];
     }
 
     protected function createTestResource(): ?AbstractResource
@@ -44,7 +60,7 @@ class InvoiceItemResourceTest extends ResourceTest
         return $item;
     }
 
-    private function ensureInvoice(): ?int
+    protected function ensureInvoice(): ?int
     {
         $clientId = $this->config->getAnchor('client_id');
         if (!$clientId) {
