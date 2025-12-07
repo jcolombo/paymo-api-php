@@ -42,6 +42,8 @@ class TestConfig
             'stop_on_failure' => false,
             'cleanup_on_failure' => true,
             'interactive' => true,
+            'read_only' => false,  // Skip all Create/Update/Delete operations
+            'list_limit' => 5,     // Default limit for list operations in read-only mode
         ],
         'groups' => [
             'core' => true,
@@ -504,6 +506,55 @@ class TestConfig
         // Then check config
         $modes = $this->getModes();
         return (bool)($modes['reset_log'] ?? false);
+    }
+
+    /**
+     * Check if running in read-only mode
+     *
+     * Read-only mode skips all Create/Update/Delete operations.
+     * Only runs read-based tests:
+     * - Property Discovery
+     * - Property Selection
+     * - Fetch (using existing resources)
+     * - List (with pagination limit)
+     * - Where Operations
+     * - Include Relationships
+     *
+     * This is safe for production databases as no data is modified.
+     *
+     * @return bool True if read-only mode is enabled
+     */
+    public function isReadOnlyMode(): bool
+    {
+        // Check runtime option first (CLI flag takes precedence)
+        if (array_key_exists('read_only', $this->runtimeOptions)) {
+            return (bool)$this->runtimeOptions['read_only'];
+        }
+        // Then check config
+        $modes = $this->getModes();
+        return (bool)($modes['read_only'] ?? false);
+    }
+
+    /**
+     * Get the list limit for read-only mode
+     *
+     * When in read-only mode, list operations are limited to this many items
+     * to reduce API load and test execution time while still validating
+     * property mapping and response structure.
+     *
+     * Uses the undocumented Paymo API pagination feature (OVERRIDE-003).
+     *
+     * @return int Number of items to limit list operations to (default: 5)
+     */
+    public function getListLimit(): int
+    {
+        // Check runtime option first (CLI --list-limit takes precedence)
+        if (array_key_exists('list_limit', $this->runtimeOptions)) {
+            return (int)$this->runtimeOptions['list_limit'];
+        }
+        // Then check config
+        $modes = $this->getModes();
+        return (int)($modes['list_limit'] ?? 5);
     }
 
     /**

@@ -65,6 +65,16 @@ abstract class ResourceTest
     protected bool $dryRun = false;
 
     /**
+     * @var bool Whether running in read-only mode (no mutations)
+     */
+    protected bool $readOnlyMode = false;
+
+    /**
+     * @var int List limit for paginated fetches (used in read-only mode)
+     */
+    protected int $listLimit = 5;
+
+    /**
      * @var Paymo|null API connection (singleton)
      */
     protected ?Paymo $connection = null;
@@ -96,6 +106,8 @@ abstract class ResourceTest
         $this->results = $results;
         $this->logger = $logger;
         $this->dryRun = $config->getRuntimeOption('dry_run');
+        $this->readOnlyMode = $config->isReadOnlyMode();
+        $this->listLimit = $config->getListLimit();
         $this->factory = new TestDataFactory($config);
         $this->cleanupManager = new CleanupManager($output, !$this->dryRun);
     }
@@ -185,6 +197,17 @@ abstract class ResourceTest
     /**
      * Run all tests for this resource
      * This is the main entry point called by the ResourceTestRunner
+     *
+     * In read-only mode (--read-only flag), only runs non-mutating tests:
+     * - Property Discovery
+     * - Property Selection
+     * - Fetch (using existing resources)
+     * - List (with pagination limit)
+     * - Where Operations
+     * - Include Relationships
+     *
+     * No Create, Update, or Delete operations are performed in read-only mode,
+     * making it safe to run against production databases.
      */
     public function runAllTests(): void
     {
@@ -192,6 +215,15 @@ abstract class ResourceTest
 
         // Log resource header
         $this->logResourceHeader($resourceName);
+
+        // Log read-only mode status
+        if ($this->readOnlyMode) {
+            $this->logDetail("");
+            $this->logDetail("*** READ-ONLY MODE ENABLED ***");
+            $this->logDetail("Skipping all Create/Update/Delete operations");
+            $this->logDetail("List operations limited to {$this->listLimit} items");
+            $this->logDetail("");
+        }
 
         // Check anchor requirements
         if ($this->requiresAnchor()) {
@@ -213,7 +245,10 @@ abstract class ResourceTest
             $this->runPropertyDiscovery();
             $this->runPropertySelection();
 
-            if ($this->supportsCreate()) {
+            // In read-only mode, always run read-only tests regardless of resource category
+            if ($this->readOnlyMode) {
+                $this->runReadOnlyTests();
+            } elseif ($this->supportsCreate()) {
                 $this->runCrudTests();
             } else {
                 $this->runReadOnlyTests();
@@ -230,7 +265,7 @@ abstract class ResourceTest
                 $e->getMessage()
             );
         } finally {
-            // Always cleanup
+            // Always cleanup (in read-only mode, nothing to cleanup)
             $this->cleanup();
         }
 
@@ -361,6 +396,9 @@ abstract class ResourceTest
 
     /**
      * Fetch a resource for property discovery
+     *
+     * In read-only mode, uses pagination (limit(1)) to efficiently fetch
+     * just one resource for analysis.
      */
     protected function fetchResourceForDiscovery(): ?AbstractResource
     {
@@ -386,7 +424,13 @@ abstract class ResourceTest
         }
 
         // For regular resources, try to fetch the first one via list
-        $collection = $class::list()->fetch();
+        // In read-only mode, use pagination to minimize API response size
+        if ($this->readOnlyMode) {
+            $this->logDetail("Using pagination: limit(1) for discovery fetch");
+            $collection = $class::list()->limit(1)->fetch();
+        } else {
+            $collection = $class::list()->fetch();
+        }
 
         // Get raw data and return first item
         // Note: Collection iterator uses sequential index (0,1,2) but data is keyed by ID
@@ -1038,19 +1082,39 @@ abstract class ResourceTest
 
             $class = $this->getResourceClass();
 
-            $this->logApiCall(
-                'GET',
-                "Fetching all {$this->getResourceName()} resources",
-                null,
-                $this->getApiPath()
-            );
+            // In read-only mode, use pagination to limit API response size
+            // Uses undocumented Paymo API pagination (OVERRIDE-003)
+            $useLimit = $this->readOnlyMode ? $this->listLimit : null;
 
-            $collection = $class::list()->fetch();
+            if ($useLimit) {
+                $this->logDetail("Using pagination: limit({$useLimit}) - page 0, {$useLimit} items");
+                $this->logApiCall(
+                    'GET',
+                    "Fetching {$this->getResourceName()} resources (limited to {$useLimit})",
+                    null,
+                    $this->getApiPath(),
+                    ['page' => 0, 'page_size' => $useLimit]
+                );
+                $collection = $class::list()->limit($useLimit)->fetch();
+            } else {
+                $this->logApiCall(
+                    'GET',
+                    "Fetching all {$this->getResourceName()} resources",
+                    null,
+                    $this->getApiPath()
+                );
+                $collection = $class::list()->fetch();
+            }
+
             $raw = $collection->raw();
             $count = count($raw);
 
             $this->logDetail("  Result: SUCCESS");
-            $this->logDetail("  Resources returned: {$count}");
+            if ($useLimit) {
+                $this->logDetail("  Resources returned: {$count} (limited to {$useLimit})");
+            } else {
+                $this->logDetail("  Resources returned: {$count}");
+            }
 
             if ($count > 0) {
                 $this->logDetail("");
@@ -1088,7 +1152,7 @@ abstract class ResourceTest
                 $this->logDetail("  No resources found (collection is empty)");
             }
 
-            $this->logCrudOperation('LIST', $this->getResourceName(), null, ['count' => $count], true);
+            $this->logCrudOperation('LIST', $this->getResourceName(), null, ['count' => $count, 'limited' => $useLimit], true);
 
             $duration = microtime(true) - $startTime;
             $this->results->recordPass($testName, $duration);
@@ -1277,13 +1341,25 @@ abstract class ResourceTest
                 $this->logDetail("  Operators available: " . (is_array($operators) ? implode(', ', $operators) : $operators));
 
                 // First get a resource to test with
-                $this->logApiCall(
-                    'GET',
-                    "Fetching {$this->getResourceName()} resources to get test ID",
-                    null,
-                    $this->getApiPath()
-                );
-                $collection = $class::list()->fetch();
+                // In read-only mode, use pagination to minimize API response
+                if ($this->readOnlyMode) {
+                    $this->logApiCall(
+                        'GET',
+                        "Fetching {$this->getResourceName()} resources to get test ID (limited to 1)",
+                        null,
+                        $this->getApiPath(),
+                        ['page' => 0, 'page_size' => 1]
+                    );
+                    $collection = $class::list()->limit(1)->fetch();
+                } else {
+                    $this->logApiCall(
+                        'GET',
+                        "Fetching {$this->getResourceName()} resources to get test ID",
+                        null,
+                        $this->getApiPath()
+                    );
+                    $collection = $class::list()->fetch();
+                }
                 $raw = $collection->raw();
 
                 if (!empty($raw)) {

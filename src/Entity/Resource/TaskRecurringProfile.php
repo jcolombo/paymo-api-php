@@ -295,7 +295,7 @@ class TaskRecurringProfile extends AbstractResource
         'price_per_hour'       => 'decimal',
         'estimated_price'      => 'decimal',
         'budget_hours'         => 'decimal',
-        'users'                => 'collection:user',
+        'users'                => 'collection:users',
         'priority'             => 'intEnum:25|50|75|100',
         'notifications'        => 'text',
         'frequency'            => 'enum:daily|weekly|monthly',

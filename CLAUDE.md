@@ -367,6 +367,60 @@ $tasks = Task::list()->fetch(
 );
 ```
 
+### Pagination (Limiting Results)
+
+> **UNDOCUMENTED API FEATURE** - See `OVERRIDES.md#override-003`
+>
+> The Paymo API supports pagination via `page` and `page_size` query parameters,
+> but this is NOT documented in the official API documentation. Discovered through
+> direct communication with Paymo support in December 2024.
+
+```php
+use Jcolombo\PaymoApiPhp\Entity\Resource\Invoice;
+use Jcolombo\PaymoApiPhp\Entity\Resource\Task;
+
+// Fetch only the first 100 results (page 0 implied)
+$invoices = Invoice::list()->limit(100)->fetch();
+
+// Fetch page 2 with 50 results per page (results 101-150, 0-indexed)
+$invoices = Invoice::list()->limit(2, 50)->fetch();
+
+// Combine with WHERE conditions
+$tasks = Task::list()
+    ->limit(25)
+    ->fetch(['name'], [Task::where('active', true)]);
+
+// Combine with field selection
+$clients = Client::list()->limit(10)->fetch(['id', 'name', 'email']);
+
+// Clear pagination (fetch all)
+$collection = Project::list();
+$collection->limit();  // Now fetches all results
+
+// Manual page iteration (API doesn't return total count)
+$page = 0;
+$pageSize = 100;
+$allInvoices = [];
+
+do {
+    $invoices = Invoice::list()->limit($page, $pageSize)->fetch();
+    $results = $invoices->raw();
+    $count = count($results);
+
+    $allInvoices = array_merge($allInvoices, $results);
+    $page++;
+
+} while ($count === $pageSize); // Stop when fewer results than requested
+```
+
+**Important:**
+- Pages are **0-indexed** (page=0 is the first page)
+- Single param: `limit(100)` = page 0, 100 results
+- Two params: `limit(2, 50)` = page 2, 50 results per page
+- The API does NOT return total count - track pages manually
+- WHERE conditions are applied BEFORE pagination
+- Paymo support mentioned a possible max page_size of 2500 (unconfirmed)
+
 ### Update a Resource
 
 ```php
@@ -899,6 +953,7 @@ $task = Task::new()->set([
 14. **flatten()** converts resources to plain stdClass objects
 15. **Collections are JSON-serializable** - can be directly assigned to response data
 16. **Collections are countable** - use `count($collection)` directly
+17. **Pagination is supported** - use `limit()` on collections (UNDOCUMENTED API FEATURE - see OVERRIDES.md#override-003)
 
 ### Settings State
 

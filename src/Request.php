@@ -608,6 +608,19 @@ class Request
         $request->include = self::compileIncludeParameter(array_merge($select, $include));
         $request->where = self::compileWhereParameter($where);
 
+        // @override OVERRIDE-003
+        // @see OVERRIDES.md#override-003
+        // UNDOCUMENTED PAGINATION: page and page_size are NOT in official Paymo API docs
+        // but ARE supported. Discovered via Paymo support communication December 2024.
+        // Usage: $collection->page(0)->pageSize(100)->fetch()
+        // API call: GET /api/resource?page=0&page_size=100
+        if (isset($options['page']) && is_int($options['page'])) {
+            $request->page = $options['page'];
+        }
+        if (isset($options['pageSize']) && is_int($options['pageSize'])) {
+            $request->pageSize = $options['pageSize'];
+        }
+
         // Options
         $skipCache = isset($options['skipCache']) && $options['skipCache'];
 

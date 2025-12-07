@@ -24,7 +24,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **typescript.data-types.ts** - Added missing `Guest` option to PaymoUser.type enum
 - **default.paymoapi.config.json** - Removed duplicate EntityMap entries for projecttemplatetask/projecttemplatetasklist
 - **default.paymoapi.config.json** - Fixed gallery collection keys to match API (singular form)
+- **default.paymoapi.config.json** - Removed circular collectionKey references from gallery entries (prevented potential infinite recursion)
 - **README.md** - Updated resource count from 33 to 38, added 5 missing resources to table
+- **Report.php** - Fixed `start_date`/`end_date` types from `?` to `integer` (API expects Unix timestamps)
+- **Report.php** - Removed invalid `||resource:workflowstatus` from `projects` filter type
+- **TaskRecurringProfile.php** - Changed `collection:user` to `collection:users` for consistency with other resources
 
 ---
 

@@ -24,6 +24,7 @@ This independently developed package provides a developer-friendly toolkit to si
 - **Fluent Interface** - Chainable methods for clean, readable code
 - **Smart Query Building** - WHERE filters, HAS relationship conditions, and INCLUDE for eager loading
 - **JSON-Ready Collections** - Collections are directly JSON-serializable for API responses
+- **Server-Side Pagination** - Limit and paginate large result sets via `limit()` method
 - **Response Caching** - Built-in file-based caching to reduce API calls and avoid rate limits
 - **Request Logging** - Comprehensive logging for debugging and monitoring
 - **Type Safety** - Property type validation for each resource type
@@ -104,6 +105,12 @@ $json = json_encode($projects);  // Returns array of flattened objects
 $tasks = Task::list()
     ->where(Task::where('complete', false))
     ->fetch();
+
+// Paginate results (get only first 100)
+$invoices = Invoice::list()->limit(100)->fetch();
+
+// Paginate with explicit page (page 2, 50 per page)
+$invoices = Invoice::list()->limit(2, 50)->fetch();
 ```
 
 ### Creating Resources
@@ -470,6 +477,48 @@ $project->fetch(12345); // Throws exception
 
 ---
 
+## Pagination
+
+> **Note:** This is an undocumented Paymo API feature. See `OVERRIDES.md` for details.
+
+The SDK supports server-side pagination for collection fetches:
+
+```php
+use Jcolombo\PaymoApiPhp\Entity\Resource\Invoice;
+
+// Fetch only the first 100 results (page 0 implied)
+$invoices = Invoice::list()->limit(100)->fetch();
+
+// Fetch page 2 with 50 results per page
+$invoices = Invoice::list()->limit(2, 50)->fetch();
+
+// Combine with filters
+$tasks = Task::list()
+    ->limit(25)
+    ->fetch(['name'], [Task::where('complete', false)]);
+
+// Iterate through all pages
+$page = 0;
+$pageSize = 100;
+$allInvoices = [];
+
+do {
+    $invoices = Invoice::list()->limit($page, $pageSize)->fetch();
+    $results = $invoices->raw();
+    $allInvoices = array_merge($allInvoices, $results);
+    $page++;
+} while (count($results) === $pageSize);
+```
+
+**Key Points:**
+- Pages are **0-indexed** (first page is 0)
+- `limit(100)` = page 0, 100 results
+- `limit(2, 50)` = page 2, 50 results per page
+- API does NOT return total count - track pages manually
+- WHERE conditions apply before pagination
+
+---
+
 ## Rate Limiting
 
 Paymo enforces API rate limits. The SDK includes a built-in 1-second delay between requests to help prevent hitting rate limits. For high-volume operations:
@@ -477,6 +526,7 @@ Paymo enforces API rate limits. The SDK includes a built-in 1-second delay betwe
 1. **Enable caching** to reduce redundant API calls
 2. **Use `skipCache` sparingly** - only when you need fresh data
 3. **Batch operations** where possible by including related entities
+4. **Use pagination** to process large datasets in chunks
 
 ---
 

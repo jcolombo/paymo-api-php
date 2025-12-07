@@ -176,6 +176,51 @@ class RequestAbstraction
     public ?string $where = null;
 
     /**
+     * The page number for paginated requests (0-indexed).
+     *
+     * @override OVERRIDE-003
+     * @see OVERRIDES.md#override-003
+     *
+     * UNDOCUMENTED PAGINATION FEATURE:
+     * This parameter is NOT documented in the official Paymo API documentation,
+     * but IS supported by the API. Discovered through direct communication with
+     * Paymo support in December 2024.
+     *
+     * The API uses 0-indexed pagination:
+     * - page=0 returns the first page of results
+     * - page=1 returns the second page of results
+     * - etc.
+     *
+     * Must be used together with $pageSize to enable pagination.
+     *
+     * Example API call:
+     * GET /api/invoices?page=0&page_size=100
+     *
+     * @var int|null Page number (0-indexed), or null for no pagination
+     */
+    public ?int $page = null;
+
+    /**
+     * The number of results per page for paginated requests.
+     *
+     * @override OVERRIDE-003
+     * @see OVERRIDES.md#override-003
+     *
+     * UNDOCUMENTED PAGINATION FEATURE:
+     * This parameter is NOT documented in the official Paymo API documentation,
+     * but IS supported by the API. Discovered through direct communication with
+     * Paymo support in December 2024.
+     *
+     * Controls how many results are returned per page. Use with $page parameter.
+     *
+     * Example API call:
+     * GET /api/invoices?page=0&page_size=100
+     *
+     * @var int|null Number of results per page, or null for no pagination
+     */
+    public ?int $pageSize = null;
+
+    /**
      * Files to upload with this request.
      *
      * Associative array mapping property names to file paths.
@@ -190,13 +235,13 @@ class RequestAbstraction
     /**
      * Generate a deterministic cache key for this request.
      *
-     * Creates an MD5-based cache key from the request's URL, include, and where
-     * parameters. Only generates keys for GET requests (as other methods modify
-     * data and shouldn't be cached).
+     * Creates an MD5-based cache key from the request's URL, include, where,
+     * and pagination parameters. Only generates keys for GET requests (as other
+     * methods modify data and shouldn't be cached).
      *
      * KEY FORMAT:
      * -----------
-     * 'paymoapi-{md5(resourceUrl:include=X&where=Y)}'
+     * 'paymoapi-{md5(resourceUrl:include=X&where=Y&page=Z&page_size=N)}'
      *
      * The same request parameters will always produce the same key, enabling
      * reliable cache lookups.
@@ -208,6 +253,8 @@ class RequestAbstraction
      * $abstraction->resourceUrl = 'projects';
      * $abstraction->include = 'client,tasks';
      * $abstraction->where = 'active=true';
+     * $abstraction->page = 0;
+     * $abstraction->pageSize = 100;
      * $abstraction->makeCacheKey();
      *
      * echo $abstraction->cacheKey;
@@ -225,7 +272,13 @@ class RequestAbstraction
             if (!$force && !is_null($this->cacheKey)) {
                 return $this;
             }
-            $this->cacheKey = 'paymoapi-'.md5($this->resourceUrl.':include='.$this->include.'&where='.$this->where);
+            // Include pagination params in cache key to ensure different pages are cached separately
+            $cacheString = $this->resourceUrl
+                . ':include=' . $this->include
+                . '&where=' . $this->where
+                . '&page=' . $this->page
+                . '&page_size=' . $this->pageSize;
+            $this->cacheKey = 'paymoapi-' . md5($cacheString);
         }
 
         return $this;

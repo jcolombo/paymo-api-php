@@ -427,6 +427,18 @@ class Paymo
     if (!is_null($request->where)) {
       $query['where'] = $request->where;
     }
+
+    // @override OVERRIDE-003
+    // @see OVERRIDES.md#override-003
+    // UNDOCUMENTED PAGINATION: page and page_size are NOT in official Paymo API docs
+    // but ARE supported. Discovered via Paymo support communication December 2024.
+    if (!is_null($request->page)) {
+      $query['page'] = $request->page;
+    }
+    if (!is_null($request->pageSize)) {
+      $query['page_size'] = $request->pageSize;
+    }
+
     if (count($query) > 0) {
       $props['query'] = $query;
     }

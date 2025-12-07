@@ -21,6 +21,7 @@ The test suite is built with production safety as the top priority:
 - **Never modifies existing production data**
 - **Requires explicit configuration** to run
 - **Supports dry-run mode** for verification without API calls
+- **Supports read-only mode** for safe production database testing
 
 ## Quick Start
 
@@ -45,7 +46,71 @@ chmod +x tests/validate
 
 # Run in dry-run mode (no API calls)
 ./tests/validate --dry-run all
+
+# Run in read-only mode (safe for production)
+./tests/validate --read-only
+
+# Read-only with custom list limit
+./tests/validate --read-only --list-limit 10
 ```
+
+## Read-Only Mode
+
+Read-only mode is designed for safely testing against **production databases** without any risk of data modification.
+
+### What It Does
+
+- **Skips all Create/Update/Delete operations**
+- **Uses pagination** to limit API response sizes (default: 5 items per list)
+- **Runs all read-based tests:**
+  - Property Discovery (compare API vs SDK definitions)
+  - Property Selection (verify field selection works)
+  - Fetch (test fetching individual resources)
+  - List (test listing resources with pagination)
+  - Where Operations (test filtering)
+  - Include Relationships (test relationship loading)
+
+### Usage
+
+```bash
+# Basic read-only mode (5 items per list)
+./tests/validate --read-only
+
+# Custom list limit
+./tests/validate --read-only --list-limit 10
+
+# Read-only for specific resources
+./tests/validate --read-only Invoice,Client,Project
+
+# Verbose read-only
+./tests/validate --read-only -v all
+
+# Non-interactive read-only (for CI/CD)
+./tests/validate --read-only --no-interactive all
+```
+
+### Configuration
+
+You can also enable read-only mode via config file:
+
+```json
+{
+  "testing": {
+    "modes": {
+      "read_only": true,
+      "list_limit": 5
+    }
+  }
+}
+```
+
+### How Pagination Works
+
+Read-only mode uses the SDK's `limit()` method which leverages an undocumented Paymo API pagination feature (see `OVERRIDES.md#override-003`). This ensures:
+
+- Only the specified number of items are fetched from the API
+- Reduces API load and response times
+- Still validates property mapping and response structure
 
 ## Configuration
 
@@ -71,7 +136,9 @@ Add a `testing` section to your `paymoapi.config.json`:
       "verbose": false,
       "stop_on_failure": false,
       "cleanup_on_failure": true,
-      "interactive": true
+      "interactive": true,
+      "read_only": false,
+      "list_limit": 5
     },
     "resources": {
       "skip": [],

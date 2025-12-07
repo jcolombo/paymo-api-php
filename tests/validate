@@ -151,6 +151,9 @@ $options = getopt('hc:k:vq', [
     'validate-config',
     'show-config',
     'json',
+    // Read-only mode options (safe for production databases)
+    'read-only',
+    'list-limit:',
 ], $restIndex);
 
 // Get non-option arguments (test groups)
@@ -203,6 +206,16 @@ if (isset($options['no-interactive'])) {
 }
 if (isset($options['reset-log'])) {
     $config->setRuntimeOption('reset_log', true);
+}
+// Read-only mode - skips all Create/Update/Delete operations
+// Safe for running against production databases
+if (isset($options['read-only'])) {
+    $config->setRuntimeOption('read_only', true);
+}
+// List limit - controls how many items to fetch in list operations (default: 5)
+// Uses undocumented Paymo API pagination (see OVERRIDES.md#override-003)
+if (isset($options['list-limit'])) {
+    $config->setRuntimeOption('list_limit', (int)$options['list-limit']);
 }
 
 // Initialize logger if enabled
@@ -365,6 +378,12 @@ Options:
   --show-config               Show all current config values
   --json                      Output results as JSON
 
+Read-Only Mode (safe for production databases):
+  --read-only                 Skip all Create/Update/Delete operations
+                              Only runs read-based tests (discovery, list, fetch, where, includes)
+  --list-limit N              Limit list operations to N items (default: 5)
+                              Uses undocumented API pagination (OVERRIDE-003)
+
 Resources (Safe CRUD - can create and delete):
   Client, Project, Tasklist, Task, Subtask, TimeEntry, Milestone,
   Discussion, Comment, File, Booking, Invoice, InvoiceItem,
@@ -386,6 +405,12 @@ Examples:
   ./tests/validate --dry-run all          # Dry run all resources
   ./tests/validate -v Project             # Verbose Project tests
   ./tests/validate --no-interactive all   # CI/CD mode
+
+  # Read-only mode (safe for production databases):
+  ./tests/validate --read-only            # All resources, no mutations
+  ./tests/validate --read-only --list-limit 10   # Fetch 10 items per list
+  ./tests/validate --read-only Invoice    # Read-only test specific resource
+  ./tests/validate --read-only -v all     # Verbose read-only for all
 
 Configuration:
   Test configuration is read from the 'testing' section of your
@@ -532,10 +557,15 @@ function showConfig(TestConfig $config, TestOutput $output): void
         'stop_on_failure' => 'Stop on Failure',
         'cleanup_on_failure' => 'Cleanup on Failure',
         'interactive' => 'Interactive',
+        'read_only' => 'Read-Only Mode',
     ];
     foreach ($modeLabels as $key => $label) {
         $value = $modes[$key] ?? false;
         $output->listItem("{$label}: " . ($value ? "Yes" : "No"));
+    }
+    // Show list limit if read-only mode
+    if ($config->isReadOnlyMode()) {
+        $output->listItem("List Limit: " . $config->getListLimit() . " items");
     }
     $output->line();
 
@@ -642,9 +672,18 @@ function interactiveStartup(TestConfig $config, TestOutput $output, array &$reso
 {
     $output->banner();
 
-    // Show warning
-    $output->warning("This will make API calls to your Paymo account.");
-    $output->line();
+    // Show read-only mode status
+    if ($config->isReadOnlyMode()) {
+        $output->success("*** READ-ONLY MODE ***");
+        $output->success("No Create/Update/Delete operations will be performed.");
+        $output->success("List operations limited to " . $config->getListLimit() . " items.");
+        $output->info("Safe to run against production databases.");
+        $output->line();
+    } else {
+        // Show warning
+        $output->warning("This will make API calls to your Paymo account.");
+        $output->line();
+    }
 
     // Check API key first
     $apiKey = $config->getApiKey();
@@ -713,7 +752,21 @@ function interactiveStartup(TestConfig $config, TestOutput $output, array &$reso
     }
     // else $resources stays as passed in (empty = use config filtering)
 
-    // Now analyze dependencies
+    // In read-only mode, skip dependency analysis (no resources will be created)
+    if ($config->isReadOnlyMode()) {
+        $output->line();
+        $output->subHeader("Read-Only Mode Summary");
+        $output->success("No resources will be created, updated, or deleted.");
+        $output->info("Tests will use existing resources from your Paymo account.");
+        $output->info("List operations limited to " . $config->getListLimit() . " items per resource.");
+        $output->line();
+
+        $output->success("Proceeding with read-only tests...");
+        $output->line();
+        return true;
+    }
+
+    // Now analyze dependencies (only in non-read-only mode)
     $analyzer = new DependencyAnalyzer($config);
     $analysis = $analyzer->analyze($resources);
     $summary = $analyzer->getSummary($analysis);

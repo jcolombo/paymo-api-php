@@ -265,10 +265,10 @@ class Report extends AbstractResource
       'name'            => 'text',
       'user_id'         => 'resource:user',
       'type'            => 'enum:static|live|temp',
-      'start_date'      => '?',
-      'end_date'        => '?',
+      'start_date'      => 'integer',  // Unix timestamp
+      'end_date'        => 'integer',  // Unix timestamp
       'date_interval'   => 'enum:today|yesterday|this_month|last_month|this_week|last_week|this_year|last_year|all_time',
-      'projects'        => 'collection:projects||enum:all|all_active|all_archived||resource:workflowstatus',
+      'projects'        => 'collection:projects||enum:all|all_active|all_archived',
       'clients'         => 'collection:clients||enum:all|all_active',
       'users'           => 'collection:users||enum:all|all_active|all_archived',
       'include'         => [

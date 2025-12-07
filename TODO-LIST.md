@@ -702,12 +702,23 @@ Task::batchCreate($connection, $tasks);
 Task::batchUpdate($connection, $tasks);
 ```
 
-### 29.2 Pagination Helpers
-Improve pagination handling for large datasets:
+### 29.2 Pagination Helpers ✅ IMPLEMENTED (v0.6.x)
+Basic pagination is now implemented via the `limit()` method:
 ```php
-$collection->paginate($perPage, $page);
-$collection->hasNextPage();
-$collection->getTotalCount();
+// Basic: limit(pageSize) - fetches first N results
+$invoices = Invoice::list()->limit(100)->fetch();
+
+// With page: limit(page, pageSize) - 0-indexed pages
+$invoices = Invoice::list()->limit(2, 50)->fetch();
+```
+
+**Note:** The Paymo API does NOT return total count or page metadata (this is an undocumented API feature - see OVERRIDES.md#override-003). Therefore `hasNextPage()` and `getTotalCount()` cannot be implemented - iterate until results < pageSize.
+
+Future improvements could include:
+```php
+// Iterator helper for automatic pagination
+$collection->paginate($perPage, $page);  // Not yet implemented
+$collection->paginateAll($perPage);      // Generator yielding all pages
 ```
 
 ### 29.3 Caching Layer
@@ -761,7 +772,7 @@ Add automatic rate limit handling with retry logic.
 ### TODO - Future Enhancements (Low Priority)
 26. [ ] Implement utility helpers (time formatting, currency)
 27. [ ] Consider batch operations
-28. [ ] Consider pagination improvements
+28. [x] Consider pagination improvements (IMPLEMENTED - limit() method)
 29. [ ] Consider caching layer
 
 ---

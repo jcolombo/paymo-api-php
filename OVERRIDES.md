@@ -119,6 +119,130 @@ The test suite (`ClientResourceTest.php`) includes an `runImagePropertyDiscovery
 
 ---
 
+### OVERRIDE-003: Pagination Support (Undocumented Feature)
+
+**Resource:** All Collection Resources
+**Type:** Undocumented API Feature
+**Discovery Date:** 2024-12-07
+**Status:** Active
+**Discovery Source:** Direct communication with Paymo support
+
+**Official Documentation:**
+> The official Paymo API documentation (https://github.com/paymoapp/api) makes NO mention of pagination. All documentation examples show fetching complete lists without any page or limit parameters.
+
+**Actual API Behavior:**
+
+The Paymo API **DOES support pagination** via undocumented `page` and `page_size` query parameters:
+
+```bash
+# Example API call with pagination
+curl -u api_key:random -H 'Accept: application/json' \
+  "https://app.paymoapp.com/api/invoices?include=invoiceitems&page=0&page_size=100"
+```
+
+**Pagination Parameters:**
+
+| Parameter   | Type    | Description                                  |
+|-------------|---------|----------------------------------------------|
+| `page`      | integer | Page number (0-indexed, first page is 0)     |
+| `page_size` | integer | Number of results per page                   |
+
+**Important Notes:**
+- Pages are **0-indexed** (page=0 returns the first page)
+- Both `page` AND `page_size` must be provided for pagination to work
+- The API does NOT return total count or page metadata in the response
+- Without pagination, the API returns ALL matching resources (potentially thousands)
+- WHERE conditions are applied BEFORE pagination
+- **Possible Maximum:** Paymo support mentioned a maximum page_size of 2500, but this is unconfirmed. The SDK does not enforce this limit - use at your own discretion
+
+**SDK Implementation:**
+
+The SDK provides a fluent `limit()` method on all collections:
+
+```php
+// Single parameter: quantity limit (page 0 implied)
+$invoices = Invoice::list()->limit(100)->fetch();
+// API call: GET /api/invoices?page=0&page_size=100
+
+// Two parameters: explicit page and size
+$invoices = Invoice::list()->limit(2, 50)->fetch();
+// API call: GET /api/invoices?page=2&page_size=50
+
+// Clear pagination (fetch all)
+$collection->limit();
+```
+
+**Affected Files:**
+- `src/Entity/AbstractCollection.php` - Added `limit()` method, `$paginationPage`, `$paginationPageSize` properties
+- `src/Request.php` - Modified `list()` to pass pagination options
+- `src/Paymo.php` - Modified `buildRequestProps()` to add query parameters
+- `src/Utility/RequestAbstraction.php` - Added `$page`, `$pageSize` properties
+
+**Code References:**
+
+```php
+// In AbstractCollection.php
+// @override OVERRIDE-003
+// @see OVERRIDES.md#override-003
+protected ?int $paginationPage = null;
+protected ?int $paginationPageSize = null;
+
+public function limit(?int $pageOrSize = null, ?int $pageSize = null) : AbstractCollection
+{
+    // Single param = page size only (page 0)
+    // Two params = page number and page size
+}
+
+// In Request.php - list() method
+// @override OVERRIDE-003
+if (isset($options['page']) && is_int($options['page'])) {
+    $request->page = $options['page'];
+}
+
+// In Paymo.php - buildRequestProps() method
+// @override OVERRIDE-003
+if (!is_null($request->page)) {
+    $query['page'] = $request->page;
+}
+if (!is_null($request->pageSize)) {
+    $query['page_size'] = $request->pageSize;
+}
+```
+
+**Manual Iteration Example:**
+
+Since the API doesn't return total count, iterate pages until fewer results are returned:
+
+```php
+$page = 0;
+$pageSize = 100;
+$allInvoices = [];
+
+do {
+    $invoices = Invoice::list()->limit($page, $pageSize)->fetch();
+    $results = $invoices->raw();
+    $count = count($results);
+
+    $allInvoices = array_merge($allInvoices, $results);
+    $page++;
+
+} while ($count === $pageSize); // Stop when we get fewer than requested
+
+echo "Total invoices: " . count($allInvoices);
+```
+
+**Why This Matters:**
+
+Without pagination, accounts with large datasets (thousands of invoices, tasks, or time entries) would experience:
+- Very slow API responses
+- High memory usage in PHP
+- Potential timeouts
+- Rate limiting issues from large response sizes
+
+Pagination enables efficient batch processing and reduces API load.
+
+---
+
 ### OVERRIDE-002: Company Tax Properties (Conditional)
 
 **Resource:** Company

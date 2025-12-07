@@ -341,6 +341,46 @@ abstract class AbstractCollection extends AbstractEntity implements Iterator, Ar
     protected array $options = [];
 
     /**
+     * The page number for paginated requests (0-indexed).
+     *
+     * @override OVERRIDE-003
+     * @see OVERRIDES.md#override-003
+     *
+     * UNDOCUMENTED PAGINATION FEATURE:
+     * This parameter is NOT documented in the official Paymo API documentation,
+     * but IS supported by the API. Discovered through direct communication with
+     * Paymo support in December 2024.
+     *
+     * Set via the limit() method. When set, the API will return only the specified
+     * page of results instead of all results.
+     *
+     * @var int|null Page number (0-indexed), or null for no pagination
+     *
+     * @see limit() Method to set pagination parameters
+     */
+    protected ?int $paginationPage = null;
+
+    /**
+     * The number of results per page for paginated requests.
+     *
+     * @override OVERRIDE-003
+     * @see OVERRIDES.md#override-003
+     *
+     * UNDOCUMENTED PAGINATION FEATURE:
+     * This parameter is NOT documented in the official Paymo API documentation,
+     * but IS supported by the API. Discovered through direct communication with
+     * Paymo support in December 2024.
+     *
+     * Set via the limit() method. When set, the API will return at most this many
+     * results per page.
+     *
+     * @var int|null Number of results per page, or null for no pagination
+     *
+     * @see limit() Method to set pagination parameters
+     */
+    protected ?int $paginationPageSize = null;
+
+    /**
      * Construct a new collection instance for the specified entity type.
      *
      * Initializes the collection with connection configuration and entity type mappings.
@@ -512,6 +552,128 @@ abstract class AbstractCollection extends AbstractEntity implements Iterator, Ar
     public function options(array $options = []) : AbstractCollection
     {
         $this->options = $this->validateOptions($options);
+
+        return $this;
+    }
+
+    /**
+     * Set pagination limits for the collection fetch.
+     *
+     * @override OVERRIDE-003
+     * @see OVERRIDES.md#override-003
+     *
+     * UNDOCUMENTED PAGINATION FEATURE:
+     * --------------------------------
+     * The Paymo API supports pagination via `page` and `page_size` query parameters,
+     * but this is NOT documented in the official Paymo API documentation
+     * (https://github.com/paymoapp/api). This feature was discovered through direct
+     * communication with Paymo support in December 2024.
+     *
+     * Without pagination, the API returns ALL matching resources in a single response.
+     * For accounts with thousands of invoices, tasks, or time entries, this can be
+     * very slow and memory-intensive.
+     *
+     * API BEHAVIOR:
+     * -------------
+     * - `page` is 0-indexed (page=0 is the first page)
+     * - `page_size` controls how many results per page
+     * - Both parameters must be provided for pagination to work
+     * - Example: ?page=0&page_size=100 returns first 100 results
+     * - Example: ?page=1&page_size=100 returns results 101-200
+     *
+     * METHOD SIGNATURES:
+     * ------------------
+     * This method supports two calling conventions:
+     *
+     * 1. **Single parameter (quantity only):**
+     *    ```php
+     *    // Get first 100 resources (page 0, size 100)
+     *    $invoices = Invoice::list()->limit(100)->fetch();
+     *    ```
+     *
+     * 2. **Two parameters (page and size):**
+     *    ```php
+     *    // Get page 2 with 50 results per page (results 101-150)
+     *    $invoices = Invoice::list()->limit(2, 50)->fetch();
+     *    ```
+     *
+     * USAGE EXAMPLES:
+     * ---------------
+     * ```php
+     * // Fetch only the first 10 clients
+     * $clients = Client::list()->limit(10)->fetch();
+     *
+     * // Fetch page 0 with 100 items (same as limit(100))
+     * $invoices = Invoice::list()->limit(0, 100)->fetch();
+     *
+     * // Fetch page 3 with 50 items per page
+     * $tasks = Task::list()->limit(3, 50)->fetch(['name', 'status']);
+     *
+     * // Combine with where conditions
+     * $recentTasks = Task::list()
+     *     ->limit(25)
+     *     ->fetch(['name'], [Task::WHERE('active', '=', true)]);
+     *
+     * // Iterate through all pages manually
+     * $page = 0;
+     * $pageSize = 100;
+     * do {
+     *     $invoices = Invoice::list()->limit($page, $pageSize)->fetch();
+     *     $count = count($invoices);
+     *     foreach ($invoices as $invoice) {
+     *         // Process each invoice
+     *     }
+     *     $page++;
+     * } while ($count === $pageSize); // Stop when we get fewer than requested
+     * ```
+     *
+     * RESETTING PAGINATION:
+     * ---------------------
+     * Call limit() with no arguments to clear pagination settings:
+     * ```php
+     * $collection->limit(); // Clears pagination, fetch will return all results
+     * ```
+     *
+     * IMPORTANT NOTES:
+     * ----------------
+     * - Pagination happens SERVER-SIDE - only the requested page is returned
+     * - This is more efficient than fetching all and filtering in PHP
+     * - The API does NOT return total count or page metadata
+     * - You must track page numbers yourself for iteration
+     * - WHERE conditions are applied BEFORE pagination
+     *
+     * @param int|null $pageOrSize When only one parameter: the page size (quantity limit).
+     *                             When two parameters: the page number (0-indexed).
+     *                             Pass null or omit to clear pagination.
+     * @param int|null $pageSize   The number of results per page.
+     *                             Only used when first parameter is page number.
+     *
+     * @return $this Returns the collection instance for method chaining
+     *
+     * @see fetch() The method that uses these pagination settings
+     * @see OVERRIDES.md#override-003 Full documentation of this undocumented feature
+     */
+    public function limit(?int $pageOrSize = null, ?int $pageSize = null) : AbstractCollection
+    {
+        // Clear pagination if called with no arguments or null
+        if ($pageOrSize === null) {
+            $this->paginationPage = null;
+            $this->paginationPageSize = null;
+            return $this;
+        }
+
+        // Single parameter: treat as page size only (page 0)
+        // limit(100) -> page=0, page_size=100
+        if ($pageSize === null) {
+            $this->paginationPage = 0;
+            $this->paginationPageSize = $pageOrSize;
+            return $this;
+        }
+
+        // Two parameters: first is page, second is page size
+        // limit(2, 50) -> page=2, page_size=50
+        $this->paginationPage = $pageOrSize;
+        $this->paginationPageSize = $pageSize;
 
         return $this;
     }
@@ -706,7 +868,7 @@ abstract class AbstractCollection extends AbstractEntity implements Iterator, Ar
      * This is the primary method for loading data into a collection. It builds and executes
      * an API list request, then hydrates the response into typed resource objects stored
      * in this collection. The method supports field selection, relationship includes,
-     * WHERE conditions, and various request options.
+     * WHERE conditions, pagination, and various request options.
      *
      * FIELD SELECTION:
      * ----------------
@@ -755,6 +917,26 @@ abstract class AbstractCollection extends AbstractEntity implements Iterator, Ar
      *     ['name'],
      *     [Project::HAS('tasks', '>', 0)]
      * );
+     * ```
+     *
+     * PAGINATION (UNDOCUMENTED API FEATURE):
+     * --------------------------------------
+     * @override OVERRIDE-003
+     * @see OVERRIDES.md#override-003
+     *
+     * Use the limit() method before fetch() to paginate results:
+     *
+     * ```php
+     * // Fetch only the first 100 results
+     * $invoices = Invoice::list()->limit(100)->fetch();
+     *
+     * // Fetch page 2 with 50 results per page
+     * $invoices = Invoice::list()->limit(2, 50)->fetch();
+     *
+     * // Combine with where conditions
+     * $tasks = Task::list()
+     *     ->limit(25)
+     *     ->fetch(['name'], [Task::WHERE('active', '=', true)]);
      * ```
      *
      * REQUEST OPTIONS:
@@ -809,6 +991,7 @@ abstract class AbstractCollection extends AbstractEntity implements Iterator, Ar
      *
      * @return $this Returns the collection instance (now populated) for method chaining
      *
+     * @see limit() Set pagination before calling fetch()
      * @see Request::list() Underlying method that executes the API call
      * @see _hydrate() Internal method that populates collection from response
      * @see isDirty() Checks if any resources have unsaved changes
@@ -835,10 +1018,23 @@ abstract class AbstractCollection extends AbstractEntity implements Iterator, Ar
         $respKey = $this->getResponseKey($resClass);
         [$select, $include, $where] = static::cleanupForRequest($resClass::API_ENTITY, $fields, $where);
 
+        // Build request options including pagination if set
+        // @override OVERRIDE-003
+        // @see OVERRIDES.md#override-003
+        $requestOptions = ['select' => $select, 'include' => $include, 'where' => $where];
+
+        // Add pagination parameters if configured via limit() method
+        if ($this->paginationPage !== null) {
+            $requestOptions['page'] = $this->paginationPage;
+        }
+        if ($this->paginationPageSize !== null) {
+            $requestOptions['pageSize'] = $this->paginationPageSize;
+        }
+
         $response = Request::list(
           $this->connection,
           $resClass::API_PATH.$respKey,
-          $this->mergeOptions(['select' => $select, 'include' => $include, 'where' => $where], $options)
+          $this->mergeOptions($requestOptions, $options)
         );
         if ($response->result) {
             $this->_hydrate($response->result);
