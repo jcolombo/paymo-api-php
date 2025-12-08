@@ -1561,15 +1561,20 @@ abstract class AbstractResource extends AbstractEntity
      * // Strip null values
      * $data = $project->flatten(['stripNull' => true]);
      *
+     * // Auto-indexed arrays for nested collections (instead of ID-keyed)
+     * $data = $project->flatten(['array' => true]);
+     * // $data->tasks will be [0 => {...}, 1 => {...}] instead of {123: {...}, 456: {...}}
+     *
      * // Convert to JSON
      * $json = json_encode($project->flatten());
      * ```
      *
      * ## Options
      *
-     * | Key       | Type | Default | Description                    |
-     * |-----------|------|---------|--------------------------------|
-     * | stripNull | bool | false   | Omit properties with null values |
+     * | Key       | Type | Default | Description                                        |
+     * |-----------|------|---------|---------------------------------------------------|
+     * | stripNull | bool | false   | Omit properties with null values                   |
+     * | array     | bool | false   | Return nested collections as auto-indexed arrays   |
      *
      * @param array $options Flatten options (see table above)
      *

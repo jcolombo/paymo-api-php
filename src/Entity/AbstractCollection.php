@@ -1393,19 +1393,28 @@ abstract class AbstractCollection extends AbstractEntity implements Iterator, Ar
      * ]
      * ```
      *
-     * @param array $options Flatten options passed to each resource.
+     * @param array $options Flatten options passed to each resource:
+     *                       - 'stripNull' (bool): Remove null values from output
+     *                       - 'array' (bool): Return auto-indexed array [0,1,2...] instead of ID-keyed
      *                       See AbstractResource::flatten() for details.
      *
-     * @return stdClass[] Associative array of stdClass objects, keyed by resource ID
+     * @return stdClass[] Array of stdClass objects. By default keyed by resource ID,
+     *                    or auto-indexed if ['array' => true] is passed.
      *
      * @see AbstractResource::flatten() Individual resource flatten method with option details
      * @see raw() Returns the array of resource objects (not flattened)
      */
     public function flatten(array $options = []) : array
     {
+        $useArray = $options['array'] ?? false;
         $data = [];
+
         foreach ($this->data as $k => $resource) {
-            $data[(int)$k] = $resource->flatten($options);
+            if ($useArray) {
+                $data[] = $resource->flatten($options);
+            } else {
+                $data[(int)$k] = $resource->flatten($options);
+            }
         }
 
         return $data;
