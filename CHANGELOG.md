@@ -9,6 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.6.1] - 2025-12-08
+
+### Added
+
+- **Collection flatten() array option** - New `['array' => true]` option for `flatten()` method
+  - Returns auto-indexed arrays `[0, 1, 2, ...]` instead of ID-keyed objects `{123: ..., 456: ...}`
+  - Applies recursively to nested included collections
+  - Useful for JSON output that requires standard array format
+  - Example: `$collection->flatten(['array' => true])`
+
+---
+
 ## [0.6.0] - 2025-12-08
 
 This is a major feature release with new resources, comprehensive test framework, server-side pagination, rate limiting, and extensive API verification fixes.
@@ -388,7 +400,8 @@ This is the first major feature-complete release of the Paymo API PHP library.
 
 ---
 
-[Unreleased]: https://github.com/jcolombo/paymo-api-php/compare/v0.6.0...HEAD
+[Unreleased]: https://github.com/jcolombo/paymo-api-php/compare/v0.6.1...HEAD
+[0.6.1]: https://github.com/jcolombo/paymo-api-php/compare/v0.6.0...v0.6.1
 [0.6.0]: https://github.com/jcolombo/paymo-api-php/compare/v0.5.7...v0.6.0
 [0.5.7]: https://github.com/jcolombo/paymo-api-php/compare/v0.5.6...v0.5.7
 [0.5.6]: https://github.com/jcolombo/paymo-api-php/compare/v0.5.5...v0.5.6
