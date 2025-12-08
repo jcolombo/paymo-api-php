@@ -271,6 +271,24 @@ class File extends AbstractResource
     ];
 
     /**
+     * Properties returned by API but cannot be explicitly selected.
+     *
+     * @override OVERRIDE-013
+     * @see OVERRIDES.md#override-013
+     *
+     * image_thumb_large: Exists in API response but causes HTTP 400 when explicitly selected
+     * image_thumb_medium: Exists in API response but causes HTTP 400 when explicitly selected
+     * image_thumb_small: Exists in API response but causes HTTP 400 when explicitly selected
+     *
+     * @var array<string>
+     */
+    public const UNSELECTABLE = [
+        'image_thumb_large',
+        'image_thumb_medium',
+        'image_thumb_small',
+    ];
+
+    /**
      * Related entities available for inclusion in API requests.
      *
      * Use with the 'include' option in fetch() or list() calls.

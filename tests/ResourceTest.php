@@ -24,6 +24,7 @@ use Jcolombo\PaymoApiPhp\Paymo;
 use Jcolombo\PaymoApiPhp\Entity\AbstractResource;
 use Jcolombo\PaymoApiPhp\Tests\Fixtures\TestDataFactory;
 use Jcolombo\PaymoApiPhp\Tests\Fixtures\CleanupManager;
+use Jcolombo\PaymoApiPhp\Tests\KnownIssuesRegistry;
 use Throwable;
 use ReflectionClass;
 
@@ -2497,5 +2498,65 @@ abstract class ResourceTest
             $this->logDetail("    Message: {$message}");
         }
         $this->logDetail("");
+    }
+
+    // ========================================================================
+    // Known Issues Handling
+    // ========================================================================
+
+    /**
+     * Check if an exception represents a known issue.
+     *
+     * Extracts HTTP code and error message from exception, checks against
+     * KnownIssuesRegistry, and records the encounter.
+     *
+     * @param Throwable $e The exception that was caught
+     * @param string $context The test context (e.g., 'propertySelection', 'includes')
+     * @return bool True if this is a known issue (can suppress detailed error output)
+     */
+    protected function isKnownIssue(Throwable $e, string $context = ''): bool
+    {
+        $message = $e->getMessage();
+
+        // Extract HTTP code from message (format: "[Bad Request] ..." or "HTTP 400" etc.)
+        $httpCode = 0;
+        if (preg_match('/HTTP\s*(\d{3})/i', $message, $matches)) {
+            $httpCode = (int)$matches[1];
+        } elseif (strpos($message, 'Bad Request') !== false || strpos($message, 'Unknown field') !== false) {
+            $httpCode = 400;
+        } elseif (strpos($message, 'Access Denied') !== false || strpos($message, 'Forbidden') !== false) {
+            $httpCode = 403;
+        } elseif (strpos($message, 'Not Found') !== false) {
+            $httpCode = 404;
+        } elseif (strpos($message, 'Application error') !== false || strpos($message, 'Internal Server Error') !== false) {
+            $httpCode = 500;
+        }
+
+        // Check against known issues registry
+        return KnownIssuesRegistry::checkAndRecord(
+            $this->getResourceName(),
+            $httpCode,
+            $message,
+            $context
+        );
+    }
+
+    /**
+     * Handle an exception that may be a known issue.
+     *
+     * If the exception represents a known issue, logs it briefly and returns true.
+     * If it's a new issue, logs full details and returns false.
+     *
+     * @param Throwable $e The exception
+     * @param string $context Test context
+     * @return bool True if handled as known issue (caller can skip detailed error logging)
+     */
+    protected function handlePossibleKnownIssue(Throwable $e, string $context = ''): bool
+    {
+        if ($this->isKnownIssue($e, $context)) {
+            $this->logDetail("  (Known issue - handled by SDK, see KnownIssuesRegistry)");
+            return true;
+        }
+        return false;
     }
 }

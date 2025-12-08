@@ -277,11 +277,42 @@ class User extends AbstractResource
      * @override OVERRIDE-013
      * @see OVERRIDES.md#override-013
      *
-     * additional_privileges: Internal field, causes HTTP 400 when selected
+     * The following fields exist in API responses but cause HTTP 400 when explicitly selected:
+     * - additional_privileges: Internal field
+     * - date_format, time_format, decimal_sep, thousands_sep: User locale settings
+     * - has_submitted_review: Internal review status
+     * - image_thumb_large, image_thumb_medium, image_thumb_small: Avatar thumbnails
+     * - is_online: Real-time presence status
+     * - language, theme, week_start, menu_shortcut, user_hash: User preferences
+     * - annual_leave_days_number: Leave tracking
+     * - password: Security field
+     * - workflows: Collection relation
+     * - assigned_projects, managed_projects: Project relations
      *
      * @var array<string>
      */
-    public const UNSELECTABLE = ['additional_privileges'];
+    public const UNSELECTABLE = [
+        'additional_privileges',
+        'date_format',
+        'time_format',
+        'decimal_sep',
+        'thousands_sep',
+        'has_submitted_review',
+        'image_thumb_large',
+        'image_thumb_medium',
+        'image_thumb_small',
+        'is_online',
+        'language',
+        'theme',
+        'menu_shortcut',
+        'user_hash',
+        'annual_leave_days_number',
+        'password',
+        'workflows',
+        'week_start',
+        'assigned_projects',
+        'managed_projects',
+    ];
 
     /**
      * Related entities available for inclusion in API requests.

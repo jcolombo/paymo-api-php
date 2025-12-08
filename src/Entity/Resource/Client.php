@@ -242,10 +242,18 @@ class Client extends AbstractResource
      * @see OVERRIDES.md#override-013
      *
      * additional_privileges: Internal field, causes HTTP 400 when selected
+     * image_thumb_large: Exists in API response but causes HTTP 400 when explicitly selected
+     * image_thumb_medium: Exists in API response but causes HTTP 400 when explicitly selected
+     * image_thumb_small: Exists in API response but causes HTTP 400 when explicitly selected
      *
      * @var array<string>
      */
-    public const UNSELECTABLE = ['additional_privileges'];
+    public const UNSELECTABLE = [
+        'additional_privileges',
+        'image_thumb_large',
+        'image_thumb_medium',
+        'image_thumb_small',
+    ];
 
     /**
      * Related entities available for inclusion in API requests.

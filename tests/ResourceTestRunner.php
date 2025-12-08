@@ -17,6 +17,7 @@ namespace Jcolombo\PaymoApiPhp\Tests;
 
 use Jcolombo\PaymoApiPhp\Tests\Fixtures\CleanupManager;
 use Jcolombo\PaymoApiPhp\Tests\TestOwnershipRegistry;
+use Jcolombo\PaymoApiPhp\Tests\KnownIssuesRegistry;
 use Throwable;
 
 class ResourceTestRunner
@@ -72,6 +73,10 @@ class ResourceTestRunner
         // CRITICAL: Clear ownership registry at start of each test run
         // This ensures clean slate for mutation safety checks
         TestOwnershipRegistry::clear();
+
+        // Clear known issues tracking at start of each test run
+        // This ensures we track which known issues were encountered this run
+        KnownIssuesRegistry::clear();
     }
 
     /**

@@ -515,6 +515,9 @@ class TestOutput
         // Display ownership registry (test-created resources)
         $this->displayOwnershipRegistry();
 
+        // Display known issues status
+        $this->displayKnownIssuesStatus();
+
         // Display resource tracking summary
         $this->displayResourceSummary($results);
 
@@ -715,6 +718,78 @@ class TestOutput
             if ($this->logger !== null) {
                 echo "\n  " . $this->color("Log file: " . $this->logger->getLogPath(), self::DIM . self::WHITE) . "\n";
             }
+        }
+    }
+
+    /**
+     * Display known issues status
+     *
+     * Shows which known issues were encountered, any new issues, and any resolved issues.
+     */
+    public function displayKnownIssuesStatus(): void
+    {
+        if ($this->quiet || $this->jsonMode) {
+            return;
+        }
+
+        $summary = KnownIssuesRegistry::getSummary();
+        $encountered = KnownIssuesRegistry::getEncounteredIssues();
+        $newIssues = KnownIssuesRegistry::getNewIssues();
+        $resolved = KnownIssuesRegistry::getResolvedIssues();
+
+        // Only show if there's something to report
+        if (empty($encountered) && empty($newIssues) && empty($resolved)) {
+            return;
+        }
+
+        echo "\n" . $this->color("Known Issues Status:", self::BOLD . self::CYAN) . "\n";
+
+        // Show encountered known issues (expected - good)
+        if (!empty($encountered)) {
+            $icon = $this->color("\u{2713}", self::GREEN);  // Checkmark
+            echo "  {$icon} " . $this->color("Encountered " . count($encountered) . " known issue(s) - handled by SDK", self::GREEN) . "\n";
+            foreach ($encountered as $key => $issue) {
+                echo "    " . $this->color("\u{2022}", self::DIM . self::GREEN);
+                echo " " . $this->color($issue['resource'], self::WHITE);
+                echo "::" . $this->color($issue['item'], self::DIM . self::WHITE);
+                if ($issue['details']) {
+                    echo " (" . $this->color($issue['details']['handled_by'], self::DIM . self::CYAN) . ")";
+                }
+                echo "\n";
+            }
+        }
+
+        // Show NEW issues (unexpected - needs investigation)
+        if (!empty($newIssues)) {
+            echo "\n";
+            $icon = $this->color("\u{2717}", self::RED);  // X mark
+            echo "  {$icon} " . $this->color("Found " . count($newIssues) . " NEW issue(s) - needs investigation!", self::RED . self::BOLD) . "\n";
+            foreach ($newIssues as $key => $issue) {
+                echo "    " . $this->color("\u{26A0}", self::YELLOW);  // Warning
+                echo " " . $this->color($issue['resource'], self::WHITE . self::BOLD);
+                echo "::" . $this->color($issue['item'], self::WHITE);
+                echo "\n";
+                echo "      " . $this->color("Error: " . substr($issue['error'], 0, 80), self::DIM . self::RED);
+                if (strlen($issue['error']) > 80) {
+                    echo "...";
+                }
+                echo "\n";
+            }
+            echo "\n  " . $this->color("Add these to KnownIssuesRegistry if they are expected behavior.", self::DIM . self::YELLOW) . "\n";
+        }
+
+        // Show resolved issues (API behavior changed - can update SDK)
+        if (!empty($resolved)) {
+            echo "\n";
+            $icon = $this->color("\u{2728}", self::MAGENTA);  // Sparkle
+            echo "  {$icon} " . $this->color(count($resolved) . " previously known issue(s) now RESOLVED!", self::MAGENTA . self::BOLD) . "\n";
+            foreach ($resolved as $key => $issue) {
+                echo "    " . $this->color("\u{2022}", self::MAGENTA);
+                echo " " . $this->color($issue['resource'], self::WHITE);
+                echo "::" . $this->color($issue['item'], self::WHITE);
+                echo "\n";
+            }
+            echo "\n  " . $this->color("API behavior has changed. Consider updating SDK and removing from KnownIssuesRegistry.", self::DIM . self::MAGENTA) . "\n";
         }
     }
 
