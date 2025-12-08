@@ -7,45 +7,73 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+---
+
+## [0.6.0] - 2025-12-08
+
+This is a major feature release with new resources, comprehensive test framework, server-side pagination, rate limiting, and extensive API verification fixes.
+
 ### Added
-- **TypeScript interfaces** - Added 8 missing interfaces to typescript.data-types.ts:
-  - PaymoProjectTemplate
-  - PaymoProjectTemplateTasklist
-  - PaymoProjectTemplateTask
-  - PaymoInvoiceTemplate
-  - PaymoEstimateTemplate
-  - PaymoInvoiceTemplateGallery
-  - PaymoEstimateTemplateGallery
-  - PaymoCommentThread
 
-### Fixed
-- **Invoice.php** - Removed erroneous `invoice_id` from READONLY (copy-paste error from Estimate.php)
-- **RecurringProfile.php** - Added missing `language` property to PROP_TYPES and READONLY (deprecated but documented)
-- **RecurringProfile.php** - Added `API_RESPONSE_KEY` for underscore response key handling
-- **ProjectTemplate.php** - Added missing `project_id` to PROP_TYPES (was in CREATEONLY but not typed)
-- **typescript.data-types.ts** - Fixed `hours_per_date` typo → `hours_per_day` in PaymoBooking
-- **typescript.data-types.ts** - Added missing `Guest` option to PaymoUser.type enum
-- **default.paymoapi.config.json** - Removed duplicate EntityMap entries for projecttemplatetask/projecttemplatetasklist
-- **default.paymoapi.config.json** - Fixed gallery collection keys to match API (singular form)
-- **default.paymoapi.config.json** - Removed circular collectionKey references from gallery entries (prevented potential infinite recursion)
-- **default.paymoapi.config.json** - Added `collection: true` to gallery entries to enable list() operations
-- **README.md** - Updated resource count from 33 to 38, added 5 missing resources to table
-- **Report.php** - Fixed `start_date`/`end_date` types from `?` to `integer` (API expects Unix timestamps)
-- **Report.php** - Removed invalid `||resource:workflowstatus` from `projects` filter type
-- **TaskRecurringProfile.php** - Changed `collection:user` to `collection:users` for consistency with other resources
-- **BookingCollection.php** - Added `date_interval` to allowed filters per official API docs
+#### New Resources
+- **Subtask** (`src/Entity/Resource/Subtask.php`) - Full CRUD support for task subtasks
+- **RecurringProfile** (`src/Entity/Resource/RecurringProfile.php`) - Invoice recurring profile management
+- **RecurringProfileItem** (`src/Entity/Resource/RecurringProfileItem.php`) - Recurring profile line items
+- **TaskRecurringProfile** (`src/Entity/Resource/TaskRecurringProfile.php`) - Task recurrence scheduling
+- **Webhook** (`src/Entity/Resource/Webhook.php`) - Webhook endpoint management for event notifications
 
-### Changed
-- **Estimate.php** - Removed outdated "Undocumented" comments from `discount_amount`, `download_token`
-- **EstimateItem.php** - Removed outdated "Undocumented" comment from `estimate_id`
-- **Invoice.php** - Reorganized PROP_TYPES to separate documented from truly undocumented properties
-- **InvoiceItem.php** - Removed outdated "Undocumented" comment from `invoice_id`
-- **Task.php** - Reorganized READONLY and PROP_TYPES to properly categorize documented vs undocumented
-- **Expense.php** - Fixed PHPDoc: removed non-existent `name` property, corrected `user_id`/`invoice_item_id` read-only annotations
-- **User.php** - Updated PHPDoc to include `Guest` in user type descriptions
+#### Server-Side Pagination
+- Added `pagination()` method to `AbstractCollection` for automatic handling of paginated API responses
+- Supports configurable page size and automatic page traversal
+- Respects API rate limits during pagination
 
-### Documentation
-- **OVERRIDES.md** - Added OVERRIDE-006 through OVERRIDE-012 documenting intentional SDK deviations:
+#### Rate Limiting
+- **RateLimiter** (`src/Utility/RateLimiter.php`) - Intelligent rate limit handling
+  - Automatic retry with exponential backoff on 429 responses
+  - Configurable maximum retries and delay strategies
+  - Rate limit header parsing and tracking
+
+#### UNSELECTABLE Property Handling
+- Added `UNSELECTABLE` constant support to resource classes for fields that exist in API responses but cause HTTP 400 when explicitly selected
+- **Client** - Added `image_thumb_large`, `image_thumb_medium`, `image_thumb_small`
+- **File** - Added `image_thumb_large`, `image_thumb_medium`, `image_thumb_small`
+- **User** - Added comprehensive list including `date_format`, `time_format`, `decimal_sep`, `thousands_sep`, `has_submitted_review`, `image_thumb_*`, `is_online`, `language`, `theme`, `week_start`, `menu_shortcut`, `user_hash`, `annual_leave_days_number`, `password`, `workflows`, `assigned_projects`, `managed_projects`
+- **Task** - Added `subtasks_order`
+- **Milestone** - Added `linked_tasklists`
+- **Expense** - Added `image_thumb_large`, `image_thumb_medium`, `image_thumb_small`
+
+#### Comprehensive Test Framework
+- **ResourceTest** base class for standardized resource testing
+- **ResourceTestRunner** for orchestrating test execution across all resources
+- **TestConfig** for flexible test configuration via JSON
+- **TestOutput** for formatted console output with color support
+- **TestResult** for tracking test outcomes and statistics
+- **TestLogger** for detailed API call logging
+- **CleanupManager** for automatic test resource cleanup
+- **TestDataFactory** for generating test fixtures
+- **DependencyAnalyzer** for determining resource test order
+- **TestOwnershipRegistry** for mutation safety (prevents accidental modification of non-test resources)
+- **KnownIssuesRegistry** for tracking expected API behaviors and suppressing known issue output
+- Individual resource test classes for all 25 testable resources
+- Interactive CLI test runner (`tests/validate`)
+
+#### TypeScript Interface Definitions
+- **PaymoProjectTemplate** - Project template interface
+- **PaymoProjectTemplateTasklist** - Template tasklist interface
+- **PaymoProjectTemplateTask** - Template task interface
+- **PaymoInvoiceTemplate** - Invoice template interface
+- **PaymoEstimateTemplate** - Estimate template interface
+- **PaymoInvoiceTemplateGallery** - Invoice template gallery interface
+- **PaymoEstimateTemplateGallery** - Estimate template gallery interface
+- **PaymoCommentThread** - Comment thread interface
+- **PaymoSubtask** - Subtask interface
+- **PaymoRecurringProfile** - Recurring profile interface
+- **PaymoRecurringProfileItem** - Recurring profile item interface
+- **PaymoTaskRecurringProfile** - Task recurring profile interface
+- **PaymoWebhook** - Webhook interface
+
+#### Documentation
+- **OVERRIDES.md** - Comprehensive documentation of intentional SDK deviations from API:
   - OVERRIDE-006: Client.active intentionally read-only
   - OVERRIDE-007: EstimateItem/InvoiceItem critical property documentation gaps
   - OVERRIDE-008: Missing resource documentation (templates, payments, status)
@@ -53,6 +81,50 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - OVERRIDE-010: Gallery response key anomalies (colon prefix)
   - OVERRIDE-011: Undocumented properties policy
   - OVERRIDE-012: Deprecated property retention (RecurringProfile.language)
+  - OVERRIDE-013: Unselectable property handling
+- **tests/README.md** - Complete test framework documentation
+
+### Changed
+
+- **AbstractCollection** - Major refactoring to support server-side pagination and improved fetch handling
+- **Paymo.php** - Enhanced with rate limit detection, retry logic, and improved error handling
+- **RequestAbstraction** - Added pagination parameter support
+- **BookingCollection** - Added `date_interval` to allowed filters per official API documentation
+- **README.md** - Updated resource count from 33 to 38, added new resources to documentation table
+
+### Fixed
+
+#### Property Type Corrections
+- **Invoice.php** - Removed erroneous `invoice_id` from READONLY (copy-paste error from Estimate.php)
+- **RecurringProfile.php** - Added missing `language` property to PROP_TYPES and READONLY
+- **RecurringProfile.php** - Added `API_RESPONSE_KEY` for underscore response key handling
+- **ProjectTemplate.php** - Added missing `project_id` to PROP_TYPES
+- **Report.php** - Fixed `start_date`/`end_date` types from `?` to `integer` (API expects Unix timestamps)
+- **Report.php** - Removed invalid `||resource:workflowstatus` from `projects` filter type
+- **TaskRecurringProfile.php** - Changed `collection:user` to `collection:users` for consistency
+
+#### TypeScript Definition Fixes
+- **typescript.data-types.ts** - Fixed `hours_per_date` typo to `hours_per_day` in PaymoBooking
+- **typescript.data-types.ts** - Added missing `Guest` option to PaymoUser.type enum
+
+#### EntityMap Configuration Fixes
+- **default.paymoapi.config.json** - Removed duplicate entries for projecttemplatetask/projecttemplatetasklist
+- **default.paymoapi.config.json** - Fixed gallery collection keys to match API (singular form)
+- **default.paymoapi.config.json** - Removed circular collectionKey references from gallery entries
+- **default.paymoapi.config.json** - Added `collection: true` to gallery entries to enable list() operations
+
+#### Code Cleanup
+- **Estimate.php** - Removed outdated "Undocumented" comments from `discount_amount`, `download_token`
+- **EstimateItem.php** - Removed outdated "Undocumented" comment from `estimate_id`
+- **Invoice.php** - Reorganized PROP_TYPES to separate documented from undocumented properties
+- **InvoiceItem.php** - Removed outdated "Undocumented" comment from `invoice_id`
+- **Task.php** - Reorganized READONLY and PROP_TYPES for proper categorization
+- **Expense.php** - Fixed PHPDoc: removed non-existent `name` property, corrected read-only annotations
+- **User.php** - Updated PHPDoc to include `Guest` in user type descriptions
+
+### Removed
+
+- **TODO-LIST.md** - Removed as functionality has been implemented and tracked via test suite
 
 ---
 
@@ -316,7 +388,8 @@ This is the first major feature-complete release of the Paymo API PHP library.
 
 ---
 
-[Unreleased]: https://github.com/jcolombo/paymo-api-php/compare/v0.5.7...HEAD
+[Unreleased]: https://github.com/jcolombo/paymo-api-php/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/jcolombo/paymo-api-php/compare/v0.5.7...v0.6.0
 [0.5.7]: https://github.com/jcolombo/paymo-api-php/compare/v0.5.6...v0.5.7
 [0.5.6]: https://github.com/jcolombo/paymo-api-php/compare/v0.5.5...v0.5.6
 [0.5.5]: https://github.com/jcolombo/paymo-api-php/compare/v0.5.4...v0.5.5
