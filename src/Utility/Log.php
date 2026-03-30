@@ -434,7 +434,7 @@ class Log
         $logPath = Configuration::get('path.logs');
         $this->log_file_path = $logPath ? $logPath.DIRECTORY_SEPARATOR.'paymo-api.log' : null;
         if ($this->log_file_path) {
-            $this->log_file = fopen($this->log_file_path, 'ab');
+            $this->log_file = @fopen($this->log_file_path, 'ab');
         }
         if (!$this->log_file) {
             $this->enabled = false;
