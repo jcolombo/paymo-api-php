@@ -61,7 +61,7 @@ use Jcolombo\PaymoApiPhp\Entity\Resource\Project;
 // Connect with your API key
 $paymo = Paymo::connect('YOUR_API_KEY');
 
-// Alternative: Username/password authentication (not recommended for production)
+// Alternative: Username/password authentication (API key recommended; see Session resource for token-based auth)
 $paymo = Paymo::connect(['username', 'password']);
 ```
 
@@ -290,6 +290,11 @@ Create a `paymoapi.config.json` file in your project root to customize behavior:
 | `log.connections` | bool | `false` | Log connection events |
 | `log.requests` | bool | `true` | Log API requests |
 | `devMode` | bool | `false` | Enable development mode validations |
+| `rateLimit.enabled` | bool | `true` | Enable automatic rate limiting |
+| `rateLimit.minDelayMs` | int | `200` | Minimum delay between requests (milliseconds) |
+| `rateLimit.safetyBuffer` | int | `1` | Start throttling when remaining requests drops to this level |
+| `rateLimit.maxRetries` | int | `3` | Maximum retries for 429 responses |
+| `rateLimit.retryDelayMs` | int | `1000` | Delay before retrying after a 429 response (milliseconds) |
 
 ---
 
@@ -521,7 +526,7 @@ do {
 
 ## Rate Limiting
 
-Paymo enforces API rate limits. The SDK includes a built-in 1-second delay between requests to help prevent hitting rate limits. For high-volume operations:
+Paymo enforces API rate limits. The SDK includes a built-in 200ms minimum delay between requests to help prevent hitting rate limits. For high-volume operations:
 
 1. **Enable caching** to reduce redundant API calls
 2. **Use `skipCache` sparingly** - only when you need fresh data

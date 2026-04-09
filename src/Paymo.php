@@ -74,7 +74,7 @@ define('PAYMO_DEVELOPMENT_MODE', true);
  * - Support for API key and username/password authentication
  * - Built-in request caching to reduce API calls
  * - Comprehensive request/response logging
- * - Automatic rate limiting (1-second delay between requests)
+ * - Automatic rate limiting (200ms minimum delay between requests, configurable)
  * - Guzzle HTTP client integration with proper error handling
  *
  * ## Basic Usage

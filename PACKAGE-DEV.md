@@ -1,7 +1,7 @@
 # Paymo API PHP SDK - Package Development Guide
 
 **Internal Development Documentation**
-Version: 0.5.7
+Version: 0.6.1
 Last Updated: December 2025
 
 ---
@@ -90,6 +90,10 @@ Each resource has its own documentation page:
 | Subtasks | https://github.com/paymoapp/api/blob/master/sections/subtasks.md |
 | Invoice Recurring Profiles | https://github.com/paymoapp/api/blob/master/sections/invoice_recurring_profiles.md |
 | Task Recurring Profiles | https://github.com/paymoapp/api/blob/master/sections/task_recurring_profiles.md |
+| Project Template Tasks | No official API documentation page (see OVERRIDE-008) |
+| Project Template Tasklists | No official API documentation page (see OVERRIDE-008) |
+| Estimate Template Gallery | No official API documentation page (see OVERRIDE-008) |
+| Invoice Template Gallery | No official API documentation page (see OVERRIDE-008) |
 
 ---
 
@@ -179,9 +183,9 @@ paymo-api-php/
 │   ├── Paymo.php                     # Main connection class
 │   ├── Request.php                   # HTTP request handler
 │   ├── Configuration.php             # Config management
-│   └── Cache.php                     # Caching system
+│   └── Cache/
+│       └── Cache.php                 # Caching system
 ├── default.paymoapi.config.json      # Default configuration
-├── TODO-LIST.md                      # Missing features tracker
 ├── PACKAGE-DEV.md                    # This file (development guide)
 └── composer.json                     # Package dependencies
 ```
@@ -425,18 +429,36 @@ GET /api/clients?select=id,name,additional_privileges
 - If a property is in BOTH UNSELECTABLE and READONLY, it cannot be set
 - If a property is ONLY in UNSELECTABLE (e.g., `subtasks_order`), it MAY be settable (write-only fields)
 
-**Current UNSELECTABLE resources:**
+**Current UNSELECTABLE resources (32 properties across 6 resources):**
 
-| Resource | Property | Also READONLY? | Notes |
-|----------|----------|----------------|-------|
-| Client | `additional_privileges` | Yes | Internal field |
-| User | `additional_privileges` | Yes | Internal field |
-| Task | `subtasks_order` | No | Write-only for reordering |
-| Milestone | `linked_tasklists` | No | Array of linked IDs |
-| Expense | `image_thumb_*` | Yes | Thumbnail URLs |
+| Resource | Properties | Count | Notes |
+|----------|-----------|-------|-------|
+| Client | `additional_privileges`, `image_thumb_large`, `image_thumb_medium`, `image_thumb_small` | 4 | Internal field + thumbnails (all READONLY) |
+| User | `additional_privileges`, `date_format`, `time_format`, `decimal_sep`, `thousands_sep`, `has_submitted_review`, `image_thumb_large`, `image_thumb_medium`, `image_thumb_small`, `is_online`, `language`, `theme`, `menu_shortcut`, `user_hash`, `annual_leave_days_number`, `password`, `workflows`, `week_start`, `assigned_projects`, `managed_projects` | 20 | Preferences, internal fields, thumbnails |
+| Task | `subtasks_order` | 1 | Write-only for reordering (NOT READONLY) |
+| Milestone | `linked_tasklists` | 1 | Array of linked IDs (NOT READONLY) |
+| Expense | `image_thumb_large`, `image_thumb_medium`, `image_thumb_small` | 3 | Thumbnail URLs (all READONLY) |
+| File | `image_thumb_large`, `image_thumb_medium`, `image_thumb_small` | 3 | Thumbnail URLs (all READONLY) |
 
 **@override OVERRIDE-013**
 **@see OVERRIDES.md#override-013**
+
+---
+
+### Filter-Only Properties
+
+Some properties exist in PROP_TYPES and READONLY but serve only as filter parameters in WHERE clauses. They are not returned in API responses and cannot be selected. The SDK handles these as regular READONLY properties with inline code comments noting their filter-only nature.
+
+**Known filter-only properties:**
+
+| Resource | Property | Purpose |
+|----------|----------|---------|
+| Booking | `project_id` | Filter bookings by project |
+| Booking | `task_id` | Filter bookings by task |
+| Booking | `date_interval` | Filter bookings by date range |
+| TimeEntry | `time_interval` | Filter time entries by time range |
+
+There is no dedicated constant for filter-only properties. They are identified by being in both PROP_TYPES and READONLY, with the distinction documented in inline code comments.
 
 ---
 
@@ -1065,7 +1087,7 @@ When modifying a PHP resource:
 
 ### Current Status
 
-The TypeScript definitions file currently only has `PaymoBooking` defined. **All other resources need TypeScript interfaces added.** This is tracked in `TODO-LIST.md`.
+The TypeScript definitions file currently only has `PaymoBooking` defined. **All other resources need TypeScript interfaces added.**
 
 ### Adding Missing Interfaces
 
@@ -1131,7 +1153,6 @@ When modifying an EXISTING resource:
 - [ ] Have I checked if the official docs have changed?
 - [ ] Am I only adding/changing things that match official docs?
 - [ ] Have I tested the change doesn't break existing functionality?
-- [ ] Have I updated `TODO-LIST.md` if fixing a known issue?
 - [ ] Have I updated TypeScript interface to match changes?
 - [ ] Have I checked for any new special behaviors?
 
@@ -1641,14 +1662,12 @@ grep -l "@override" src/Entity/Resource/*.php
 1. Test against the live API first
 2. Read the official API docs
 3. Check OVERRIDES.md for known deviations
-4. Check TODO-LIST.md for known issues
-5. Compare with similar existing resources in the package
+4. Compare with similar existing resources in the package
 
 ### Keeping Up To Date
 
 - Periodically check official API for changes
 - Run property discovery tests monthly
-- Update TODO-LIST.md when new features appear
 - Run verification tests after Paymo updates
 - Review and update OVERRIDES.md as needed
 

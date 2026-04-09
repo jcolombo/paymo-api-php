@@ -553,12 +553,12 @@ The official Paymo API docs OMIT these essential properties from object definiti
 - `InvoiceItem.invoice_id` - Not in API docs, but required to link items to invoices
 
 **Evidence:**
-Properties exist and work - verified via live API testing. TODO-LIST.md confirms these as verified properties (lines 279, 316).
+Properties exist and work - verified via live API testing.
 
 **SDK Implementation:**
 ```php
 // In EstimateItem.php and InvoiceItem.php PROP_TYPES
-// These properties ARE documented in TODO-LIST.md despite API doc gap
+// These properties are undocumented in official API docs but verified via live testing
 'estimate_id' => 'resource:estimate',
 'invoice_id'  => 'resource:invoice',
 ```
@@ -693,7 +693,7 @@ Property included for backwards compatibility despite deprecation. Placed in REA
 
 ### OVERRIDE-013: Unselectable Properties (API Query Restriction)
 
-**Affected Resources:** Client, User, Task, Milestone, Expense
+**Affected Resources:** Client, User, Task, Milestone, Expense, File
 **Type:** API Query Behavior
 **Discovery Date:** 2025-12-07
 **Status:** Active
@@ -701,17 +701,16 @@ Property included for backwards compatibility despite deprecation. Placed in REA
 **Issue:**
 Certain properties exist in API responses but **cannot be explicitly selected** via the `select` query parameter. Attempting to select these properties returns HTTP 400 "Unknown field or reference: {property}".
 
-**Affected Properties:**
+**Affected Properties (32 properties across 6 resources):**
 
-| Resource | Property | Notes |
-|----------|----------|-------|
-| Client | `additional_privileges` | Internal field, returned but not selectable |
-| User | `additional_privileges` | Internal field, returned but not selectable |
-| Task | `subtasks_order` | Write-only field for reordering subtasks |
-| Milestone | `linked_tasklists` | Array of linked tasklist IDs |
-| Expense | `image_thumb_large` | Thumbnail URL, conditionally returned |
-| Expense | `image_thumb_medium` | Thumbnail URL, conditionally returned |
-| Expense | `image_thumb_small` | Thumbnail URL, conditionally returned |
+| Resource | Properties | Count | Notes |
+|----------|-----------|-------|-------|
+| Client | `additional_privileges`, `image_thumb_large`, `image_thumb_medium`, `image_thumb_small` | 4 | Internal field + thumbnail URLs |
+| User | `additional_privileges`, `date_format`, `time_format`, `decimal_sep`, `thousands_sep`, `has_submitted_review`, `image_thumb_large`, `image_thumb_medium`, `image_thumb_small`, `is_online`, `language`, `theme`, `menu_shortcut`, `user_hash`, `annual_leave_days_number`, `password`, `workflows`, `week_start`, `assigned_projects`, `managed_projects` | 20 | Preferences, internal fields, thumbnails |
+| Task | `subtasks_order` | 1 | Write-only field for reordering subtasks |
+| Milestone | `linked_tasklists` | 1 | Array of linked tasklist IDs |
+| Expense | `image_thumb_large`, `image_thumb_medium`, `image_thumb_small` | 3 | Thumbnail URLs, conditionally returned |
+| File | `image_thumb_large`, `image_thumb_medium`, `image_thumb_small` | 3 | Thumbnail URLs, conditionally returned |
 
 **API Behavior:**
 ```bash
@@ -740,11 +739,11 @@ A new `UNSELECTABLE` constant is added to `AbstractResource` and affected resour
  */
 public const UNSELECTABLE = [];
 
-// In Client.php
-public const UNSELECTABLE = ['additional_privileges'];
+// In Client.php (4 properties)
+public const UNSELECTABLE = ['additional_privileges', 'image_thumb_large', 'image_thumb_medium', 'image_thumb_small'];
 
-// In User.php
-public const UNSELECTABLE = ['additional_privileges'];
+// In User.php (20 properties)
+public const UNSELECTABLE = ['additional_privileges', 'date_format', 'time_format', 'decimal_sep', 'thousands_sep', 'has_submitted_review', 'image_thumb_large', 'image_thumb_medium', 'image_thumb_small', 'is_online', 'language', 'theme', 'menu_shortcut', 'user_hash', 'annual_leave_days_number', 'password', 'workflows', 'week_start', 'assigned_projects', 'managed_projects'];
 
 // In Task.php
 public const UNSELECTABLE = ['subtasks_order'];
@@ -753,6 +752,9 @@ public const UNSELECTABLE = ['subtasks_order'];
 public const UNSELECTABLE = ['linked_tasklists'];
 
 // In Expense.php
+public const UNSELECTABLE = ['image_thumb_large', 'image_thumb_medium', 'image_thumb_small'];
+
+// In File.php
 public const UNSELECTABLE = ['image_thumb_large', 'image_thumb_medium', 'image_thumb_small'];
 ```
 

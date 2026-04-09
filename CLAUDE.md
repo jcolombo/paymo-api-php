@@ -280,6 +280,31 @@ use Jcolombo\PaymoApiPhp\Entity\Resource\Client;
 | Webhook | `Webhook` | `/hooks` |
 | Report | `Report` | `/reports` |
 | Company | `Company` | `/company` |
+| Session | `Session` | `/sessions` |
+| CommentThread | `CommentThread` | `/threads` |
+| ProjectStatus | `ProjectStatus` | `/projectstatuses` |
+
+### Template Resources
+
+| Resource | Class | API Endpoint |
+|----------|-------|--------------|
+| ProjectTemplate | `ProjectTemplate` | `/projecttemplates` |
+| InvoiceTemplate | `InvoiceTemplate` | `/invoicetemplates` |
+| EstimateTemplate | `EstimateTemplate` | `/estimatetemplates` |
+
+### Template Detail Resources
+
+| Resource | Class | API Endpoint |
+|----------|-------|--------------|
+| ProjectTemplateTask | `ProjectTemplateTask` | `/projecttemplatestasks` |
+| ProjectTemplateTasklist | `ProjectTemplateTasklist` | `/projecttemplatestasklists` |
+
+### Gallery Resources (Read-Only)
+
+| Resource | Class | API Endpoint |
+|----------|-------|--------------|
+| EstimateTemplateGallery | `EstimateTemplateGallery` | `/estimatetemplatesgallery` |
+| InvoiceTemplateGallery | `InvoiceTemplateGallery` | `/invoicetemplatesgallery` |
 
 ---
 
@@ -485,6 +510,18 @@ $project->delete();
 // Delete by ID
 Project::deleteById(12345);
 ```
+
+### CRUD Restrictions
+
+Not all resources support all CRUD operations. Attempting an unsupported operation throws a `RuntimeException`:
+
+| Resource | Supported Operations | Restricted Operations |
+|----------|---------------------|----------------------|
+| Company | `fetch()`, `update()` | `list()`, `create()`, `delete()` throw RuntimeException |
+| CommentThread | `fetch()`, `list()`, `delete()` | `create()` throws RuntimeException; `update()` not supported (all properties READONLY) |
+| Session | `fetch()`, `list()`, `create()`, `delete()` | `update()` throws RuntimeException |
+| EstimateTemplateGallery | `fetch()`, `list()` | `create()`, `update()`, `delete()` throw RuntimeException |
+| InvoiceTemplateGallery | `fetch()`, `list()` | `create()`, `update()`, `delete()` throw RuntimeException |
 
 ---
 
@@ -813,6 +850,7 @@ To understand a resource's capabilities, check these constants in the resource f
 | `REQUIRED_CREATE` | Properties required for `create()` |
 | `READONLY` | Properties that cannot be set |
 | `CREATEONLY` | Properties only settable on create |
+| `UNSELECTABLE` | Properties that cannot be explicitly selected (see OVERRIDES.md#override-013) |
 | `INCLUDE_TYPES` | Available relationships to include |
 | `WHERE_OPERATIONS` | Restricted operators for specific properties |
 
@@ -890,7 +928,7 @@ Examples:
 |------|---------|
 | `README.md` | User-facing documentation |
 | `PACKAGE-DEV.md` | Internal development guide |
-| `TODO-LIST.md` | Missing features and improvements |
+| `OVERRIDES.md` | API deviation documentation and undocumented features |
 | `CHANGELOG.md` | Version history |
 
 ---
@@ -989,7 +1027,7 @@ $task = Task::new()->set([
 8. **Check REQUIRED_CREATE** before creating resources to know required fields
 9. **Check PROP_TYPES** to know valid properties for a resource
 10. **Use includes efficiently** - only include what you need to reduce API calls
-11. **The SDK has rate limiting built in** (1-second delay between requests)
+11. **The SDK has rate limiting built in** (200ms minimum delay between requests, configurable via `rateLimit.minDelayMs` in config)
 12. **Dirty tracking** means only modified fields are sent on update()
 13. **Collections are iterable** - use foreach to process results
 14. **flatten()** converts resources to plain stdClass objects
@@ -997,11 +1035,27 @@ $task = Task::new()->set([
 16. **Collections are countable** - use `count($collection)` directly
 17. **Pagination is supported** - use `limit()` on collections (UNDOCUMENTED API FEATURE - see OVERRIDES.md#override-003)
 
+### UNSELECTABLE Properties
+
+18. **Some properties are UNSELECTABLE** — they appear in API responses but cannot be explicitly requested via field selection. Attempting to select them returns HTTP 400. Check each resource's `UNSELECTABLE` constant. Affected resources: Client (4 properties), User (20 properties), Task (1), Milestone (1), Expense (3), File (3). See `OVERRIDES.md#override-013` for the full list.
+
+### Filter-Only Properties
+
+19. **Four properties are valid in WHERE clauses but not returned in responses:** `Booking.project_id`, `Booking.task_id`, `Booking.date_interval`, `TimeEntry.time_interval`. These are in PROP_TYPES and READONLY but exist only as filter parameters.
+
+### Response Key Anomalies
+
+20. **Some resources use non-standard response keys** — ProjectTemplate, ProjectTemplateTask, ProjectTemplateTasklist, RecurringProfile, and the gallery resources have response keys that don't follow the standard convention. The SDK handles this automatically. See `OVERRIDES.md#override-009` and `OVERRIDES.md#override-010`.
+
+### Collection Parent Filter Requirements
+
+21. **Some collections require parent filters when listing** — `File` requires `project_id`, `Booking` requires a date range OR a user/task/project ID, `InvoiceItem` requires `invoice_id`, `EstimateItem` requires `estimate_id`. See `OVERRIDES.md#override-005`.
+
 ### Settings State
 
-15. **Connection settings are mutable at any time** - Changes take effect on next operation
-16. **Use `skipCache` option for one-off bypasses** - Doesn't modify connection state
-17. **No automatic settings reset** - If you change a setting, change it back when done if needed
+22. **Connection settings are mutable at any time** - Changes take effect on next operation
+23. **Use `skipCache` option for one-off bypasses** - Doesn't modify connection state
+24. **No automatic settings reset** - If you change a setting, change it back when done if needed
 
 ---
 
