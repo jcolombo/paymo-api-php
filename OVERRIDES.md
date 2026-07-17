@@ -429,6 +429,35 @@ The test framework will:
 
 ---
 
+### KNOWN-BUG-001: scrubInclude() Depth-4 Recursion Swaps Its Arguments
+
+**Resource:** All Entities (AbstractEntity)
+**Type:** SDK Bug (latent — no current caller hits it)
+**Discovery Date:** 2026-07-13 (found during Account Manager post-mortem corpus work)
+**Status:** Open — needs fix + unit test
+
+`AbstractEntity::scrubInclude()` (`src/Entity/AbstractEntity.php:739-808`) parses include
+paths with `explode('.', $i, 3)`. For include paths deeper than 3 segments the recursion calls:
+
+```php
+$deepIncludes = self::scrubInclude($parts[1], $parts[2]);
+```
+
+against the signature `scrubInclude($include, $entityKey)` — **the arguments are swapped**,
+and `$parts[1]` is a string where an array is expected (`array_unique()` on a string).
+Depth 4+ includes (e.g. `discussions.thread.comments.user`) are therefore broken code,
+not a deliberate ceiling.
+
+**Workaround (and the better design anyway):** fetch related entities separately and join
+locally by id — e.g. one `User::list()` map joined on `user_id` instead of embedding the
+same user objects hundreds of times through a deep include.
+
+**Fix sketch:** correct the argument order and pass the tail in the expected shape, or
+explicitly reject depth-4+ with a clear exception; either way add a unit test around
+`scrubInclude()` depth handling.
+
+---
+
 ## Discovered Undocumented Properties
 
 This section lists properties discovered through API testing that are not in the official documentation. These are automatically detected by the test suite when comparing API responses to documented PROP_TYPES.
