@@ -298,6 +298,11 @@ class Webhook extends AbstractResource
     public const EVENT_INVOICE_ALL = '*.Invoice';
 
     // Entry (TimeEntry) events
+    public const EVENT_EXPENSE_INSERT = 'model.insert.Expense';
+    public const EVENT_EXPENSE_UPDATE = 'model.update.Expense';
+    public const EVENT_EXPENSE_DELETE = 'model.delete.Expense';
+    public const EVENT_EXPENSE_ALL = '*.Expense';
+
     public const EVENT_ENTRY_INSERT = 'model.insert.Entry';
     public const EVENT_ENTRY_UPDATE = 'model.update.Entry';
     public const EVENT_ENTRY_DELETE = 'model.delete.Entry';

@@ -591,6 +591,15 @@ class Paymo
     $response->responseTime = $request_time;
     $response->result = null;
     $response->success = ($response->responseCode >= 200 && $response->responseCode <= 299);
+    if (!$response->success) {
+      // Consumers that act on emptiness (absence-deletes, watermarks, derived
+      // caches) check this telltale — a failed list must never read as an
+      // empty list. See Utility\RequestHealth.
+      \Jcolombo\PaymoApiPhp\Utility\RequestHealth::flagFailure(
+        is_int($response->responseCode) ? $response->responseCode : null,
+        is_string($response->responseReason ?? null) ? $response->responseReason : null
+      );
+    }
 
     Log::getLog()->log($this, Log::obj('RESPONSE_DONE', [
       'code'    => $response->responseCode,
