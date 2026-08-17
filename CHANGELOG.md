@@ -9,6 +9,49 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.7.0] - 2026-08-17
+
+### Added
+
+- **RequestHealth telltale** (`src/Utility/RequestHealth.php`) - Distinguishes a failed request from an
+  empty result set
+  - The SDK deliberately does not throw on HTTP failure: a 4xx/5xx/network error sets
+    `$response->body = null` and skips hydration, so at the application layer **a failed list is
+    indistinguishable from an empty list**. Consumers that treat "no rows" as meaningful
+    (absence-driven deletion, watermark advancement, derived-value computation) silently corrupt
+    state on any transient failure.
+  - `Paymo::...` request layer now raises the telltale on every non-2xx response.
+  - API: `RequestHealth::reset()`, `::failed()`, `::lastCode()`, `::lastReason()`,
+    `::assertHealthy($context)`.
+  - Usage — reset before a fetch whose emptiness you intend to act on, assert after:
+
+    ```php
+    RequestHealth::reset();
+    $rows = Task::list()->fetch(...)->flatten(['array' => true]);
+    RequestHealth::assertHealthy('task sync');
+    ```
+
+  - Process-scoped static state, dependency-free, cleared only by `reset()` — same pattern as
+    `RateLimiter`.
+- **Expense webhook events** (`src/Entity/Resource/Webhook.php`) - `EVENT_EXPENSE_INSERT`,
+  `EVENT_EXPENSE_UPDATE`, `EVENT_EXPENSE_DELETE`, `EVENT_EXPENSE_ALL`
+- **Local Paymo API documentation mirror** (`docs/api-documentation/`) - Full offline copy of the
+  official Paymo API docs (the hosted version is unreliable), plus `docs/documentation.md` and
+  `docs/gap-matrix.md` comparing SDK coverage against the documented API
+
+### Fixed
+
+- **Log file open no longer emits a PHP warning** (`src/Utility/Log.php`) - `fopen()` on an
+  inaccessible `path.logs` is now suppressed; logging silently disables itself as it already
+  intended to
+
+### Documentation
+
+- `OVERRIDES.md` - Documented the `scrubInclude()` depth-4 argument swap bug
+- `README.md`, `CLAUDE.md`, `PACKAGE-DEV.md` - Refreshed for the above
+
+---
+
 ## [0.6.1] - 2025-12-08
 
 ### Added
