@@ -373,15 +373,20 @@ class Log
             $content = $content ? 'true' : 'false';
         }
 
-        if ($this->log_file && ($content === '' || $content)) {
+        // is_resource: PHP closes stream resources during shutdown in an
+        // arbitrary order, so Paymo::__destruct()'s logKillConnection() can
+        // arrive here holding a stale handle. In PHP 8 that fwrite() is a
+        // fatal TypeError printed into the HTTP response body (corrupting a
+        // perfectly good JSON reply). Shutdown logging is best-effort only.
+        if (is_resource($this->log_file) && ($content === '' || $content)) {
             if (is_string($content) || is_numeric($content)) {
                 $c = (string)$content;
             } else {
                 $c = print_r($content, true);
             }
-            fwrite($this->log_file, $c);
+            @fwrite($this->log_file, $c);
             if ($addNewline) {
-                fwrite($this->log_file, "\n");
+                @fwrite($this->log_file, "\n");
             }
         }
     }
