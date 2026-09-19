@@ -675,14 +675,18 @@ class Paymo
     // Rate limit errors get special handling - less verbose output
     if ($code === 429) {
       Log::getLog()->log($this, "API_ERROR: Rate limit exceeded - {$reason}");
-      if (PAYMO_DEVELOPMENT_MODE) {
+      // CLI only: echoing inside a web request emits bytes BEFORE the
+      // application's own response ("headers already sent"), corrupting an
+      // API reply whose Paymo work may have succeeded. The Log line above
+      // is the record; stdout is a courtesy for terminal scripts alone.
+      if (PAYMO_DEVELOPMENT_MODE && PHP_SAPI === 'cli') {
         echo "[RATE LIMIT] {$reason}\n";
       }
       return;
     }
 
-    // Other errors in development mode
-    if (PAYMO_DEVELOPMENT_MODE) {
+    // Other errors in development mode - CLI only, same reason as above.
+    if (PAYMO_DEVELOPMENT_MODE && PHP_SAPI === 'cli') {
       echo "FAILED PAYMO RESPONSE (HTTP {$code})...\n";
       echo "Reason: {$reason}\n";
       if (!empty($response->headers)) {
